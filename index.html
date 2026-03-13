@@ -1354,6 +1354,11 @@ tr:hover td{background:#FBF9F7}
         <div class="ccard-field"><div class="ccard-field-label">Проект</div><div class="ccard-field-value" id="tv-project">—</div></div>
         <div class="ccard-field"><div class="ccard-field-label">Повторение</div><div class="ccard-field-value" id="tv-recurring">—</div></div>
       </div>
+      <!-- Описание задачи в просмотре -->
+      <div id="tv-notes-block" style="display:none;background:var(--cream);border-radius:8px;padding:10px 14px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Описание</div>
+        <div id="tv-notes-text" style="font-size:13px;line-height:1.6;white-space:pre-wrap"></div>
+      </div>
       <!-- Карточка кандидата в просмотре -->
       <div id="tv-candidate-block" style="display:none;background:var(--cream);border-radius:10px;padding:12px 16px;margin-bottom:16px;cursor:pointer" onclick="openTaskCandidateCard()">
         <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Кандидат</div>
@@ -1395,6 +1400,11 @@ tr:hover td{background:#FBF9F7}
             <option value="monthly">Каждый месяц</option>
           </select>
         </div>
+      </div>
+      <!-- Описание -->
+      <div class="form-group">
+        <label class="form-label">Описание задачи</label>
+        <textarea class="form-control" id="t-notes" rows="2" placeholder="Детали, ссылки, инструкции..."></textarea>
       </div>
       <!-- Кандидат -->
       <div class="form-group">
@@ -2309,6 +2319,8 @@ async function openTaskModal(existingTaskId) {
   document.getElementById('t-title').value = '';
   document.getElementById('t-due').value = '';
   document.getElementById('t-recurring').value = 'none';
+  const tNotesEl = document.getElementById('t-notes');
+  if(tNotesEl) tNotesEl.value = '';
   clearTaskCandidate();
   // Fill assignees
   const {data:members} = await sb.from('team_members').select('name').order('name');
@@ -2329,6 +2341,8 @@ async function openTaskModal(existingTaskId) {
       if(psel && t.project) psel.value = t.project;
       const timeEl = document.getElementById('t-time');
       if(timeEl) timeEl.value = t.time||'';
+      const notesEl = document.getElementById('t-notes');
+      if(notesEl) notesEl.value = t.notes||'';
       if(t.candidate_id && t.candidates) {
         const c = t.candidates;
         selectTaskCandidate(c.id, c.name, c.vacancies?.title||'');
@@ -2359,7 +2373,12 @@ async function openTaskView(taskId) {
   document.getElementById('tv-due').textContent = t.due_date ? fmtDate(t.due_date) : '—';
   const tvTime = document.getElementById('tv-time-input');
   if(tvTime) tvTime.value = t.time || '';
-  const tvTimeDisplay = document.getElementById('tv-time-display');
+  const tvNotesBlock = document.getElementById('tv-notes-block');
+  const tvNotesText = document.getElementById('tv-notes-text');
+  if(tvNotesBlock && tvNotesText) {
+    if(t.notes) { tvNotesText.textContent = t.notes; tvNotesBlock.style.display=''; }
+    else { tvNotesBlock.style.display='none'; }
+  }
   if(tvTimeDisplay) {
     if(t.time) { tvTimeDisplay.textContent = '🕐 ' + t.time; tvTimeDisplay.style.display=''; }
     else { tvTimeDisplay.style.display='none'; }
@@ -2993,7 +3012,8 @@ async function saveTask() {
     time: document.getElementById('t-time')?.value||null,
     project: document.getElementById('t-project').value||null,
     recurring: document.getElementById('t-recurring').value||'none',
-    candidate_id: document.getElementById('t-candidate-id')?.value||null
+    candidate_id: document.getElementById('t-candidate-id')?.value||null,
+    notes: document.getElementById('t-notes')?.value||null
   };
   let error;
   if(editId) {
@@ -3165,25 +3185,49 @@ async function openDaySchedule(dateStr) {
   const title = document.getElementById('day-schedule-title');
   const body = document.getElementById('day-schedule-body');
   if(!modal) return;
+  modal.dataset.dateStr = dateStr;
   title.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
   const statusColors = {new:'#E8EAF6,#3949AB',in_progress:'#FFF3E0,#E65100',done:'#E8F5E9,#2E7D32'};
   const statusLabels = {new:'Новая',in_progress:'В работе',done:'Выполнена'};
   if(!dayTasks||!dayTasks.length) {
     body.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted)"><div style="font-size:32px;margin-bottom:10px">📭</div><div>Задач на этот день нет</div></div>';
   } else {
-    body.innerHTML = dayTasks.map(t => {
+    // Sort by time
+    const sorted = [...dayTasks].sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+    body.innerHTML = sorted.map(t => {
       const sc = (statusColors[t.status]||'#F5F5F5,#333').split(',');
-      return `<div style="padding:12px 14px;border-bottom:1px solid var(--cream-dark);cursor:pointer" onclick="closeModal('day-schedule-modal');openTaskView('${t.id}')" onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="background:${sc[0]};color:${sc[1]};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0">${statusLabels[t.status]||t.status}</span>
-          <div style="font-weight:600;font-size:13px;flex:1">${t.title}</div>
+      const timeBlock = t.time
+        ? `<div style="min-width:56px;text-align:center;background:var(--burgundy);color:#fff;border-radius:7px;padding:7px 4px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.5px;flex-shrink:0;line-height:1">${t.time}</div>`
+        : `<div style="min-width:56px;flex-shrink:0" onclick="event.stopPropagation()">
+            <input type="time" style="width:56px;border:1px dashed var(--border);border-radius:6px;padding:4px 3px;font-size:11px;font-family:'Onest',sans-serif;cursor:pointer;text-align:center" title="Добавить время" onchange="setDayTaskTime('${t.id}',this.value)" />
+           </div>`;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--cream-dark);cursor:pointer" onclick="closeModal('day-schedule-modal');openTaskView('${t.id}')" onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
+        ${timeBlock}
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="background:${sc[0]};color:${sc[1]};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0">${statusLabels[t.status]||t.status}</span>
+            <div style="font-weight:600;font-size:13px">${t.title}</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">
+            ${t.assignee?`<span>👤 ${t.assignee}</span>`:''}
+            ${t.candidates?.name?`<span style="color:var(--burgundy);font-weight:600">🔗 ${t.candidates.name}</span>`:''}
+          </div>
         </div>
-        ${t.assignee?`<div style="font-size:11px;color:var(--text-muted);margin-top:4px">${t.assignee}</div>`:''}
-        ${t.candidates?.name?`<div style="font-size:11px;color:var(--burgundy);font-weight:600;margin-top:3px">👤 ${t.candidates.name}</div>`:''}
+        <span style="font-size:18px;color:var(--text-muted);flex-shrink:0">›</span>
       </div>`;
     }).join('');
   }
   openModal('day-schedule-modal');
+}
+
+async function setDayTaskTime(taskId, timeVal) {
+  if(!timeVal) return;
+  await sb.from('tasks').update({time: timeVal}).eq('id', taskId);
+  // Refresh the day schedule
+  const dateStr = document.getElementById('day-schedule-modal').dataset.dateStr;
+  if(dateStr) openDaySchedule(dateStr);
+  if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
+  toast('Время установлено ✓');
 }
 
 // Click on empty date — create new task
@@ -3533,10 +3577,21 @@ async function loadAdmin() {
   if(asel) asel.innerHTML = (vacs||[]).filter(v=>!['zaversheno','vozvrat'].includes(v.status)).map(v=>`<option value="${v.id}">${v.title}</option>`).join('');
 }
 
+let _logExpanded = false;
+let _lastLogData = [];
+
 function renderActivityLog(data) {
+  _lastLogData = data || [];
+  _logExpanded = false;
+  _renderLogRows();
+}
+
+function _renderLogRows() {
   const tbody = document.getElementById('admin-log-tbody');
+  const data = _lastLogData;
   if(!data||!data.length){ tbody.innerHTML='<tr><td colspan="4" class="empty">Нет активности</td></tr>'; return; }
-  tbody.innerHTML = data.slice(0,50).map(l => {
+  const shown = _logExpanded ? data.slice(0,50) : data.slice(0,5);
+  const makeRow = l => {
     const dt = new Date(l.created_at);
     const dateStr = dt.toLocaleDateString('ru-RU') + ' ' + dt.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
     const iconMap = {candidate:'👤', vacancy:'📋', task:'✔', request:'📄'};
@@ -3552,7 +3607,16 @@ function renderActivityLog(data) {
       <td style="font-size:13px">${l.action}</td>
       <td><span style="font-size:12px">${icon} ${l.entity_title||'—'}</span></td>
     </tr>`;
-  }).join('');
+  };
+  let rows = shown.map(makeRow).join('');
+  if(data.length > 5) {
+    rows += `<tr><td colspan="4" style="text-align:center;padding:10px">
+      <button class="btn btn-secondary" style="font-size:12px" onclick="_logExpanded=!_logExpanded;_renderLogRows()">
+        ${_logExpanded ? '▲ Свернуть' : '▼ Показать все (' + data.length + ')'} 
+      </button>
+    </td></tr>`;
+  }
+  tbody.innerHTML = rows;
 }
 
 function filterActivityLog() {
