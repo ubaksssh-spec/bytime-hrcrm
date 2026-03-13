@@ -1296,7 +1296,16 @@ tr:hover td{background:#FBF9F7}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
         <div class="ccard-field"><div class="ccard-field-label">Ответственный</div><div class="ccard-field-value" id="tv-assignee">—</div></div>
-        <div class="ccard-field"><div class="ccard-field-label">Срок</div><div class="ccard-field-value" id="tv-due">—</div></div>
+        <div class="ccard-field">
+          <div class="ccard-field-label">Срок</div>
+          <div class="ccard-field-value" id="tv-due">—</div>
+        </div>
+        <div class="ccard-field">
+          <div class="ccard-field-label">Время</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="time" id="tv-time-input" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;font-family:'Onest',sans-serif;width:120px" onchange="saveTaskTimeInline(this.value)" />
+          </div>
+        </div>
         <div class="ccard-field"><div class="ccard-field-label">Проект</div><div class="ccard-field-value" id="tv-project">—</div></div>
         <div class="ccard-field"><div class="ccard-field-label">Повторение</div><div class="ccard-field-value" id="tv-recurring">—</div></div>
       </div>
@@ -1770,7 +1779,7 @@ function nav(id) {
   if(id==='tasks') loadTasks();
   if(id==='requests') loadRequests();
   if(id==='hired') loadHired();
-  if(id==='admin') loadAdmin();
+  if(id==='admin') { loadAdmin(); cleanupOrphanRecruiters(); }
   if(id==='clients') loadClients();
 }
 
@@ -2267,6 +2276,8 @@ async function openTaskModal(existingTaskId) {
       document.getElementById('t-recurring').value = t.recurring||'none';
       if(asel && t.assignee) asel.value = t.assignee;
       if(psel && t.project) psel.value = t.project;
+      const timeEl = document.getElementById('t-time');
+      if(timeEl) timeEl.value = t.time||'';
       if(t.candidate_id && t.candidates) {
         const c = t.candidates;
         selectTaskCandidate(c.id, c.name, c.vacancies?.title||'');
@@ -2295,6 +2306,8 @@ async function openTaskView(taskId) {
   document.getElementById('tv-status-badge').innerHTML = `<span style="background:${sc[0]};color:${sc[1]};padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700">${statusLabels[t.status]||t.status}</span>`;
   document.getElementById('tv-assignee').textContent = t.assignee||'—';
   document.getElementById('tv-due').textContent = t.due_date ? fmtDate(t.due_date) : '—';
+  const tvTime = document.getElementById('tv-time-input');
+  if(tvTime) tvTime.value = t.time || '';
   document.getElementById('tv-project').textContent = t.project||'—';
   document.getElementById('tv-recurring').textContent = recurringLabels[t.recurring||'none']||'—';
 
@@ -2316,6 +2329,14 @@ async function openTaskView(taskId) {
   openModal('task-modal');
 }
 
+async function saveTaskTimeInline(timeVal) {
+  const id = document.getElementById('t-edit-id').value;
+  if(!id) return;
+  await sb.from('tasks').update({time: timeVal||null}).eq('id', id);
+  toast('Время сохранено ✓');
+  if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
+}
+
 async function deleteTaskFromView() {
   const id = document.getElementById('t-edit-id').value;
   if(!id) return;
@@ -2327,10 +2348,10 @@ async function deleteTaskFromView() {
   if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
 }
 
-function switchTaskToEdit() {
+async function switchTaskToEdit() {
   const taskId = document.getElementById('t-edit-id').value;
   document.getElementById('task-view-mode').style.display = 'none';
-  openTaskModal(taskId);
+  await openTaskModal(taskId);
 }
 
 function openTaskCandidateCard() {
@@ -2901,21 +2922,28 @@ async function saveCandidate() {
 async function saveTask() {
   const title = document.getElementById('t-title').value.trim();
   if(!title){ alert('Введите название задачи'); return; }
+  const editId = document.getElementById('t-edit-id').value;
   const assignee = document.getElementById('t-assignee').value||null;
   const payload = {
     title,
     assignee,
     due_date: document.getElementById('t-due').value||null,
+    time: document.getElementById('t-time')?.value||null,
     project: document.getElementById('t-project').value||null,
     recurring: document.getElementById('t-recurring').value||'none',
     candidate_id: document.getElementById('t-candidate-id')?.value||null
   };
-  const {error} = await sb.from('tasks').insert(payload);
+  let error;
+  if(editId) {
+    ({error} = await sb.from('tasks').update(payload).eq('id', editId));
+  } else {
+    ({error} = await sb.from('tasks').insert(payload));
+    logActivity(assignee||'HR', 'Добавила задачу', 'task', title);
+  }
   if(error){ alert('Ошибка: '+error.message); return; }
   closeModal('task-modal');
-  logActivity(assignee||'HR', 'Добавила задачу', 'task', title);
   document.getElementById('t-title').value='';
-  toast('Задача добавлена ✓');
+  toast(editId ? 'Задача обновлена ✓' : 'Задача добавлена ✓');
   loadTasks();
   if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
 }
@@ -3029,7 +3057,7 @@ async function renderCalendar() {
     dayTasks.slice(0, 3).forEach(t => {
       const dot = document.createElement('div');
       dot.style.cssText = `margin-top:2px;padding:2px 5px;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'};border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;`;
-      dot.textContent = t.title;
+      dot.textContent = (t.time ? t.time + ' ' : '') + t.title;
       dot.onclick = (e) => { e.stopPropagation(); openTaskView(t.id); };
       cell.appendChild(dot);
     });
@@ -4061,9 +4089,15 @@ async function openProfileModal() {
   if(member) { currentUser = {...currentUser, ...member}; }
 
   // Render header
-  const fullName = currentUser.full_name || currentUser.name || '—';
-  const ini = fullName.split(' ').filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
+  // full_name only used if it's a real non-empty value (not null/undefined/'—')
+  const fullName = (currentUser.full_name && currentUser.full_name.trim() && currentUser.full_name !== '—')
+    ? currentUser.full_name
+    : (currentUser.name && currentUser.name.trim() ? currentUser.name : currentUser.email?.split('@')[0] || '—');
+  const ini = fullName.split(' ').filter(w=>w&&w!=='—').map(w=>w[0]).join('').slice(0,2).toUpperCase() || '?';
   document.getElementById('profile-avatar-initials').textContent = ini;
+  // Also sync the topbar avatar
+  const taEl = document.getElementById('topbar-avatar');
+  if(taEl && !currentUser.photo_url) taEl.textContent = ini;
 
   // Photo
   const photoImg = document.getElementById('profile-photo-img');
@@ -4220,6 +4254,22 @@ async function updateMemberGrade(memberId, grade) {
 }
 
 // ============ КОНЕЦ ПРОФИЛЯ ============
+
+// Auto-cleanup orphan recruiter "Елена Р." on admin load
+async function cleanupOrphanRecruiters() {
+  if(currentUser?.role !== 'admin') return;
+  const {data:members} = await sb.from('team_members').select('name');
+  if(!members) return;
+  const memberNames = members.map(m=>m.name);
+  // Get all unique recruiter names in vacancies
+  const {data:vacs} = await sb.from('vacancies').select('id,recruiter').not('recruiter','is',null);
+  if(!vacs) return;
+  const orphans = vacs.filter(v => v.recruiter && !memberNames.includes(v.recruiter));
+  if(orphans.length) {
+    const ids = orphans.map(v=>v.id);
+    await sb.from('vacancies').update({recruiter: null}).in('id', ids);
+  }
+}
 
 // ============ ПОЛЬЗОВАТЕЛИ ============
 async function loadMembers() {
