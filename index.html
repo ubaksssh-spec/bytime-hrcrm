@@ -921,6 +921,22 @@ tr:hover td{background:#FBF9F7}
       <div class="stat-card"><div class="stat-label">Дата создания</div><div style="font-weight:600;font-size:14px;margin-top:4px" id="vv-date">—</div></div>
     </div>
 
+    <!-- Клиент вакансии -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Клиент</div>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--cream);border-radius:8px">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0" id="vv-client-avatar">—</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px" id="vv-client-name">Не привязан</div>
+          <div style="font-size:11px;color:var(--text-muted)" id="vv-client-meta"></div>
+        </div>
+        <select id="vv-client-select" class="form-control" style="width:auto;font-size:12px;max-width:200px" onchange="onVacClientChange(this)">
+          <option value="">— выбрать клиента —</option>
+        </select>
+        <button id="vv-client-open-btn" class="btn btn-secondary" style="font-size:11px;padding:4px 10px;white-space:nowrap;display:none" onclick="openClientFromVacancy()">Открыть →</button>
+      </div>
+    </div>
+
     <!-- Статусы и детализация -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div class="form-group" style="margin-bottom:0">
@@ -1639,7 +1655,7 @@ tr:hover td{background:#FBF9F7}
 
 <!-- Клиент — форма -->
 <div class="modal-overlay" id="client-modal">
-  <div class="modal" style="width:580px">
+  <div class="modal" style="width:640px;max-height:90vh">
     <div class="modal-title" id="client-modal-title">Новый клиент</div>
     <input type="hidden" id="cl-edit-id" value="" />
     <div class="form-row">
@@ -1661,7 +1677,7 @@ tr:hover td{background:#FBF9F7}
     <div class="form-group"><label class="form-label">Комментарий</label><textarea class="form-control" id="cl-comment" rows="2" placeholder="Заметки по клиенту..."></textarea></div>
     <!-- Вакансии клиента -->
     <div id="cl-vacancies-block" style="display:none;margin-bottom:8px">
-      <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Вакансии клиента</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Вакансии клиента</div><span id="cl-vac-count" style="font-size:11px;color:var(--text-muted)"></span></div>
       <div id="cl-vacancies-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
     </div>
     <div class="modal-footer">
@@ -5602,14 +5618,12 @@ async function assignPickedCandidate(candidateId, name) {
 
 // ============ КЛИЕНТ ↔ ВАКАНСИЯ ============
 async function loadVacancyClientBlock(vacProject) {
-  // Populate client select
   const {data:clients} = await sb.from('clients').select('id,internal_name,legal_name,lpr_name').order('internal_name');
   const sel = document.getElementById('vv-client-select');
   if(sel && clients) {
     sel.innerHTML = '<option value="">— выбрать клиента —</option>' +
       clients.map(c=>`<option value="${c.id}" data-name="${c.internal_name}" ${c.internal_name===vacProject?'selected':''}>${c.internal_name}</option>`).join('');
   }
-  // Show current client info
   if(vacProject && clients) {
     const client = clients.find(c=>c.internal_name===vacProject);
     if(client) {
@@ -5617,21 +5631,29 @@ async function loadVacancyClientBlock(vacProject) {
       document.getElementById('vv-client-avatar').textContent = ini;
       document.getElementById('vv-client-name').textContent = client.internal_name;
       document.getElementById('vv-client-meta').textContent = [client.legal_name, client.lpr_name].filter(Boolean).join(' · ');
+      const openBtn = document.getElementById('vv-client-open-btn');
+      if(openBtn) openBtn.style.display = '';
     }
   }
 }
 
-function updateVacancyClientDisplay(sel) {
+function onVacClientChange(sel) {
   const opt = sel.options[sel.selectedIndex];
   const name = opt.dataset.name || '';
+  saveVacancyField('project', name || null);
   if(name) {
     const ini = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     document.getElementById('vv-client-avatar').textContent = ini;
     document.getElementById('vv-client-name').textContent = name;
     document.getElementById('vv-client-meta').textContent = '';
+    const openBtn = document.getElementById('vv-client-open-btn');
+    if(openBtn) openBtn.style.display = '';
+    document.getElementById('vv-project').textContent = name;
   } else {
     document.getElementById('vv-client-avatar').textContent = '—';
     document.getElementById('vv-client-name').textContent = 'Не привязан';
+    const openBtn = document.getElementById('vv-client-open-btn');
+    if(openBtn) openBtn.style.display = 'none';
   }
 }
 
@@ -5651,8 +5673,16 @@ async function loadClientVacancies(clientName) {
   const list = document.getElementById('cl-vacancies-list');
   if(!block || !list) return;
   const {data:vacs} = await sb.from('vacancies').select('id,title,status,recruiter').eq('project', clientName).order('created_at',{ascending:false});
-  if(!vacs || !vacs.length) { block.style.display='none'; return; }
   block.style.display = '';
+  if(!vacs || !vacs.length) {
+    list.innerHTML = `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">
+      Нет вакансий по этому клиенту
+      <div style="margin-top:10px">
+        <button class="btn btn-primary" style="font-size:12px" onclick="closeModal('client-modal');openAdminVacancyModal()">+ Создать вакансию</button>
+      </div>
+    </div>`;
+    return;
+  }
   list.innerHTML = vacs.map(v => `
     <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--cream-dark);cursor:pointer" onclick="closeModal('client-modal');openVacancyCard('${v.id}')" onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
       <span class="badge ${statusClass(v.status)}" style="font-size:10px;flex-shrink:0">${statusLabel(v.status)}</span>
