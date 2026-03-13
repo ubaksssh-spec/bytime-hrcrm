@@ -1831,6 +1831,8 @@ function nav(id) {
   const n = document.getElementById('nav-'+id);
   if(n) n.classList.add('active');
   document.getElementById('breadcrumb').textContent = names[id]||id;
+  // Save last page
+  localStorage.setItem('bytime_last_page', id);
   if(id==='hire') { loadVacancies(); loadStats(); loadCandidates(); }
   if(id==='database') { loadDatabase(); }
   if(id==='closed') loadClosed();
@@ -5960,7 +5962,15 @@ async function doLogin() {
   const {data: {session}} = await sb.auth.getSession();
   if(session) {
     document.getElementById('login-screen').style.display = 'none';
-    loadVacancies(); loadStats(); loadCandidates();
+    await loadUserProfile();
+    // Restore last page
+    const lastPage = localStorage.getItem('bytime_last_page');
+    const validPage = lastPage && document.getElementById('page-'+lastPage);
+    if(validPage) {
+      nav(lastPage);
+    } else {
+      loadVacancies(); loadStats(); loadCandidates();
+    }
     setTimeout(updateUnreadCounter, 2000);
     setInterval(updateUnreadCounter, 60000);
   }
