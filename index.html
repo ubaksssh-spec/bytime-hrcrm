@@ -5963,18 +5963,18 @@ async function doLogin() {
   if(session) {
     document.getElementById('login-screen').style.display = 'none';
     await loadUserProfile();
-    // Restore last page
-    const lastPage = localStorage.getItem('bytime_last_page');
-    const validPage = lastPage && document.getElementById('page-'+lastPage);
-    if(validPage) {
-      nav(lastPage);
-    } else {
-      loadVacancies(); loadStats(); loadCandidates();
-    }
+    setTimeout(() => {
+      const lastPage = localStorage.getItem('bytime_last_page');
+      const validPages = ['hire','database','closed','messages','calendar','analytics','tasks','requests','hired','clients','admin','settings'];
+      if(lastPage && validPages.includes(lastPage)) {
+        nav(lastPage);
+      } else {
+        loadVacancies(); loadStats(); loadCandidates();
+      }
+    }, 100);
     setTimeout(updateUnreadCounter, 2000);
     setInterval(updateUnreadCounter, 60000);
   }
-  // else login screen stays visible
 })();
 
 </script>
