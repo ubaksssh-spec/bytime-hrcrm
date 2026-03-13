@@ -638,7 +638,7 @@ tr:hover td{background:#FBF9F7}
           <div style="display:flex;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden;margin-left:auto">
             <button style="padding:6px 16px;font-size:13px;cursor:pointer;border:none;background:var(--burgundy,#5C0A2A);color:#fff">Месяц</button>
           </div>
-          <button class="btn btn-primary" onclick="openCalEventModal()" style="margin-left:8px">+ Событие</button>
+          <button class="btn btn-primary" onclick="openNewTaskForDate()" style="margin-left:8px">+ Событие</button>
         </div>
         <div class="cal-grid">
           <div class="cal-head">
@@ -665,21 +665,33 @@ tr:hover td{background:#FBF9F7}
 
       <!-- ЗАДАЧИ -->
       <div class="page" id="page-tasks">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div class="page-title" style="margin-bottom:0">Задачи</div>
           <button class="btn btn-primary" onclick="openTaskModal()">+ Задача</button>
         </div>
+        <!-- Фильтры -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+          <div style="display:flex;gap:4px;background:var(--cream);border-radius:8px;padding:4px">
+            <button id="tf-all" class="btn btn-primary" style="font-size:12px;padding:4px 14px" onclick="setTaskFilter('all')">Все</button>
+            <button id="tf-today" class="btn btn-secondary" style="font-size:12px;padding:4px 14px" onclick="setTaskFilter('today')">Сегодня</button>
+            <button id="tf-week" class="btn btn-secondary" style="font-size:12px;padding:4px 14px" onclick="setTaskFilter('week')">На неделе</button>
+            <button id="tf-overdue" class="btn btn-secondary" style="font-size:12px;padding:4px 14px;color:#C62828" onclick="setTaskFilter('overdue')">Просроченные</button>
+          </div>
+          <select id="tf-assignee" class="form-control" style="width:180px;font-size:12px" onchange="loadTasks()" id="tf-assignee">
+            <option value="">Все сотрудники</option>
+          </select>
+        </div>
         <div class="tasks-grid">
           <div class="task-col">
-            <div class="task-col-head"><div class="task-col-icon" style="background:var(--burgundy,#5C0A2A)">▶</div>Новые задачи</div>
+            <div class="task-col-head"><div class="task-col-icon" style="background:var(--burgundy,#5C0A2A)">▶</div>Новые <span id="tc-new-count" style="font-size:11px;font-weight:400;color:var(--text-muted)"></span></div>
             <div class="task-col-body" id="tasks-new"><div class="empty">Нет задач</div></div>
           </div>
           <div class="task-col">
-            <div class="task-col-head"><div class="task-col-icon" style="background:var(--gold,#B8935A)">▶</div>В работе</div>
+            <div class="task-col-head"><div class="task-col-icon" style="background:var(--gold,#B8935A)">▶</div>В работе <span id="tc-progress-count" style="font-size:11px;font-weight:400;color:var(--text-muted)"></span></div>
             <div class="task-col-body" id="tasks-inprogress"><div class="empty">Нет задач</div></div>
           </div>
           <div class="task-col">
-            <div class="task-col-head"><div class="task-col-icon" style="background:var(--green,#004D35)">✓</div>Выполненные</div>
+            <div class="task-col-head"><div class="task-col-icon" style="background:var(--green,#004D35)">✓</div>Выполненные <span id="tc-done-count" style="font-size:11px;font-weight:400;color:var(--text-muted)"></span></div>
             <div class="task-col-body" id="tasks-done"><div class="empty">Нет задач</div></div>
           </div>
         </div>
@@ -1025,6 +1037,7 @@ tr:hover td{background:#FBF9F7}
 
     <div class="modal-footer" style="padding-top:14px">
       <button class="btn btn-secondary" onclick="closeModal('vacancy-view-modal')">Закрыть</button>
+      <button class="btn btn-primary" onclick="saveAllVacancyFields()">💾 Сохранить</button>
     </div>
   </div>
 </div>
@@ -2329,12 +2342,61 @@ function openTaskCandidateCard() {
 
 const recurringLabel = {none:'',daily:'🔁 Ежедневно',weekly:'🔁 Еженедельно',monthly:'🔁 Ежемесячно'};
 
+let _taskFilter = 'all';
+
+function setTaskFilter(f) {
+  _taskFilter = f;
+  ['all','today','week','overdue'].forEach(id => {
+    const btn = document.getElementById('tf-'+id);
+    if(!btn) return;
+    btn.className = id===f ? 'btn btn-primary' : 'btn btn-secondary';
+    if(id==='overdue') btn.style.color = id===f ? '#fff' : '#C62828';
+  });
+  loadTasks();
+}
+
 async function loadTasks() {
-  const {data} = await sb.from('tasks').select('*').order('created_at',{ascending:false});
+  // Populate assignee filter for admin
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'project';
+  const tfSel = document.getElementById('tf-assignee');
+  if(isAdmin && tfSel && tfSel.options.length <= 1) {
+    const {data:members} = await sb.from('team_members').select('name').order('name');
+    if(members) tfSel.innerHTML = '<option value="">Все сотрудники</option>' + members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  }
+  if(!isAdmin && tfSel) tfSel.parentElement.style.display = 'none';
+
+  let q = sb.from('tasks').select('*').order('due_date',{ascending:true});
+
+  // Assignee filter
+  const assigneeFilter = tfSel?.value || '';
+  if(assigneeFilter) {
+    q = q.eq('assignee', assigneeFilter);
+  } else if(!isAdmin && currentUser?.name) {
+    q = q.eq('assignee', currentUser.name);
+  }
+
+  // Date filter
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7);
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+  if(_taskFilter === 'today') {
+    q = q.eq('due_date', todayStr);
+  } else if(_taskFilter === 'week') {
+    q = q.gte('due_date', todayStr).lte('due_date', weekEndStr);
+  } else if(_taskFilter === 'overdue') {
+    q = q.lt('due_date', todayStr).neq('status', 'done');
+  }
+
+  const {data} = await q;
+
   const colMap = {new:'tasksnew',in_progress:'tasksinprogress',done:'tasksdone'};
   ['new','in_progress','done'].forEach(s => {
     const el = document.getElementById('tasks-'+s.replace('_',''));
+    const countEl = document.getElementById('tc-'+s.replace('_','-').replace('in-progress','progress')+'-count');
     const filtered = (data||[]).filter(t=>t.status===s);
+    if(countEl) countEl.textContent = filtered.length ? `(${filtered.length})` : '';
     if(!filtered.length){ el.innerHTML='<div class="empty">Нет задач</div>'; return; }
     el.innerHTML = filtered.map(t=>`
       <div class="task-card"
@@ -5112,6 +5174,34 @@ async function closeVacancyFromModal() {
   toast('Вакансия завершена');
   loadVacancies(); loadStats();
 }
+async function saveAllVacancyFields() {
+  if(!_currentVacancyId) return;
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'project';
+  const update = {
+    status: document.getElementById('vv-status-select')?.value || null,
+    detail_status: document.getElementById('vv-detail-status')?.value || null,
+    guarantee_days: document.getElementById('vv-guarantee')?.value || null,
+    grade: document.getElementById('vv-grade')?.value || null,
+    headcount_needed: parseInt(document.getElementById('vv-headcount')?.value) || 1,
+    start_date: document.getElementById('vv-start-date')?.value || null,
+    exit_date: document.getElementById('vv-exit-date')?.value || null,
+    hr_comment: document.getElementById('vv-hr-comment')?.value || null,
+    doc_contract: document.getElementById('vv-doc-contract')?.checked || false,
+    doc_act: document.getElementById('vv-doc-act')?.checked || false,
+  };
+  if(isAdmin) {
+    update.contract_sum = parseFloat(document.getElementById('vv-contract-sum')?.value) || null;
+    update.expenses = parseFloat(document.getElementById('vv-expenses')?.value) || null;
+    update.hr_reward = parseFloat(document.getElementById('vv-hr-reward-input')?.value) || null;
+    update.admin_comment = document.getElementById('vv-admin-comment-input')?.value || null;
+  }
+  const {error} = await sb.from('vacancies').update(update).eq('id', _currentVacancyId);
+  if(error) { toast('Ошибка: ' + error.message); return; }
+  toast('Вакансия сохранена ✓');
+  loadVacancies(); loadStats();
+  if(document.getElementById('page-admin')?.classList.contains('active')) loadAdmin();
+}
+
 // ============ КОНЕЦ КАРТОЧКИ ВАКАНСИИ ============
 
 // ============ КОМАНДА (внутренние сообщения) ============
