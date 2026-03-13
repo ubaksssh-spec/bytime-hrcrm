@@ -746,7 +746,7 @@ tr:hover td{background:#FBF9F7}
             <button class="btn btn-secondary" onclick="openOrgChartModal()">🏢 Структура отдела</button>
             <button class="btn btn-gold" onclick="openFinanceModal()">💰 Финансы</button>
             <button class="btn btn-secondary" onclick="openAdminVacancyModal()">+ Вакансия</button>
-            <button class="btn btn-primary" onclick="openModal('assign-modal')">Назначить вакансию</button>
+            
           </div>
         </div>
 
@@ -824,10 +824,25 @@ tr:hover td{background:#FBF9F7}
 
         <!-- НАЗНАЧЕННЫЕ ВАКАНСИИ -->
         <div style="margin-bottom:28px">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy);margin-bottom:14px">Вакансии по HR</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy)">Вакансии по HR</div>
+          </div>
+          <!-- Bulk bar -->
+          <div id="admin-vac-bulk-bar" style="display:none;background:var(--burgundy);color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:12px;align-items:center;gap:16px;flex-wrap:wrap">
+            <span id="admin-vac-bulk-count" style="font-weight:600;font-size:13px">0 выбрано</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <select id="admin-vac-bulk-hr" style="padding:5px 10px;border-radius:6px;font-size:12px;border:none;min-width:160px">
+                <option value="">— Назначить HR —</option>
+              </select>
+              <button class="btn" style="background:#fff;color:var(--burgundy);font-size:12px;padding:4px 12px;font-weight:700" onclick="bulkAssignHR()">Назначить</button>
+              <button class="btn" style="background:#C62828;color:#fff;font-size:12px;padding:4px 12px;font-weight:700" onclick="bulkDeleteVacancies()">🗑 Удалить выбранные</button>
+              <button class="btn" style="background:rgba(255,255,255,0.2);color:#fff;font-size:12px;padding:4px 10px" onclick="clearAdminVacSelection()">✕</button>
+            </div>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr>
+                <th style="width:32px"><input type="checkbox" id="admin-vac-check-all" onchange="toggleAllAdminVacs(this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--burgundy)" /></th>
                 <th>Вакансия</th>
                 <th>HR</th>
                 <th>Статус</th>
@@ -1001,6 +1016,20 @@ tr:hover td{background:#FBF9F7}
       </div>
     </div>
 
+    <!-- Описание вакансии -->
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Описание вакансии</label>
+      <textarea class="form-control" id="vv-description" rows="4" placeholder="Требования, задачи, условия работы..." onchange="saveVacancyField('description',this.value)"></textarea>
+    </div>
+    <!-- Портрет кандидата -->
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Ссылка на портрет кандидата</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-control" id="vv-portrait-url" placeholder="https://..." onchange="saveVacancyField('portrait_url',this.value)" style="flex:1" />
+        <button id="vv-portrait-open-btn" class="btn btn-secondary" style="font-size:12px;white-space:nowrap;display:none" onclick="window.open(document.getElementById('vv-portrait-url').value,'_blank')">Открыть →</button>
+      </div>
+    </div>
+
     <!-- Комментарии -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div class="form-group" style="margin-bottom:0">
@@ -1042,6 +1071,7 @@ tr:hover td{background:#FBF9F7}
     </div>
 
     <div class="modal-footer" style="padding-top:14px">
+      <button class="btn btn-danger" onclick="deleteVacancyFromCard()" style="margin-right:auto">🗑 Удалить вакансию</button>
       <button class="btn btn-secondary" onclick="closeModal('vacancy-view-modal')">Закрыть</button>
       <button class="btn btn-primary" onclick="saveAllVacancyFields()">💾 Сохранить</button>
     </div>
@@ -1090,6 +1120,14 @@ tr:hover td{background:#FBF9F7}
           <option value="refund">Возврат</option>
         </select>
       </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ссылка на портрет кандидата</label>
+      <input class="form-control" id="v-portrait-url" placeholder="https://docs.google.com/... или любая ссылка" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Комментарий к вакансии</label>
+      <textarea class="form-control" id="v-comment" rows="2" placeholder="Особые требования, пожелания клиента..."></textarea>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('vacancy-modal')">Отмена</button>
@@ -1611,6 +1649,11 @@ tr:hover td{background:#FBF9F7}
       </select>
     </div>
     <div class="form-group"><label class="form-label">Комментарий</label><textarea class="form-control" id="cl-comment" rows="2" placeholder="Заметки по клиенту..."></textarea></div>
+    <!-- Вакансии клиента -->
+    <div id="cl-vacancies-block" style="display:none;margin-bottom:8px">
+      <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Вакансии клиента</div>
+      <div id="cl-vacancies-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('client-modal')">Отмена</button>
       <button class="btn btn-primary" onclick="saveClient()">Сохранить</button>
@@ -1629,13 +1672,14 @@ tr:hover td{background:#FBF9F7}
     <!-- Шапка профиля -->
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:var(--cream);border-radius:10px">
       <!-- Аватар / фото -->
-      <div style="position:relative;flex-shrink:0">
-        <div id="profile-avatar" style="width:64px;height:64px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;overflow:hidden">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0">
+        <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0">
           <img id="profile-photo-img" style="display:none;width:100%;height:100%;object-fit:cover" />
           <span id="profile-avatar-initials"></span>
         </div>
-        <label style="position:absolute;bottom:-4px;right:-4px;background:var(--burgundy);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px" title="Изменить фото">
-          📷<input type="file" accept="image/*" style="display:none" onchange="uploadProfilePhoto(this)" />
+        <label style="cursor:pointer;font-size:11px;font-weight:600;color:var(--burgundy);text-decoration:underline;white-space:nowrap">
+          📷 Изменить фото
+          <input type="file" accept="image/*" style="display:none" onchange="uploadProfilePhoto(this)" id="profile-photo-input" />
         </label>
       </div>
       <div style="flex:1">
@@ -2846,7 +2890,9 @@ async function saveVacancy() {
     project: document.getElementById('v-project').value||'BYTIME',
     status: document.getElementById('v-vac-status')?.value||'na_starte',
     headcount_needed: parseInt(document.getElementById('v-headcount').value)||1,
-    detail_status: document.getElementById('v-detail-status')?.value||null
+    detail_status: document.getElementById('v-detail-status')?.value||null,
+    portrait_url: document.getElementById('v-portrait-url')?.value||null,
+    admin_comment: document.getElementById('v-comment')?.value||null
   }).select('id').single();
   if(error){ alert('Ошибка: '+error.message); return; }
   closeModal('vacancy-modal');
@@ -2889,6 +2935,10 @@ async function openAdminVacancyModal() {
   if(statusEl) statusEl.value='na_starte';
   const dsSel = document.getElementById('v-detail-status');
   if(dsSel) dsSel.value='';
+  const portraitEl = document.getElementById('v-portrait-url');
+  if(portraitEl) portraitEl.value='';
+  const commentEl = document.getElementById('v-comment');
+  if(commentEl) commentEl.value='';
   openModal('vacancy-modal');
 }
 
@@ -3012,7 +3062,7 @@ async function renderCalendar() {
     const monthStart = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
     const monthEnd   = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${new Date(calYear, calMonth+1, 0).getDate()}`;
     const {data} = await sb.from('tasks').select('*').gte('due_date', monthStart).lte('due_date', monthEnd);
-    calTasks = data || [];
+    calTasks = (data || []).sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
   } catch(e) { calTasks = []; }
 
   const today = new Date();
@@ -3440,6 +3490,7 @@ async function loadAdmin() {
       const dBadge = dColors ? `<span style="background:${dColors[0]};color:${dColors[1]};padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap">${dLabel}</span>` : `<span style="color:var(--text-muted);font-size:12px">—</span>`;
       const isOrphan = v.recruiter && !recruiterNames.includes(v.recruiter);
       return `<tr ${isOrphan ? 'style="background:#FFF8E1"' : ''}>
+        <td><input type="checkbox" class="admin-vac-cb" value="${v.id}" onchange="updateAdminVacBulkBar()" style="width:14px;height:14px;cursor:pointer;accent-color:var(--burgundy)" /></td>
         <td style="font-weight:500"><span class="link" onclick="openVacancyCard('${v.id}')">${v.title}</span></td>
         <td style="font-size:12px">${v.recruiter||'—'}${isOrphan ? ' <span style="background:#FFD600;color:#333;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">нет в системе</span>' : ''}</td>
         <td>
@@ -3955,6 +4006,8 @@ async function openClientModal(id) {
       document.getElementById('cl-lpr-phone').value = c.lpr_phone||'';
       document.getElementById('cl-responsible').value = c.responsible||'';
       document.getElementById('cl-comment').value = c.comment||'';
+      // Load vacancies for this client
+      loadClientVacancies(c.internal_name);
     }
   } else {
     ['cl-legal','cl-name','cl-lpr-name','cl-lpr-phone','cl-comment'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
@@ -4085,14 +4138,27 @@ const GRADE_MAP = {junior:{icon:'🌱',label:'Junior HR',color:'#4CAF50'}, middl
 let _profileEditMode = false;
 
 async function openProfileModal() {
-  openModal('profile-modal');
+  // Always start in view mode
   _profileEditMode = false;
   document.getElementById('profile-edit-mode').style.display = 'none';
   document.getElementById('profile-view-mode').style.display = '';
   document.getElementById('profile-save-btn').style.display = 'none';
   document.getElementById('profile-cancel-btn').style.display = 'none';
   document.getElementById('profile-close-btn').style.display = '';
+  // Reset edit button label
+  const editBtn = document.querySelector('[onclick="toggleProfileEdit()"]');
+  if(editBtn) editBtn.textContent = '✏️ Редактировать';
 
+  // Show name immediately from currentUser before async loads
+  if(currentUser) {
+    const quickName = currentUser.full_name || currentUser.name || currentUser.email?.split('@')[0] || '—';
+    document.getElementById('profile-name').textContent = quickName;
+    document.getElementById('profile-email').textContent = currentUser.email || '';
+    const quickIni = quickName.split(' ').filter(w=>w&&w!=='—').map(w=>w[0]).join('').slice(0,2).toUpperCase()||'?';
+    document.getElementById('profile-avatar-initials').textContent = quickIni;
+  }
+
+  openModal('profile-modal');
   if(!currentUser) return;
   const isHR = currentUser.role === 'recruiter';
 
@@ -5110,6 +5176,8 @@ async function openVacancyCard(vacId) {
   document.getElementById('vv-recruiter').textContent = vac.recruiter || '—';
   document.getElementById('vv-salary').textContent = vac.salary_from ? 'от ' + vac.salary_from.toLocaleString() + ' руб.' : '—';
   document.getElementById('vv-project').textContent = vac.project || '—';
+  // Load client block
+  loadVacancyClientBlock(vac.project);
   document.getElementById('vv-date').textContent = fmtDate(vac.created_at);
 
   // Additional fields
@@ -5159,6 +5227,12 @@ async function openVacancyCard(vacId) {
   // HR comment — all can edit
   const hrc = document.getElementById('vv-hr-comment');
   if(hrc) hrc.value = vac.hr_comment||'';
+  const descEl = document.getElementById('vv-description');
+  if(descEl) descEl.value = vac.description||'';
+  const portraitEl = document.getElementById('vv-portrait-url');
+  if(portraitEl) portraitEl.value = vac.portrait_url||'';
+  const portraitBtn = document.getElementById('vv-portrait-open-btn');
+  if(portraitBtn) portraitBtn.style.display = vac.portrait_url ? '' : 'none';
 
   // Documents — admin sets, HR sees readonly
   const cbContract = document.getElementById('vv-doc-contract');
@@ -5248,6 +5322,8 @@ async function saveAllVacancyFields() {
     start_date: document.getElementById('vv-start-date')?.value || null,
     exit_date: document.getElementById('vv-exit-date')?.value || null,
     hr_comment: document.getElementById('vv-hr-comment')?.value || null,
+    description: document.getElementById('vv-description')?.value || null,
+    portrait_url: document.getElementById('vv-portrait-url')?.value || null,
     doc_contract: document.getElementById('vv-doc-contract')?.checked || false,
     doc_act: document.getElementById('vv-doc-act')?.checked || false,
   };
@@ -5458,7 +5534,130 @@ async function assignPickedCandidate(candidateId, name) {
 }
 // ============ КОНЕЦ НАЗНАЧЕНИЯ В ВАКАНСИЮ ============
 
-// ============ СТРУКТУРА ОТДЕЛА ============
+// ============ КЛИЕНТ ↔ ВАКАНСИЯ ============
+async function loadVacancyClientBlock(vacProject) {
+  // Populate client select
+  const {data:clients} = await sb.from('clients').select('id,internal_name,legal_name,lpr_name').order('internal_name');
+  const sel = document.getElementById('vv-client-select');
+  if(sel && clients) {
+    sel.innerHTML = '<option value="">— выбрать клиента —</option>' +
+      clients.map(c=>`<option value="${c.id}" data-name="${c.internal_name}" ${c.internal_name===vacProject?'selected':''}>${c.internal_name}</option>`).join('');
+  }
+  // Show current client info
+  if(vacProject && clients) {
+    const client = clients.find(c=>c.internal_name===vacProject);
+    if(client) {
+      const ini = client.internal_name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      document.getElementById('vv-client-avatar').textContent = ini;
+      document.getElementById('vv-client-name').textContent = client.internal_name;
+      document.getElementById('vv-client-meta').textContent = [client.legal_name, client.lpr_name].filter(Boolean).join(' · ');
+    }
+  }
+}
+
+function updateVacancyClientDisplay(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt.dataset.name || '';
+  if(name) {
+    const ini = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('vv-client-avatar').textContent = ini;
+    document.getElementById('vv-client-name').textContent = name;
+    document.getElementById('vv-client-meta').textContent = '';
+  } else {
+    document.getElementById('vv-client-avatar').textContent = '—';
+    document.getElementById('vv-client-name').textContent = 'Не привязан';
+  }
+}
+
+function openClientFromVacancy() {
+  // Don't open if user clicked the select
+  const project = document.getElementById('vv-project')?.textContent;
+  if(!project || project==='—') return;
+  // Find client by project name and open
+  sb.from('clients').select('id').eq('internal_name', project).maybeSingle().then(({data}) => {
+    if(data) { closeModal('vacancy-view-modal'); openClientModal(data.id); }
+  });
+}
+
+async function loadClientVacancies(clientName) {
+  if(!clientName) return;
+  const block = document.getElementById('cl-vacancies-block');
+  const list = document.getElementById('cl-vacancies-list');
+  if(!block || !list) return;
+  const {data:vacs} = await sb.from('vacancies').select('id,title,status,recruiter').eq('project', clientName).order('created_at',{ascending:false});
+  if(!vacs || !vacs.length) { block.style.display='none'; return; }
+  block.style.display = '';
+  list.innerHTML = vacs.map(v => `
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--cream-dark);cursor:pointer" onclick="closeModal('client-modal');openVacancyCard('${v.id}')" onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background=''">
+      <span class="badge ${statusClass(v.status)}" style="font-size:10px;flex-shrink:0">${statusLabel(v.status)}</span>
+      <span style="font-weight:500;font-size:13px;flex:1">${v.title}</span>
+      <span style="font-size:11px;color:var(--text-muted)">${v.recruiter||'—'}</span>
+      <span style="font-size:12px;color:var(--burgundy)">›</span>
+    </div>`).join('');
+}
+// ============ КОНЕЦ КЛИЕНТ ↔ ВАКАНСИЯ ============
+
+// ============ VACANCY DELETE & BULK ACTIONS ============
+async function deleteVacancyFromCard() {
+  if(!_currentVacancyId) return;
+  if(!confirm('Удалить вакансию? Это действие нельзя отменить.')) return;
+  await sb.from('vacancies').delete().eq('id', _currentVacancyId);
+  closeModal('vacancy-view-modal');
+  toast('Вакансия удалена');
+  loadVacancies(); loadStats();
+  if(document.getElementById('page-admin')?.classList.contains('active')) loadAdmin();
+}
+
+function updateAdminVacBulkBar() {
+  const checked = [...document.querySelectorAll('.admin-vac-cb:checked')];
+  const bar = document.getElementById('admin-vac-bulk-bar');
+  const count = document.getElementById('admin-vac-bulk-count');
+  if(!bar) return;
+  bar.style.display = checked.length ? 'flex' : 'none';
+  if(count) count.textContent = checked.length + ' выбрано';
+  // Populate HR select
+  const hrSel = document.getElementById('admin-vac-bulk-hr');
+  if(hrSel && hrSel.options.length <= 1) {
+    sb.from('team_members').select('name').in('role',['recruiter','admin']).order('name').then(({data}) => {
+      if(data) hrSel.innerHTML = '<option value="">— Назначить HR —</option>' + data.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+    });
+  }
+}
+
+function toggleAllAdminVacs(checked) {
+  document.querySelectorAll('.admin-vac-cb').forEach(cb => cb.checked = checked);
+  updateAdminVacBulkBar();
+}
+
+function clearAdminVacSelection() {
+  document.querySelectorAll('.admin-vac-cb').forEach(cb => cb.checked = false);
+  const chkAll = document.getElementById('admin-vac-check-all');
+  if(chkAll) chkAll.checked = false;
+  const bar = document.getElementById('admin-vac-bulk-bar');
+  if(bar) bar.style.display = 'none';
+}
+
+async function bulkAssignHR() {
+  const hr = document.getElementById('admin-vac-bulk-hr')?.value;
+  if(!hr) { toast('Выберите HR'); return; }
+  const ids = [...document.querySelectorAll('.admin-vac-cb:checked')].map(cb=>cb.value);
+  if(!ids.length) return;
+  await sb.from('vacancies').update({recruiter: hr}).in('id', ids);
+  toast(`HR назначен для ${ids.length} вакансий ✓`);
+  clearAdminVacSelection();
+  loadAdmin();
+}
+
+async function bulkDeleteVacancies() {
+  const ids = [...document.querySelectorAll('.admin-vac-cb:checked')].map(cb=>cb.value);
+  if(!ids.length) return;
+  if(!confirm(`Удалить ${ids.length} вакансий? Это нельзя отменить.`)) return;
+  await sb.from('vacancies').delete().in('id', ids);
+  toast(`Удалено ${ids.length} вакансий`);
+  clearAdminVacSelection();
+  loadAdmin(); loadVacancies(); loadStats();
+}
+// ============ КОНЕЦ BULK ACTIONS ============
 async function openOrgChartModal() {
   openModal('org-chart-modal');
   const body = document.getElementById('org-chart-body');
