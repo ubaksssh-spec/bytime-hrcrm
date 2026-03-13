@@ -1677,8 +1677,11 @@ tr:hover td{background:#FBF9F7}
     <div class="form-group"><label class="form-label">Комментарий</label><textarea class="form-control" id="cl-comment" rows="2" placeholder="Заметки по клиенту..."></textarea></div>
     <!-- Вакансии клиента -->
     <div id="cl-vacancies-block" style="display:none;margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Вакансии клиента</div><span id="cl-vac-count" style="font-size:11px;color:var(--text-muted)"></span></div>
-      <div id="cl-vacancies-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Вакансии клиента</div>
+        <button class="btn btn-primary" style="font-size:11px;padding:3px 12px" onclick="createVacancyForClient()">+ Добавить вакансию</button>
+      </div>
+      <div id="cl-vacancies-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('client-modal')">Отмена</button>
@@ -5667,7 +5670,17 @@ function openClientFromVacancy() {
   });
 }
 
-async function loadClientVacancies(clientName) {
+async function createVacancyForClient() {
+  // Get current client name from the modal
+  const clientName = document.getElementById('cl-name')?.value || '';
+  closeModal('client-modal');
+  await openAdminVacancyModal();
+  // Pre-fill project with client name
+  setTimeout(() => {
+    const projEl = document.getElementById('v-project');
+    if(projEl && clientName) projEl.value = clientName;
+  }, 100);
+}
   if(!clientName) return;
   const block = document.getElementById('cl-vacancies-block');
   const list = document.getElementById('cl-vacancies-list');
