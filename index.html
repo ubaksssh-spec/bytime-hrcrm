@@ -3112,8 +3112,10 @@ async function renderCalendar() {
   try {
     const monthStart = `${calYear}-${String(calMonth+1).padStart(2,'0')}-01`;
     const monthEnd   = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${new Date(calYear, calMonth+1, 0).getDate()}`;
-    const {data} = await sb.from('tasks').select('*').gte('due_date', monthStart).lte('due_date', monthEnd);
-    calTasks = (data || []).sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
+    // Load tasks — select without time first to avoid column-not-found errors
+    const {data, error} = await sb.from('tasks').select('*').gte('due_date', monthStart).lte('due_date', monthEnd);
+    if(error) { calTasks = []; }
+    else { calTasks = (data || []).sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99')); }
   } catch(e) { calTasks = []; }
 
   const today = new Date();
