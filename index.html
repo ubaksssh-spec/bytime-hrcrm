@@ -3171,15 +3171,17 @@ async function renderCalendar() {
     const dayTasks = (taskMap[d] || []).sort((a,b) => (a.time||'99:99').localeCompare(b.time||'99:99'));
     dayTasks.slice(0, 3).forEach(t => {
       const dot = document.createElement('div');
-      dot.style.cssText = `margin-top:2px;padding:2px 5px;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'};border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;`;
+      const taskId = t.id;
+      dot.style.cssText = `margin-top:2px;padding:2px 5px;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'};border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;position:relative;z-index:2;`;
       dot.textContent = (t.time ? t.time + ' ' : '') + t.title;
-      dot.onclick = (e) => { e.stopPropagation(); openTaskView(t.id); };
+      dot.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); openTaskView(taskId); });
       cell.appendChild(dot);
     });
     if(dayTasks.length > 3) {
       const more = document.createElement('div');
-      more.style.cssText = 'font-size:10px;color:var(--text-muted);margin-top:2px;padding-left:4px';
+      more.style.cssText = 'font-size:10px;color:var(--burgundy);font-weight:600;margin-top:2px;padding-left:4px;cursor:pointer;z-index:2;position:relative';
       more.textContent = `+ещё ${dayTasks.length - 3}`;
+      more.addEventListener('click', (e) => { e.stopPropagation(); openDaySchedule(dateStr); });
       cell.appendChild(more);
     }
 
@@ -6075,6 +6077,18 @@ async function doLogin() {
 }
 
 
+// Слушаем изменения сессии (авто-обновление токена)
+sb.auth.onAuthStateChange((event, session) => {
+  if(event === 'SIGNED_OUT' || (!session && event === 'TOKEN_REFRESHED')) {
+    // Only show login if app is already loaded
+    if(document.getElementById('login-screen').style.display === 'none') {
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('auth-loading').style.display = 'none';
+      document.getElementById('login-form-wrap').style.display = '';
+    }
+  }
+});
+
 // Проверяем авторизацию при загрузке
 (async function checkAuth() {
   try {
@@ -6255,8 +6269,7 @@ async function doLogin() {
     <div style="font-size:14px;opacity:0.7">Загрузка...</div>
   </div>
   <!-- Login form -->
-  <div id="login-form-wrap" style="display:none;background:#fff;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
-  <div style="background:#fff;border-radius:16px;padding:40px 44px;width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.4)">
+  <div id="login-form-wrap" style="display:none;background:#fff;border-radius:16px;padding:40px 44px;width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.4)">
     <div style="text-align:center;margin-bottom:32px">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--burgundy)">BYTIME</div>
       <div style="font-size:13px;color:var(--text-muted);margin-top:4px">HR CRM — система управления подбором</div>
@@ -6272,7 +6285,6 @@ async function doLogin() {
     </div>
     <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;margin-top:8px" onclick="doLogin()" id="login-btn">Войти</button>
     <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">BYTIME · Бизнес-решения</div>
-  </div>
   </div><!-- end login-form-wrap -->
 </div>
 
