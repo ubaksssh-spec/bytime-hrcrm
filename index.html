@@ -1679,7 +1679,10 @@ tr:hover td{background:#FBF9F7}
     <div id="cl-vacancies-block" style="display:none;margin-bottom:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px">Вакансии клиента</div>
-        <button class="btn btn-primary" style="font-size:11px;padding:3px 12px" onclick="createVacancyForClient()">+ Добавить вакансию</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary" style="font-size:11px;padding:3px 10px" onclick="openPickExistingVacancy()">Привязать существующую</button>
+          <button class="btn btn-primary" style="font-size:11px;padding:3px 10px" onclick="createVacancyForClient()">+ Создать новую</button>
+        </div>
       </div>
       <div id="cl-vacancies-list" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
     </div>
@@ -5670,6 +5673,57 @@ function openClientFromVacancy() {
   });
 }
 
+let _pickVacClientName = '';
+let _allVacsForPick = [];
+
+async function openPickExistingVacancy() {
+  _pickVacClientName = document.getElementById('cl-name')?.value || '';
+  if(!_pickVacClientName) { toast('Сначала сохраните название клиента'); return; }
+  document.getElementById('pick-vac-client-label').textContent = `Клиент: ${_pickVacClientName}`;
+  document.getElementById('pick-vac-search').value = '';
+  openModal('pick-vac-for-client-modal');
+  const {data} = await sb.from('vacancies').select('id,title,status,recruiter,project').order('title');
+  _allVacsForPick = data || [];
+  renderPickVacancies(_allVacsForPick);
+}
+
+function filterPickVacancies(q) {
+  const filtered = q ? _allVacsForPick.filter(v=>v.title.toLowerCase().includes(q.toLowerCase())) : _allVacsForPick;
+  renderPickVacancies(filtered);
+}
+
+function renderPickVacancies(data) {
+  const list = document.getElementById('pick-vac-list');
+  if(!data.length) { list.innerHTML='<div class="empty" style="padding:20px">Нет вакансий</div>'; return; }
+  list.innerHTML = data.map(v => {
+    const alreadyLinked = v.project === _pickVacClientName;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--cream-dark);${alreadyLinked?'opacity:0.5':''}">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${v.title}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
+          <span class="badge ${statusClass(v.status)}" style="font-size:10px">${statusLabel(v.status)}</span>
+          ${v.recruiter?` · ${v.recruiter}`:''}
+          ${v.project&&!alreadyLinked?` · сейчас: ${v.project}`:''}
+        </div>
+      </div>
+      ${alreadyLinked
+        ? `<span style="font-size:11px;color:var(--green);font-weight:600">✓ Уже привязана</span>`
+        : `<button class="btn btn-primary" style="font-size:11px;padding:4px 12px;flex-shrink:0" onclick="linkVacancyToClient('${v.id}','${v.title.replace(/'/g,"\\'")}')">Привязать</button>`}
+    </div>`;
+  }).join('');
+}
+
+async function linkVacancyToClient(vacId, vacTitle) {
+  await sb.from('vacancies').update({project: _pickVacClientName}).eq('id', vacId);
+  // Update local list
+  const v = _allVacsForPick.find(x=>x.id===vacId);
+  if(v) v.project = _pickVacClientName;
+  renderPickVacancies(_allVacsForPick);
+  toast(`Вакансия «${vacTitle}» привязана к клиенту ✓`);
+  // Refresh client vacancies list
+  loadClientVacancies(_pickVacClientName);
+}
+
 async function createVacancyForClient() {
   // Get current client name from the modal
   const clientName = document.getElementById('cl-name')?.value || '';
@@ -5681,6 +5735,8 @@ async function createVacancyForClient() {
     if(projEl && clientName) projEl.value = clientName;
   }, 100);
 }
+
+async function loadClientVacancies(clientName) {
   if(!clientName) return;
   const block = document.getElementById('cl-vacancies-block');
   const list = document.getElementById('cl-vacancies-list');
@@ -5995,8 +6051,18 @@ async function doLogin() {
 
   // Успешный вход
   document.getElementById('login-screen').style.display = 'none';
-  loadVacancies(); loadStats(); loadCandidates();
-  loadUserProfile();
+  await loadUserProfile();
+  setTimeout(() => {
+    const lastPage = localStorage.getItem('bytime_last_page');
+    const validPages = ['hire','database','closed','messages','calendar','analytics','tasks','requests','hired','clients','admin','settings'];
+    if(lastPage && validPages.includes(lastPage)) {
+      nav(lastPage);
+    } else {
+      loadVacancies(); loadStats(); loadCandidates();
+    }
+  }, 100);
+  setTimeout(updateUnreadCounter, 2000);
+  setInterval(updateUnreadCounter, 60000);
 }
 
 
@@ -6113,6 +6179,24 @@ async function doLogin() {
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('assign-to-vacancy-modal')">Отмена</button>
       <button class="btn btn-primary" onclick="confirmAssignToVacancy()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Привязать существующую вакансию к клиенту -->
+<div class="modal-overlay" id="pick-vac-for-client-modal">
+  <div class="modal" style="width:560px;max-height:88vh">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="modal-title" style="margin-bottom:0">Привязать вакансию к клиенту</div>
+      <button style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)" onclick="closeModal('pick-vac-for-client-modal')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px" id="pick-vac-client-label"></div>
+    <input class="form-control" id="pick-vac-search" placeholder="Поиск по названию вакансии..." oninput="filterPickVacancies(this.value)" style="margin-bottom:12px" />
+    <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px" id="pick-vac-list">
+      <div class="loading">Загрузка...</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('pick-vac-for-client-modal')">Закрыть</button>
     </div>
   </div>
 </div>
