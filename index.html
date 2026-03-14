@@ -342,7 +342,7 @@ tr:hover td{background:#FBF9F7}
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Название вакансии</th><th>Зарплата от</th><th>Рекрутер</th><th>Дата создания</th><th>Статус</th><th>Действия</th></tr></thead>
+              <thead><tr><th>Название вакансии</th><th>Зарплата от</th><th>HR</th><th>Дата создания</th><th>Статус</th><th>Действия</th></tr></thead>
               <tbody id="vacancies-tbody"><tr><td colspan="6" class="loading">Загрузка...</td></tr></tbody>
             </table>
           </div>
@@ -478,7 +478,7 @@ tr:hover td{background:#FBF9F7}
               </select>
             </div>
             <div>
-              <div style="font-size:11px;color:#888;margin-bottom:4px">Рекрутер</div>
+              <div style="font-size:11px;color:#888;margin-bottom:4px">HR</div>
               <select class="form-control" id="vf-recruiter" onchange="loadVacancyFunnel()">
                 <option value="">Все</option>
               </select>
@@ -500,7 +500,7 @@ tr:hover td{background:#FBF9F7}
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>Вакансия</th><th>Рекрутер</th><th>Статус</th>
+                <th>Вакансия</th><th>HR</th><th>Статус</th>
                 <th>Рассм.</th><th>Звонки</th><th>Собесед.</th><th>Предл. клиенту</th>
                 <th>Откл. клиентом</th><th>ИС</th><th>Трудоустроен</th>
                 <th>Действия</th>
@@ -694,7 +694,7 @@ tr:hover td{background:#FBF9F7}
         <div class="page-header" style="margin-bottom:24px">
           <div>
             <div class="page-title" style="margin-bottom:2px">Админ-панель</div>
-            <div style="font-size:13px;color:var(--text-muted)">Статистика по рекрутерам, назначение вакансий, лог активности</div>
+            <div style="font-size:13px;color:var(--text-muted)">Статистика по HRам, назначение вакансий, лог активности</div>
           </div>
           <button class="btn btn-primary" onclick="openModal('assign-modal')">Назначить вакансию</button>
         </div>
@@ -736,7 +736,7 @@ tr:hover td{background:#FBF9F7}
 
         <!-- СВОДНАЯ СТАТИСТИКА -->
         <div class="stats-row" id="admin-stats-row">
-          <div class="stat-card"><div class="stat-label">Рекрутеров в системе</div><div class="stat-val" id="adm-recruiters">—</div></div>
+          <div class="stat-card"><div class="stat-label">HRов в системе</div><div class="stat-val" id="adm-recruiters">—</div></div>
           <div class="stat-card"><div class="stat-label">Активных вакансий</div><div class="stat-val" id="adm-vacancies">—</div></div>
           <div class="stat-card"><div class="stat-label">Кандидатов всего</div><div class="stat-val" id="adm-total-cands">—</div></div>
           <div class="stat-card"><div class="stat-label">Нанято за всё время</div><div class="stat-val" id="adm-total-hired">—</div></div>
@@ -744,11 +744,11 @@ tr:hover td{background:#FBF9F7}
 
         <!-- СТАТИСТИКА ПО РЕКРУТЕРАМ -->
         <div style="margin-bottom:28px">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy);margin-bottom:14px">Статистика по рекрутерам</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy);margin-bottom:14px">Статистика по HRам</div>
           <div class="table-wrap">
             <table>
               <thead><tr>
-                <th>Рекрутер</th>
+                <th>HR</th>
                 <th>Вакансий ведёт</th>
                 <th>Кандидатов в работе</th>
                 <th>Интервью</th>
@@ -764,15 +764,15 @@ tr:hover td{background:#FBF9F7}
 
         <!-- НАЗНАЧЕННЫЕ ВАКАНСИИ -->
         <div style="margin-bottom:28px">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy);margin-bottom:14px">Вакансии по рекрутерам</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy);margin-bottom:14px">Вакансии по HRам</div>
           <div class="table-wrap">
             <table>
               <thead><tr>
                 <th>Вакансия</th>
-                <th>Рекрутер</th>
+                <th>HR</th>
                 <th>Статус</th>
                 <th>Создана</th>
-                <th>Изменить рекрутера</th>
+                <th>Изменить HRа</th>
               </tr></thead>
               <tbody id="admin-vacancies-tbody"><tr><td colspan="6" class="loading">Загрузка...</td></tr></tbody>
             </table>
@@ -793,12 +793,12 @@ tr:hover td{background:#FBF9F7}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--burgundy)">Лог активности</div>
             <select class="form-control" id="log-filter-recruiter" onchange="filterActivityLog()" style="width:200px;font-size:13px">
-              <option value="">Все рекрутеры</option>
+              <option value="">Все HRы</option>
             </select>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Дата и время</th><th>Рекрутер</th><th>Действие</th><th>Объект</th></tr></thead>
+              <thead><tr><th>Дата и время</th><th>HR</th><th>Действие</th><th>Объект</th></tr></thead>
               <tbody id="admin-log-tbody"><tr><td colspan="4" class="loading">Загрузка...</td></tr></tbody>
             </table>
           </div>
@@ -875,7 +875,7 @@ tr:hover td{background:#FBF9F7}
       <button class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="closeModal('vacancy-view-modal')">✕ Закрыть</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">Рекрутер</div><div style="font-weight:600;font-size:14px;margin-top:4px" id="vv-recruiter">—</div></div>
+      <div class="stat-card"><div class="stat-label">HR</div><div style="font-weight:600;font-size:14px;margin-top:4px" id="vv-recruiter">—</div></div>
       <div class="stat-card"><div class="stat-label">Зарплата от</div><div style="font-weight:600;font-size:14px;margin-top:4px" id="vv-salary">—</div></div>
       <div class="stat-card"><div class="stat-label">Проект</div><div style="font-weight:600;font-size:14px;margin-top:4px" id="vv-project">—</div></div>
       <div class="stat-card"><div class="stat-label">Дата создания</div><div style="font-weight:600;font-size:14px;margin-top:4px" id="vv-date">—</div></div>
@@ -894,6 +894,17 @@ tr:hover td{background:#FBF9F7}
         <input class="form-control" id="vv-tg-link-input" placeholder="https://t.me/+xxxxxxxxxxxx" style="flex:1" />
         <button class="btn btn-primary" style="font-size:12px;white-space:nowrap" onclick="saveVvTgLink()">Сохранить</button>
         <button class="btn btn-secondary" style="font-size:12px" onclick="toggleVvTgEdit()">Отмена</button>
+      </div>
+    </div>
+    <!-- Описание и портрет -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div class="ccard-field" style="grid-column:1/-1">
+        <div class="ccard-field-label">Описание вакансии</div>
+        <div id="vv-description" style="font-size:13px;color:var(--text-primary);line-height:1.7;white-space:pre-wrap;min-height:32px">—</div>
+      </div>
+      <div class="ccard-field">
+        <div class="ccard-field-label">Портрет кандидата</div>
+        <div id="vv-portrait-link" style="font-size:13px">—</div>
       </div>
     </div>
     <div style="margin-bottom:20px">
@@ -928,7 +939,7 @@ tr:hover td{background:#FBF9F7}
     <div class="form-group"><label class="form-label">Название вакансии *</label><input class="form-control" id="v-title" placeholder="Менеджер по продажам" /></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Зарплата от (руб.)</label><input class="form-control" id="v-salary" type="number" placeholder="100000" /></div>
-      <div class="form-group"><label class="form-label">Рекрутер</label><input class="form-control" id="v-recruiter" placeholder="Елена Р." /></div>
+      <div class="form-group"><label class="form-label">HR</label><input class="form-control" id="v-recruiter" placeholder="Елена Р." /></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Проект</label><input class="form-control" id="v-project" value="BYTIME" /></div>
@@ -941,9 +952,27 @@ tr:hover td{background:#FBF9F7}
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Ссылка на Telegram-чат <span style="font-weight:400;color:var(--text-muted)">(необязательно)</span></label>
-      <input class="form-control" id="v-tg-link" placeholder="https://t.me/+xxxxxxxxxxxx" />
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Ссылка-приглашение в группу по этой вакансии</div>
+      <label class="form-label">Описание вакансии</label>
+      <textarea class="form-control" id="v-description" rows="3" placeholder="Обязанности, требования, условия..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Портрет кандидата <span style="font-weight:400;color:var(--text-muted)">(ссылка)</span></label>
+        <input class="form-control" id="v-portrait-link" placeholder="https://docs.google.com/..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telegram-чат — ссылка-приглашение *</label>
+        <input class="form-control" id="v-tg-link" placeholder="https://t.me/+xxxxxxxxxxxx" required />
+      </div>
+    </div>
+    <div style="background:#F0F7FF;border:1px solid #BBDEFB;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:#1565C0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">📌 Привязка группы для получения сообщений</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-control" id="v-tg-chat-id" placeholder="Chat ID группы (например: -1001234567890)" style="flex:1" />
+        <button type="button" class="btn btn-secondary" style="white-space:nowrap;font-size:12px" onclick="tgScanForVacancy()">🔍 Найти</button>
+      </div>
+      <div style="font-size:11px;color:#1565C0;margin-top:6px;line-height:1.6">Создайте группу → добавьте бота → напишите в группу → нажмите «Найти»</div>
+      <div id="v-tg-scan-result" style="display:none;margin-top:8px;padding:10px 12px;border-radius:7px;font-size:12px"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('vacancy-modal')">Отмена</button>
@@ -1014,7 +1043,7 @@ tr:hover td{background:#FBF9F7}
 
       <!-- Заметки -->
       <div class="ccard-section" id="ccard-notes-section">
-        <div class="ccard-section-title">Заметки рекрутера</div>
+        <div class="ccard-section-title">Заметки HRа</div>
         <div style="background:var(--cream);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text-primary)" id="ccard-notes"></div>
       </div>
 
@@ -1204,14 +1233,14 @@ tr:hover td{background:#FBF9F7}
 <!-- Назначение вакансии -->
 <div class="modal-overlay" id="assign-modal">
   <div class="modal" style="width:480px">
-    <div class="modal-title">Назначить вакансию рекрутеру</div>
+    <div class="modal-title">Назначить вакансию HRу</div>
     <div class="form-group">
       <label class="form-label">Вакансия</label>
       <select class="form-control" id="assign-vacancy"></select>
     </div>
     <div class="form-group">
-      <label class="form-label">Рекрутер</label>
-      <input class="form-control" id="assign-recruiter" placeholder="Имя рекрутера" />
+      <label class="form-label">HR</label>
+      <input class="form-control" id="assign-recruiter" placeholder="Имя HRа" />
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('assign-modal')">Отмена</button>
@@ -1236,7 +1265,7 @@ tr:hover td{background:#FBF9F7}
     <div class="form-group">
       <label class="form-label">Роль</label>
       <select class="form-control" id="user-role">
-        <option value="recruiter">Рекрутер</option>
+        <option value="recruiter">HR</option>
         <option value="project">Проджект</option>
         <option value="admin">Администратор</option>
       </select>
@@ -1275,7 +1304,7 @@ tr:hover td{background:#FBF9F7}
 <div class="modal-overlay" id="assign-vacancies-modal">
   <div class="modal" style="width:560px">
     <div class="modal-title" id="assign-vac-modal-title">Назначить вакансии</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px" id="assign-vac-modal-sub">Выберите вакансии для рекрутера</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px" id="assign-vac-modal-sub">Выберите вакансии для HRа</div>
     <div style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px" id="assign-vac-list">
       <div class="loading">Загрузка...</div>
     </div>
@@ -1305,7 +1334,7 @@ tr:hover td{background:#FBF9F7}
     <div class="form-group">
       <label class="form-label">Роль</label>
       <select class="form-control" id="mem-role">
-        <option value="recruiter">Рекрутер</option>
+        <option value="recruiter">HR</option>
         <option value="project">Проджект</option>
         <option value="admin">Администратор</option>
       </select>
@@ -1449,7 +1478,9 @@ tr:hover td{background:#FBF9F7}
 <script>
 const SUPABASE_URL = 'https://izajropzyjmedxueawgd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8bD0xkdxGwLhYw4-M6rDCw_dO-WlVtJ';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, storageKey: 'bytime-crm-auth', storage: window.localStorage }
+});
 
 const pages = ['hire','database','closed','messages','calendar','analytics','tasks','requests','hired','clients','admin','settings'];
 const names = {hire:'Рабочая панель',database:'База кандидатов',closed:'Вакансии',messages:'Сообщения',calendar:'Календарь',analytics:'Аналитика',tasks:'Задачи',requests:'Заявки на найм',hired:'Нанятые',clients:'Клиенты',admin:'Админ-панель',settings:'Настройки'};
@@ -2278,7 +2309,7 @@ async function loadAnalytics() {
           <div class="stat-card"><div class="stat-label">Кандидатов</div><div class="stat-val">${cands.length}</div></div>
         </div>
         ${Object.keys(recMap).length ? `
-          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">По рекрутерам</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">По HRам</div>
           ${Object.entries(recMap).map(([rec,v])=>`
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px">
               <div style="width:28px;height:28px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;flex-shrink:0">${rec.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
@@ -2294,12 +2325,17 @@ async function loadAnalytics() {
 async function saveVacancy() {
   const title = document.getElementById('v-title').value.trim();
   if(!title){ alert('Введите название вакансии'); return; }
+  const tgLink = document.getElementById('v-tg-link')?.value?.trim();
+  if(!tgLink){ alert('Укажите ссылку на Telegram-чат — это обязательное поле'); return; }
   const {error} = await sb.from('vacancies').insert({
     title, salary_from: parseInt(document.getElementById('v-salary').value)||null,
     recruiter: document.getElementById('v-recruiter').value||'Елена Р.',
     project: document.getElementById('v-project').value||'BYTIME',
     status: document.getElementById('v-vac-status')?.value||'active',
-    tg_chat_link: document.getElementById('v-tg-link')?.value?.trim()||null
+    tg_chat_link: tgLink,
+    tg_chat_id: document.getElementById('v-tg-chat-id')?.value?.trim()||null,
+    description: document.getElementById('v-description')?.value?.trim()||null,
+    portrait_link: document.getElementById('v-portrait-link')?.value?.trim()||null
   });
   if(error){ alert('Ошибка: '+error.message); return; }
   closeModal('vacancy-modal');
@@ -2629,7 +2665,7 @@ async function loadAdmin() {
   document.getElementById('adm-total-cands').textContent = (cands||[]).length;
   document.getElementById('adm-total-hired').textContent = (cands||[]).filter(c=>c.status==='hired'||c.status==='probation').length;
 
-  // Статистика по рекрутерам
+  // Статистика по HRам
   const recruiterNames = recruiters.length ? recruiters : ['Елена Р.'];
   const tbody = document.getElementById('admin-recruiters-tbody');
   tbody.innerHTML = recruiterNames.map(rec => {
@@ -2667,7 +2703,7 @@ async function loadAdmin() {
     </tr>`;
   }).join('');
 
-  // Вакансии по рекрутерам
+  // Вакансии по HRам
   const vtbody = document.getElementById('admin-vacancies-tbody');
   const vacList = vacs || [];
   if(!vacList.length) { vtbody.innerHTML='<tr><td colspan="5" class="empty">Нет вакансий</td></tr>'; }
@@ -2706,10 +2742,10 @@ async function loadAdmin() {
   // Лог
   renderActivityLog(allActivityLog);
 
-  // Фильтр по рекрутерам в логе
+  // Фильтр по HRам в логе
   const logRecruiters = [...new Set(allActivityLog.map(l=>l.recruiter).filter(Boolean))];
   const sel = document.getElementById('log-filter-recruiter');
-  if(sel) sel.innerHTML = '<option value="">Все рекрутеры</option>' + logRecruiters.map(r=>`<option value="${r}">${r}</option>`).join('');
+  if(sel) sel.innerHTML = '<option value="">Все HRы</option>' + logRecruiters.map(r=>`<option value="${r}">${r}</option>`).join('');
 
   // Загружаем пользователей
   loadMembers();
@@ -2761,13 +2797,13 @@ async function updateRecruiter(vacId) {
   if(!val) return;
   await sb.from('vacancies').update({recruiter:val}).eq('id',vacId);
   await logActivity(val, 'Назначена на вакансию', 'vacancy', '');
-  toast('Рекрутер обновлён ✓');
+  toast('HR обновлён ✓');
 }
 
 async function saveAssign() {
   const vacId = document.getElementById('assign-vacancy')?.value;
   const rec = document.getElementById('assign-recruiter')?.value?.trim();
-  if(!vacId||!rec){ alert('Выберите вакансию и введите рекрутера'); return; }
+  if(!vacId||!rec){ alert('Выберите вакансию и введите HRа'); return; }
   const {data:vac} = await sb.from('vacancies').select('title').eq('id',vacId).single();
   await sb.from('vacancies').update({recruiter:rec}).eq('id',vacId);
   await logActivity(rec, 'Назначена вакансия', 'vacancy', vac?.title||'');
@@ -2780,7 +2816,7 @@ async function showRecruiterDetail(name) {
   const {data:cands} = await sb.from('candidates').select('*, vacancies(title)').order('created_at',{ascending:false});
   const mine = (cands||[]);
   const info = [
-    `👤 Рекрутер: ${name}`,
+    `👤 HR: ${name}`,
     `📋 Всего кандидатов: ${mine.length}`,
     `🟡 Новые: ${mine.filter(c=>c.status==='new').length}`,
     `🟠 Интервью: ${mine.filter(c=>c.status==='interview').length}`,
@@ -3026,7 +3062,7 @@ async function loadUserProfile() {
     currentUser = member || {name: email.split('@')[0], email, role: 'recruiter'};
     const name = currentUser.name || email;
     const ini = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const roleLabel = currentUser.role === 'admin' ? '★ Администратор' : 'Рекрутер';
+    const roleLabel = currentUser.role === 'admin' ? '★ Администратор' : 'HR';
     const roleCls = currentUser.role === 'admin' ? 'role-badge-admin' : 'role-badge-recruiter';
     // Topbar
     const tnEl = document.getElementById('topbar-name');
@@ -3062,7 +3098,7 @@ async function loadUserProfile() {
       const nh = document.getElementById('nav-hired');
       if(nh) nh.style.display='';
     } else {
-      // Рекрутер — скрыть всё admin
+      // HR — скрыть всё admin
       const na = document.getElementById('nav-admin');
       if(na) na.style.display='none';
     }
@@ -3099,7 +3135,7 @@ async function loadMembers() {
   const tbody = document.getElementById('admin-members-tbody');
   if(!members||!members.length){ tbody.innerHTML='<tr><td colspan="6" class="empty">Нет пользователей</td></tr>'; return; }
   tbody.innerHTML = members.map(m => {
-    const roleLabel = m.role === 'admin' ? '★ Администратор' : m.role === 'project' ? '◆ Проджект' : 'Рекрутер';
+    const roleLabel = m.role === 'admin' ? '★ Администратор' : m.role === 'project' ? '◆ Проджект' : 'HR';
     const roleColor = m.role === 'admin' ? 'var(--burgundy)' : m.role === 'project' ? 'var(--gold)' : 'var(--text-muted)';
     const ini = m.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const bgColor = m.role === 'admin' ? 'var(--burgundy)' : m.role === 'project' ? 'var(--gold)' : 'var(--green)';
@@ -3116,7 +3152,7 @@ async function loadMembers() {
       <td style="font-size:13px;color:var(--text-muted)">${m.email}</td>
       <td>
         <select class="status-select" onchange="updateMemberRole('${m.id}', this.value)" style="font-weight:600;color:${roleColor}">
-          <option value="recruiter" ${m.role==='recruiter'?'selected':''}>Рекрутер</option>
+          <option value="recruiter" ${m.role==='recruiter'?'selected':''}>HR</option>
           <option value="project" ${m.role==='project'?'selected':''}>◆ Проджект</option>
           <option value="admin" ${m.role==='admin'?'selected':''}>★ Администратор</option>
         </select>
@@ -3142,7 +3178,7 @@ async function loadMembers() {
 
 async function updateMemberRole(id, role) {
   await sb.from('team_members').update({role}).eq('id', id);
-  const label = role === 'admin' ? 'Администратор' : role === 'project' ? 'Проджект' : 'Рекрутер';
+  const label = role === 'admin' ? 'Администратор' : role === 'project' ? 'Проджект' : 'HR';
   toast('Роль изменена на: ' + label);
   loadMembers();
 }
@@ -3181,7 +3217,7 @@ async function saveMember() {
         to_name: name,
         password: password,
         login_url: window.location.href.split('?')[0],
-        role_label: role === 'admin' ? 'Администратор' : 'Рекрутер'
+        role_label: role === 'admin' ? 'Администратор' : 'HR'
       }, emailjsPublicKey);
       emailSent = true;
     } catch(e) {
@@ -3311,7 +3347,7 @@ async function openAssignTeamModal(managerId, managerName) {
   _allHrsForTeam = members || [];
 
   const list = document.getElementById('assign-team-list');
-  if(!members||!members.length) { list.innerHTML='<div class="empty" style="padding:20px">Нет рекрутеров</div>'; return; }
+  if(!members||!members.length) { list.innerHTML='<div class="empty" style="padding:20px">Нет HRов</div>'; return; }
 
   list.innerHTML = members.map(m => {
     const isIn = assignedIds.has(m.id);
@@ -3410,7 +3446,7 @@ async function loadAdminAlerts() {
         <div class="alert-vac-row">
           <div style="flex:1">
             <div style="font-weight:600">${v.title}</div>
-            <div style="font-size:12px;color:var(--text-muted)">Рекрутер: ${v.recruiter}</div>
+            <div style="font-size:12px;color:var(--text-muted)">HR: ${v.recruiter}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${v.candidates.slice(0,3).map(c => `
@@ -3568,6 +3604,18 @@ async function openVacancyCard(vacId) {
   const editBlock = document.getElementById('vv-tg-edit-block');
   if(editBlock) editBlock.style.display = 'none';
 
+  // Description
+  const descEl = document.getElementById('vv-description');
+  if(descEl) descEl.textContent = vac.description || '—';
+
+  // Portrait link
+  const portraitEl = document.getElementById('vv-portrait-link');
+  if(portraitEl) {
+    portraitEl.innerHTML = vac.portrait_link
+      ? `<a href="${vac.portrait_link}" target="_blank" style="color:var(--burgundy);font-weight:600">Открыть портрет →</a>`
+      : '—';
+  }
+
   // Close button visibility
   const closeBtn = document.getElementById('vv-close-btn');
   if(closeBtn) closeBtn.style.display = (vac.status !== 'closed') ? '' : 'none';
@@ -3671,7 +3719,7 @@ function renderTeamList(members) {
         <div style="display:flex;justify-content:space-between">
           <span class="chat-name">${m.name}</span>
         </div>
-        <div class="chat-preview">${m.role==='admin'?'Администратор':'Рекрутер'}</div>
+        <div class="chat-preview">${m.role==='admin'?'Администратор':'HR'}</div>
       </div>
     </div>`).join('');
 }
@@ -3966,88 +4014,72 @@ async function loadClientChats() {
   }
   if(notConf) notConf.style.display='none';
 
-  const {data: clients} = await sb.from('clients').select('*').order('internal_name');
-  tgAllClients = clients || [];
-
-  // Filter by HR if recruiter role
-  let filtered = tgAllClients;
-  if(currentUser && currentUser.role === 'recruiter') {
-    filtered = tgAllClients.filter(c => !c.responsible || c.responsible === currentUser.name);
+  // Загружаем вакансии с привязанным tg_chat_id
+  let q = sb.from('vacancies').select('id,title,project,recruiter,tg_chat_id,tg_chat_link,status').not('tg_chat_id','is',null).order('title');
+  const role = currentUser?.role || 'recruiter';
+  if(role === 'recruiter') {
+    q = q.eq('recruiter', currentUser.name);
   }
+  const {data: vacs} = await q;
+  tgAllClients = vacs || []; // переиспользуем переменную для вакансий
 
-  renderClientChatList(filtered);
+  renderClientChatList(tgAllClients);
   startTgPolling();
 }
 
-function renderClientChatList(clients) {
+function renderClientChatList(vacs) {
   const body = document.getElementById('client-chat-list-body');
-  if(!clients||!clients.length){ body.innerHTML='<div class="empty" style="padding:20px">Нет клиентов</div>'; return; }
-  body.innerHTML = clients.map(c => {
-    const ini = (c.internal_name||'?').slice(0,2).toUpperCase();
-    const colors = ['#5C0A2A','#004D35','#B8935A','#3949AB','#00695C'];
-    const bg = colors[(c.internal_name||'').charCodeAt(0)%colors.length];
-    const hasTg = !!c.tg_chat_id;
-    const msgs = hasTg ? tgGetMsgs(c.tg_chat_id) : [];
+  if(!vacs||!vacs.length){
+    body.innerHTML='<div class="empty" style="padding:20px;text-align:center;font-size:13px;color:var(--text-muted)">Нет вакансий с привязанным Telegram-чатом</div>';
+    return;
+  }
+  const colors = ['#5C0A2A','#004D35','#B8935A','#3949AB','#00695C'];
+  body.innerHTML = vacs.map(v => {
+    const ini = (v.title||'?').slice(0,2).toUpperCase();
+    const bg = colors[(v.title||'').charCodeAt(0)%colors.length];
+    const msgs = tgGetMsgs(v.tg_chat_id);
     const last = msgs.length ? msgs[msgs.length-1] : null;
-    return `<div class="chat-item" id="tg-item-${c.id}" onclick="openClientTgChat('${c.id}','${String(c.tg_chat_id||'')}','${(c.internal_name||'').replace(/'/g,"\\'")}')">
+    return `<div class="chat-item" id="tg-item-${v.id}" onclick="openClientTgChat('${v.id}','${v.tg_chat_id}','${(v.title||'').replace(/'/g,"\\'")}','${(v.project||'').replace(/'/g,"\\'")}')">
       <div class="avatar" style="background:${bg}">${ini}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="chat-name">${c.internal_name||'—'}</span>
-          ${hasTg ? '<span style="font-size:10px;color:#2E7D32;font-weight:700">TG</span>' : '<span style="font-size:10px;color:var(--text-muted)">нет TG</span>'}
+          <span class="chat-name" style="font-size:12px">${v.title||'—'}</span>
+          <span style="font-size:10px;color:#2E7D32;font-weight:700">TG</span>
         </div>
-        <div class="chat-preview">${last ? (last.from_bot?'Вы: ':'')+last.text : (hasTg ? 'Нет сообщений' : 'Привяжите Telegram')}</div>
+        <div class="chat-preview">${v.project||''} ${v.recruiter?'· '+v.recruiter:''}</div>
+        <div class="chat-preview" style="margin-top:1px">${last ? (last.from_bot?'Вы: ':last.name?last.name+': ':'')+last.text : 'Нет сообщений'}</div>
       </div>
     </div>`;
   }).join('');
 }
 
 function filterClientChats(q) {
-  const f = tgAllClients.filter(c=>(c.internal_name||'').toLowerCase().includes(q.toLowerCase()));
+  const f = tgAllClients.filter(v=>(v.title||'').toLowerCase().includes(q.toLowerCase())||(v.project||'').toLowerCase().includes(q.toLowerCase()));
   renderClientChatList(f);
 }
 
-async function openClientTgChat(clientId, chatId, clientName) {
+async function openClientTgChat(vacancyId, chatId, vacTitle, project) {
   tgActiveChatId = chatId || null;
-  // Clear unread badge
-  const item = document.getElementById(`tg-item-${clientId}`);
+  const item = document.getElementById(`tg-item-${vacancyId}`);
   const badge = item?.querySelector('.tg-unread');
   if(badge) badge.remove();
 
-  const main = document.getElementById('client-chat-main');
-  if(!chatId) {
-    main.innerHTML = `
-      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;padding:40px">
-        <div style="font-size:32px">💬</div>
-        <div style="font-size:14px;font-weight:600">${clientName}</div>
-        <div style="font-size:13px;color:var(--text-muted);text-align:center;max-width:300px;line-height:1.6">
-          Группа Telegram не привязана.<br><br>
-          <b>Шаг 1:</b> Создайте группу в Telegram<br>
-          <b>Шаг 2:</b> Добавьте клиента и бота<br>
-          <b>Шаг 3:</b> Нажмите кнопку ниже → «Найти»
-        </div>
-        <button class="btn btn-primary" onclick="openClientModal('${clientId}')">Привязать группу</button>
-      </div>`;
-    return;
-  }
-
-  renderTgChat(chatId, clientId, clientName);
+  renderTgChat(chatId, vacancyId, vacTitle, project);
 }
 
-function renderTgChat(chatId, clientId, clientName) {
-  if(!clientId) {
-    // find by chatId
-    const c = tgAllClients.find(x=>String(x.tg_chat_id)===String(chatId));
-    if(c) { clientId=c.id; clientName=c.internal_name; }
+function renderTgChat(chatId, vacancyId, vacTitle, project) {
+  if(!vacancyId && chatId) {
+    const v = tgAllClients.find(x=>String(x.tg_chat_id)===String(chatId));
+    if(v) { vacancyId=v.id; vacTitle=v.title; project=v.project; }
   }
   const msgs = tgGetMsgs(chatId);
   const main = document.getElementById('client-chat-main');
   main.innerHTML = `
     <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;background:#fff">
-      <div style="width:38px;height:38px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">${(clientName||'?').slice(0,2).toUpperCase()}</div>
-      <div>
-        <div style="font-weight:600;font-size:14px">${clientName||'—'}</div>
-        <div style="font-size:11px;color:var(--text-muted)">Telegram · chat_id: ${chatId}</div>
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">${(vacTitle||'?').slice(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:14px">${vacTitle||'—'}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${project||''} · Telegram-группа</div>
       </div>
     </div>
     <div style="flex:1;padding:16px;overflow-y:auto;background:var(--cream);min-height:200px;max-height:calc(100vh - 280px)" id="tg-msgs-wrap">
@@ -4186,6 +4218,42 @@ function selectTgGroup(chatId, groupName) {
   if(inp) inp.value = chatId;
   const res = document.getElementById('tg-scan-result');
   if(res) { res.style.background='#E8F5E9'; res.style.color='#2E7D32'; res.innerHTML=`✓ Выбрана группа: <b>${groupName}</b> · ID: ${chatId}`; }
+}
+
+// Scan groups for vacancy form
+async function tgScanForVacancy() {
+  const token = tgToken();
+  const res = document.getElementById('v-tg-scan-result');
+  if(!token) {
+    if(res){ res.style.display=''; res.style.background='#FFEBEE'; res.style.color='#C62828'; res.textContent='⚠️ Сначала настройте токен бота в Настройках → Telegram'; }
+    return;
+  }
+  if(res){ res.style.display=''; res.style.background='#E3F2FD'; res.style.color='#1565C0'; res.textContent='Сканируем группы...'; }
+  const r = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=50`).then(x=>x.json()).catch(()=>null);
+  if(!r||!r.ok){ if(res){res.style.background='#FFEBEE';res.style.color='#C62828';res.textContent='✗ Ошибка. Проверьте токен.';} return; }
+  const groups = {};
+  (r.result||[]).forEach(u => {
+    const chat = u.message?.chat;
+    if(chat && (chat.type==='group'||chat.type==='supergroup')) groups[String(chat.id)] = chat.title||'Группа';
+  });
+  const keys = Object.keys(groups);
+  if(!keys.length) {
+    if(res){ res.style.background='#FFF8E1'; res.style.color='#E65100'; res.textContent='Групп не найдено. Добавьте бота в группу и напишите там сообщение.'; }
+    return;
+  }
+  if(res){
+    res.style.background='#F9F9F9'; res.style.color='var(--text-primary)';
+    res.innerHTML = '<b style="font-size:12px">Выберите группу:</b><br><br>' +
+      keys.map(id=>`<div style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:6px;font-size:13px;background:#fff" onclick="selectTgGroupForVacancy('${id}','${groups[id].replace(/'/g,"\\'")}')">`+
+        `<span style="font-weight:600">${groups[id]}</span><br><span style="font-size:11px;color:var(--text-muted)">Chat ID: ${id}</span></div>`).join('');
+  }
+}
+
+function selectTgGroupForVacancy(chatId, groupName) {
+  const inp = document.getElementById('v-tg-chat-id');
+  if(inp) inp.value = chatId;
+  const res = document.getElementById('v-tg-scan-result');
+  if(res) { res.style.background='#E8F5E9'; res.style.color='#2E7D32'; res.innerHTML=`✓ Выбрана: <b>${groupName}</b>`; }
 }
 
 // ============ КОНЕЦ TELEGRAM ============
