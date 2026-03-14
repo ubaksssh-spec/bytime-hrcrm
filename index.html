@@ -1836,7 +1836,14 @@ tr:hover td{background:#FBF9F7}
 <script>
 const SUPABASE_URL = 'https://izajropzyjmedxueawgd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_8bD0xkdxGwLhYw4-M6rDCw_dO-WlVtJ';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    storage: window.localStorage
+  }
+});
 
 const pages = ['hire','database','closed','messages','calendar','analytics','tasks','requests','hired','clients','admin','settings'];
 const names = {hire:'Рабочая панель',database:'База кандидатов',closed:'Вакансии',messages:'Сообщения',calendar:'Календарь',analytics:'Аналитика',tasks:'Задачи',requests:'Заявки на найм',hired:'Нанятые',clients:'Клиенты',admin:'Админ-панель',settings:'Настройки'};
