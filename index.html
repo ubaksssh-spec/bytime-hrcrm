@@ -257,9 +257,10 @@ textarea.fi{resize:vertical;min-height:72px}
 
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
-      <div class="stats-grid">
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
         <div class="stat-card"><div class="stat-label">Всего клиентов</div><div class="stat-val" id="s-total">0</div><div class="stat-sub">в базе</div></div>
-        <div class="stat-card g"><div class="stat-label">Активных сделок</div><div class="stat-val" id="s-active">0</div><div class="stat-sub">в работе прямо сейчас</div></div>
+        <div class="stat-card" style="border-top:3px solid #7b1f4e"><div class="stat-label">Всего лидов</div><div class="stat-val" id="s-leads" style="color:#7b1f4e">0</div><div class="stat-sub">на первом этапе</div></div>
+        <div class="stat-card g"><div class="stat-label">Активных сделок</div><div class="stat-val" id="s-active">0</div><div class="stat-sub">встреча + договор</div></div>
         <div class="stat-card b"><div class="stat-label">Среднее время сделки</div><div class="stat-val" id="s-avg">—</div><div class="stat-sub">дней от лида до финала</div></div>
         <div class="stat-card d"><div class="stat-label">Общая конверсия</div><div class="stat-val" id="s-conv">0%</div><div class="stat-sub">завершённые / все лиды</div></div>
       </div>
@@ -282,9 +283,10 @@ textarea.fi{resize:vertical;min-height:72px}
         </div>
         <select class="sel" id="fl-stage" onchange="renderClients()">
           <option value="">Все этапы</option>
-          <option value="lead">Лид</option><option value="meeting">Встреча</option>
-          <option value="contract">Договор</option><option value="realization">Реализация</option>
-          <option value="done">Завершён</option><option value="refused">Отказ</option>
+          <option value="lead">Новый контакт</option><option value="meeting">Пока не актуально</option>
+          <option value="contract">Переговоры</option><option value="realization">Договор</option>
+          <option value="done_real">Реализация</option><option value="done">Завершён</option>
+          <option value="refused">Отказ</option>
         </select>
         <select class="sel" id="fl-source" onchange="renderClients()">
           <option value="">Все источники</option>
@@ -396,11 +398,34 @@ textarea.fi{resize:vertical;min-height:72px}
 
 <div class="toast" id="toast"></div>
 
+<!-- REFUSAL MODAL -->
+<div id="ref-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:380px;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#922b21;margin-bottom:6px;letter-spacing:.5px">Причина отказа</div>
+    <div style="font-size:12px;color:#999;margin-bottom:16px">Укажите причину перед переносом в «Отказ»</div>
+    <select id="ref-reason" style="width:100%;padding:10px 12px;border:1px solid #e2e2e2;border-radius:7px;font-size:13px;font-family:'Onest',sans-serif;outline:none;margin-bottom:16px">
+      <option value="">— выберите причину —</option>
+      <option>Высокая цена</option>
+      <option>Выбрали конкурента</option>
+      <option>Нет бюджета</option>
+      <option>Не актуально сейчас</option>
+      <option>Нет контакта</option>
+      <option>Другое</option>
+    </select>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="cancelRefusal()" style="padding:8px 16px;border-radius:6px;border:1px solid #e2e2e2;background:#F6F3EE;font-size:13px;font-weight:600;cursor:pointer;font-family:'Onest',sans-serif">Отмена</button>
+      <button onclick="confirmRefusal()" style="padding:8px 16px;border-radius:6px;border:none;background:#922b21;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Onest',sans-serif">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
 const STAGES=[
-  {id:'lead',label:'Лид',color:'#7b1f4e'},{id:'meeting',label:'Встреча',color:'#024638'},
-  {id:'contract',label:'Договор',color:'#8a6432'},{id:'realization',label:'Реализация',color:'#1a5276'},
-  {id:'done',label:'Завершён',color:'#1e8449'},{id:'refused',label:'Отказ',color:'#922b21'},
+  {id:'lead',label:'Новый контакт',color:'#7b1f4e'},{id:'meeting',label:'Пока не актуально',color:'#6d4c7a'},
+  {id:'contract',label:'Переговоры',color:'#8a6432'},{id:'realization',label:'Договор',color:'#024638'},
+  {id:'done_real',label:'Реализация',color:'#1a5276'},{id:'done',label:'Завершён',color:'#1e8449'},
+  {id:'refused',label:'Отказ',color:'#922b21'},
 ];
 const SRC_COLORS=['#54052B','#024638','#B39262','#1a5276','#1e8449','#922b21'];
 
@@ -608,25 +633,7 @@ async function addTask(){
   document.getElementById('nt-text').value='';document.getElementById('nt-dl').value='';document.getElementById('nt-tm').value='';
   await persist(c);renderMoTasks(c);updateBadges();
   if(curPage==='tasks')renderTasks();if(curPage==='dashboard')renderDashboard();
-  // Google Calendar
-  if(dl){
-    const dateBase=dl.replace(/-/g,'');
-    let start,end;
-    if(tm){
-      const parts=tm.split(':');const h=parts[0],m=parts[1];
-      let hEnd=parseInt(h)+1; if(hEnd>23)hEnd=23;
-      start=dateBase+'T'+h+m+'00';
-      end=dateBase+'T'+String(hEnd).padStart(2,'0')+m+'00';
-    } else {
-      start=dateBase; end=dateBase;
-    }
-    const details='Клиент: '+c.name+(c.company?' ('+c.company+')':'');
-    const url='https://calendar.google.com/calendar/render?action=TEMPLATE'
-      +'&text='+encodeURIComponent(text)
-      +'&dates='+start+'/'+end
-      +'&details='+encodeURIComponent(details);
-    window.open(url,'_blank');
-  }
+
 }
 
 async function toggleTask(cid,tid){
@@ -638,15 +645,35 @@ async function toggleTask(cid,tid){
   updateBadges();if(curPage==='tasks')renderTasks();if(curPage==='dashboard')renderDashboard();
 }
 
+
+function gcalUrl(t,clientName,company){
+  if(!t.deadline) return null;
+  const dl=t.deadline.replace(/-/g,'');
+  let start,end;
+  if(t.time){
+    const parts=t.time.split(':');const h=parts[0],m=parts[1];
+    let hEnd=parseInt(h)+1;if(hEnd>23)hEnd=23;
+    start=dl+'T'+h+m+'00';end=dl+'T'+String(hEnd).padStart(2,'0')+m+'00';
+  } else { start=dl;end=dl; }
+  const details='Клиент: '+clientName+(company?' ('+company+')':'');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    +'&text='+encodeURIComponent(t.text)
+    +'&dates='+start+'/'+end
+    +'&details='+encodeURIComponent(details);
+}
+
 function renderMoTasks(c){
   const list=document.getElementById('mo-tasks-list');const tasks=c.tasks||[];
   if(!tasks.length){list.innerHTML='<p style="font-size:11px;color:#999;padding:4px 0">Задач нет</p>';return;}
   list.innerHTML=[...tasks.filter(t=>t.status==='pending'),...tasks.filter(t=>t.status==='done')].map(t=>{
     const isDone=t.status==='done';const di=t.deadline?dlInfo(t.deadline):null;
+    const gurl=gcalUrl(t,c.name,c.company);
     return`<div class="mt-item"><div class="t-check ${isDone?'done':''}" onclick="toggleTask('${c.id}','${t.id}')">
       ${isDone?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>':''}
     </div><div style="flex:1"><div class="t-text ${isDone?'done-text':''}" style="font-size:12px">${t.text}</div>
-    ${t.deadline?`<div class="t-dl ${isDone?'':di.cls}" style="font-size:10px">${di?di.label:t.deadline}${t.time?' в '+t.time:''}</div>`:''}</div></div>`;
+    ${t.deadline?`<div class="t-dl ${isDone?'':di.cls}" style="font-size:10px">${di?di.label:t.deadline}${t.time?' в '+t.time:''}</div>`:''}</div>
+    ${gurl&&!isDone?`<a href="${gurl}" target="_blank" title="Добавить в Google Calendar" style="flex-shrink:0;display:flex;align-items:center;padding:3px 7px;background:#f0f7f0;border-radius:4px;color:#024638;font-size:10px;font-weight:700;text-decoration:none;gap:3px;border:1px solid #c8e6c9;transition:.2s" onmouseover="this.style.background='#c8e6c9'" onmouseout="this.style.background='#f0f7f0'">📅 Календарь</a>`:''}
+    </div>`;
   }).join('');
 }
 function renderMoHist(c){
@@ -714,16 +741,45 @@ function kanbanCard(c){
       ${ov?`<span style="color:#e74c3c;font-weight:700;font-size:10px">⚠${ov}</span>`:pt?`<span style="color:var(--bronze);font-size:10px">📌${pt}</span>`:''}
     </div></div>`;
 }
+let _pendingRefusalId=null,_pendingRefusalOldStage=null;
+
 async function dropCard(e,sid){
   e.preventDefault();document.querySelectorAll('.k-cards').forEach(el=>el.classList.remove('drag-over'));
   if(!dragId)return;
   const c=clients.find(x=>x.id===dragId);
   if(c&&c.stage!==sid){
+    if(sid==='refused'){
+      _pendingRefusalId=dragId;_pendingRefusalOldStage=c.stage;
+      dragId=null;
+      document.getElementById('ref-reason').value='';
+      document.getElementById('ref-overlay').style.display='flex';
+      return;
+    }
     const old=stageLabel(c.stage);c.stage=sid;
     c.history=c.history||[];c.history.unshift({id:uid(),date:new Date().toISOString(),type:'stage',text:`Этап изменён: ${old} → ${stageLabel(sid)}`});
     await persist(c);renderKanban();updateBadges();
   }
   dragId=null;
+}
+
+function cancelRefusal(){
+  document.getElementById('ref-overlay').style.display='none';
+  _pendingRefusalId=null;_pendingRefusalOldStage=null;
+  renderKanban();
+}
+
+async function confirmRefusal(){
+  const reason=document.getElementById('ref-reason').value;
+  if(!reason){document.getElementById('ref-reason').style.border='1px solid #922b21';return;}
+  document.getElementById('ref-overlay').style.display='none';
+  const c=clients.find(x=>x.id===_pendingRefusalId);
+  if(!c)return;
+  const old=stageLabel(_pendingRefusalOldStage);
+  c.stage='refused';c.refusalReason=reason;
+  c.history=c.history||[];
+  c.history.unshift({id:uid(),date:new Date().toISOString(),type:'stage',text:`Этап изменён: ${old} → Отказ · Причина: ${reason}`});
+  await persist(c);renderKanban();updateBadges();
+  _pendingRefusalId=null;_pendingRefusalOldStage=null;
 }
 
 // ===== TASKS PAGE =====
@@ -754,12 +810,13 @@ function renderTasks(){
 // ===== DASHBOARD =====
 function renderDashboard(){
   const total=clients.length;
-  const active=clients.filter(c=>!['done','refused'].includes(c.stage)).length;
+  const active=clients.filter(c=>['contract','realization'].includes(c.stage)).length;
   const done=clients.filter(c=>c.stage==='done');
   const conv=total?Math.round(done.length/total*100):0;
   const times=done.filter(c=>c.createdAt&&c.lastTouchDate).map(c=>{const d=Math.floor((new Date(c.lastTouchDate)-new Date(c.createdAt))/86400000);return d>=0?d:null;}).filter(x=>x!==null);
   const avg=times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length):'—';
-  document.getElementById('s-total').textContent=total;document.getElementById('s-active').textContent=active;
+  const leads=clients.filter(c=>c.stage==='lead').length;
+  document.getElementById('s-total').textContent=total;document.getElementById('s-leads').textContent=leads;document.getElementById('s-active').textContent=active;
   document.getElementById('s-avg').textContent=avg;document.getElementById('s-conv').textContent=conv+'%';
   const maxC=Math.max(1,...STAGES.map(s=>clients.filter(c=>c.stage===s.id).length));
   document.getElementById('funnel-rows').innerHTML=STAGES.map((s,i)=>{
