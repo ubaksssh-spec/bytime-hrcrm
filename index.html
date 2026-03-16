@@ -5257,11 +5257,9 @@ function wbMouseDown(e) {
   const el = {id, type:wbTool, x:pt.x-80, y:pt.y-50, w:160, h:100, text:'', color:COLORS[wbTool]||wbColor};
   b.elements.push(el);
   renderWbElements();
-  // Focus text immediately for sticky/text
+  // Focus text on new sticky/text element via dblClick simulation
   setTimeout(()=>{
-    const domEl = document.getElementById('wbel-'+id);
-    const ta = domEl?.querySelector('.wb-text');
-    if (ta) ta.focus();
+    wbElDblClick({stopPropagation:()=>{}}, id);
   },50);
 }
 
@@ -5354,34 +5352,101 @@ function renderWbElements() {
 }
 
 function renderWbElement(el) {
-  const isSelected=el.id===wbSelectedId;
-  const border=isSelected?'2px solid var(--bv)':'2px solid transparent';
-  const shadow=el.type==='sticky'?'0 3px 12px rgba(0,0,0,.15)':el.type==='text'?'none':'0 2px 8px rgba(0,0,0,.1)';
-  const bg=el.type==='text'?'transparent':el.color||'#FFEB3B';
-  const radius=el.type==='circle'?'50%':el.type==='sticky'?'4px':'8px';
-  const fontStyle=el.type==='sticky'?'font-size:14px;font-family:\"Onest\",sans-serif;':el.type==='text'?'font-size:16px;font-weight:600;font-family:\"Bebas Neue\",sans-serif;':'font-size:13px;font-family:\"Onest\",sans-serif;';
-  return `<div id="wbel-${el.id}" style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;min-height:${el.h}px;background:${bg};border:${border};border-radius:${radius};box-shadow:${shadow};cursor:move;user-select:none"
+  const isSelected = el.id === wbSelectedId;
+  const bg = el.type==='text' ? 'transparent' : el.color||'#FFEB3B';
+  const radius = el.type==='circle' ? '50%' : el.type==='sticky' ? '6px' : '8px';
+  const shadow = el.type==='text' ? 'none' : '0 3px 12px rgba(0,0,0,.13)';
+  const fontStyle = el.type==='sticky'
+    ? 'font-size:14px;font-family:"Onest",sans-serif;color:#333'
+    : el.type==='text'
+    ? 'font-size:20px;font-weight:700;font-family:"Bebas Neue",sans-serif;color:#212121'
+    : 'font-size:13px;font-family:"Onest",sans-serif;color:#212121';
+  const borderColor = isSelected ? 'var(--bv)' : el.type==='text' ? 'transparent' : 'transparent';
+  const borderStyle = isSelected ? '2px solid var(--bv)' : el.type==='text' ? '1.5px dashed rgba(0,0,0,.15)' : '2px solid transparent';
+
+  return `<div id="wbel-${el.id}"
+    style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;min-height:${el.h}px;
+           background:${bg};border:${borderStyle};border-radius:${radius};box-shadow:${shadow};
+           cursor:${wbTool==='select'?'grab':'crosshair'};user-select:none;display:flex;flex-direction:column"
     onmousedown="wbElMouseDown(event,'${el.id}')"
-    onclick="wbElClick(event,'${el.id}')">
-    <textarea class="wb-text" style="width:100%;min-height:${el.h-16}px;background:transparent;border:none;outline:none;resize:none;padding:10px;${fontStyle}color:${el.type==='sticky'?'#333':'inherit'};cursor:text"
-      placeholder="${el.type==='sticky'?'Заметка...':el.type==='text'?'Текст...':''}"
+    ondblclick="wbElDblClick(event,'${el.id}')">
+
+    ${isSelected ? `
+    <!-- Drag handle bar (always draggable) -->
+    <div class="wb-drag-handle" style="height:18px;background:var(--bv);border-radius:${el.type==='circle'?'50% 50% 0 0':'4px 4px 0 0'};display:flex;align-items:center;justify-content:center;cursor:grab;flex-shrink:0;opacity:.85"
+      onmousedown="wbHandleMouseDown(event,'${el.id}')">
+      <span style="font-size:11px;color:rgba(255,255,255,.8);letter-spacing:2px">⋮⋮⋮</span>
+    </div>` : ''}
+
+    <!-- Content (textarea, readonly unless editing) -->
+    <textarea class="wb-text" id="wbta-${el.id}"
+      style="flex:1;min-height:${el.h-20}px;background:transparent;border:none;outline:none;
+             resize:none;padding:10px;${fontStyle};pointer-events:none;cursor:inherit"
+      placeholder="${el.type==='sticky'?'Дважды кликни для редактирования':el.type==='text'?'Текст...':''}"
       onchange="wbElTextChange('${el.id}',this.value)"
-      oninput="this.parentElement.style.height=Math.max(${el.h},this.scrollHeight+20)+'px'"
+      onblur="wbElBlur('${el.id}',this)"
+      oninput="this.parentElement.style.minHeight=Math.max(${el.h},this.scrollHeight+30)+'px'"
+      readonly
     >${el.text||''}</textarea>
-    ${isSelected?`<div style="position:absolute;bottom:-4px;right:-4px;width:10px;height:10px;background:var(--bv);border-radius:50%;cursor:se-resize" onmousedown="wbResizeStart(event,'${el.id}')"></div>`:''}
+
+    ${isSelected ? `
+    <!-- Resize handle -->
+    <div style="position:absolute;bottom:-5px;right:-5px;width:12px;height:12px;background:var(--bv);
+                border-radius:50%;cursor:se-resize;border:2px solid white;z-index:2"
+      onmousedown="wbResizeStart(event,'${el.id}')"></div>` : ''}
   </div>`;
 }
 
-function wbElClick(e,id) { e.stopPropagation(); if(wbTool==='select'){wbSelectedId=id;renderWbElements();} }
-function wbElMouseDown(e,id) {
-  if (wbTool!=='select') return;
-  if (e.target.tagName==='TEXTAREA') return;
+function wbElClick(e, id) {
   e.stopPropagation();
-  const b=whiteboards.find(x=>x.id===activeWbId);
-  const el=b?.elements.find(x=>x.id===id); if (!el) return;
+  if (wbTool==='select') { wbSelectedId=id; renderWbElements(); }
+}
+
+function wbElDblClick(e, id) {
+  e.stopPropagation();
+  // Enable editing on double-click
+  wbSelectedId = id;
+  renderWbElements();
+  const ta = document.getElementById('wbta-'+id);
+  if (ta) {
+    ta.removeAttribute('readonly');
+    ta.style.pointerEvents = 'auto';
+    ta.style.cursor = 'text';
+    ta.focus();
+    ta.select();
+    const el = document.getElementById('wbel-'+id);
+    if (el) el.style.cursor = 'text';
+  }
+}
+
+function wbElBlur(id, ta) {
+  ta.setAttribute('readonly', true);
+  ta.style.pointerEvents = 'none';
+  const el = document.getElementById('wbel-'+id);
+  if (el) el.style.cursor = 'grab';
+}
+
+function wbElMouseDown(e, id) {
+  if (wbTool !== 'select') return;
+  // Don't drag if textarea is editable (user is typing)
+  const ta = document.getElementById('wbta-'+id);
+  if (ta && !ta.hasAttribute('readonly')) return;
+  e.stopPropagation();
+  const b = whiteboards.find(x=>x.id===activeWbId);
+  const el = b?.elements.find(x=>x.id===id); if (!el) return;
+  wbSelectedId = id;
+  renderWbElements();
   wbPushHistory();
-  wbDragging={id,startX:e.clientX,startY:e.clientY,origX:el.x,origY:el.y};
-  wbSelectedId=id;
+  wbDragging = {id, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y};
+}
+
+function wbHandleMouseDown(e, id) {
+  e.stopPropagation(); e.preventDefault();
+  const b = whiteboards.find(x=>x.id===activeWbId);
+  const el = b?.elements.find(x=>x.id===id); if (!el) return;
+  wbPushHistory();
+  wbDragging = {id, startX:e.clientX, startY:e.clientY, origX:el.x, origY:el.y};
+  document.getElementById('wbel-'+id).style.cursor='grabbing';
 }
 
 function wbElTextChange(id,text) {
