@@ -534,37 +534,117 @@ tbody tr:last-child{border-bottom:none}
 
     <!-- TOOLS -->
     <div id="page-tools" class="page">
-      <div class="page-header">
-        <div><div class="page-title">Инструменты</div><div class="page-subtitle">Рабочие инструменты и процессы</div></div>
-      </div>
-      <!-- Tool tabs -->
-      <div class="tabs" style="margin-bottom:24px">
-        <div class="tab active" onclick="switchToolTab('processes',this)">Бизнес-процессы</div>
-      </div>
-      <!-- Tool: Processes (embedded) -->
-      <div id="tool-processes">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="proc-search" placeholder="Поиск процесса..." oninput="renderProcesses()"></div>
+      <div id="tool-main-view">
+        <div class="page-header">
+          <div><div class="page-title">Инструменты</div><div class="page-subtitle">Рабочие инструменты и процессы</div></div>
+        </div>
+        <!-- Tool tabs -->
+        <div class="tabs" style="margin-bottom:24px">
+          <div class="tab active" onclick="switchToolTab('processes',this)">Бизнес-процессы</div>
+          <div class="tab" onclick="switchToolTab('notes',this)">Заметки</div>
+          <div class="tab" onclick="switchToolTab('boards',this)">Доска</div>
+        </div>
+        <!-- Tool: Processes (embedded) -->
+        <div id="tool-processes">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="proc-search" placeholder="Поиск процесса..." oninput="renderProcesses()"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost" onclick="openFolderModal()">📁 Папка</button>
+              <button class="btn btn-bv" onclick="openProcModal()">+ Процесс</button>
+            </div>
           </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-ghost" onclick="openFolderModal()">📁 Папка</button>
-            <button class="btn btn-bv" onclick="openProcModal()">+ Процесс</button>
+          <div class="tabs" id="proc-dept-tabs"></div>
+          <div class="procs-grid" id="proc-grid"></div>
+          <!-- Canvas editor inside tools -->
+          <div id="proc-canvas-view" style="display:none">
+            <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--gray2);background:var(--white)">
+              <button class="btn btn-ghost btn-sm" onclick="closeProcCanvas()">← Назад</button>
+              <div id="canvas-proc-title" style="font-family:var(--font-h);font-size:22px;color:var(--bv);flex:1"></div>
+              <button class="btn btn-sm btn-ghost" onclick="copyShareLink()">🔗 Поделиться</button>
+              <button class="btn btn-sm btn-bv" onclick="addCanvasCol()">+ Этап</button>
+            </div>
+            <div style="overflow:auto;height:calc(100vh - 220px);background:var(--gray1)">
+              <div id="proc-canvas" style="padding:20px;min-width:max-content"></div>
+            </div>
           </div>
         </div>
-        <div class="tabs" id="proc-dept-tabs"></div>
-        <div class="procs-grid" id="proc-grid"></div>
-        <!-- Canvas editor inside tools -->
-        <div id="proc-canvas-view" style="display:none">
-          <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--gray2);background:var(--white)">
-            <button class="btn btn-ghost btn-sm" onclick="closeProcCanvas()">← Назад</button>
-            <div id="canvas-proc-title" style="font-family:var(--font-h);font-size:22px;color:var(--bv);flex:1"></div>
-            <button class="btn btn-sm btn-ghost" onclick="copyShareLink()">🔗 Поделиться</button>
-            <button class="btn btn-sm btn-bv" onclick="addCanvasCol()">+ Этап</button>
+        <!-- Tool: Notes (global) -->
+        <div id="tool-notes" style="display:none">
+          <div style="max-width:700px">
+            <div style="background:var(--white);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--gray1);padding:20px;margin-bottom:20px">
+              <div style="font-size:13px;font-weight:700;color:var(--gray4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Новая заметка</div>
+              <input id="tool-note-title" placeholder="Тема / заголовок..." style="width:100%;padding:10px 13px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:14px;outline:none;margin-bottom:10px;box-sizing:border-box" onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'">
+              <textarea id="tool-note-body" placeholder="Текст заметки..." rows="5" style="width:100%;padding:10px 13px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13.5px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.6" onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'"></textarea>
+              <button onclick="saveToolNote()" style="margin-top:10px;background:var(--bv);color:white;border:none;border-radius:8px;padding:10px 24px;cursor:pointer;font-size:13.5px;font-weight:600;font-family:var(--font-b)">+ Сохранить заметку</button>
+            </div>
+            <div id="tool-notes-list" style="display:flex;flex-direction:column;gap:12px"></div>
           </div>
-          <div style="overflow:auto;height:calc(100vh - 220px);background:var(--gray1)">
-            <div id="proc-canvas" style="padding:20px;min-width:max-content"></div>
+        </div>
+        <!-- Tool: Boards list -->
+        <div id="tool-boards" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="wb-search" placeholder="Поиск досок..." oninput="renderBoardsList()"></div>
+            <button class="btn btn-bv" onclick="createNewWhiteboard()">+ Новая доска</button>
           </div>
+          <div id="wb-boards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px"></div>
+        </div>
+      </div>
+
+      <!-- Whiteboard canvas view (fullscreen over tools) -->
+      <div id="wb-canvas-view" style="display:none;position:fixed;inset:0;z-index:500;background:#f0f0f0;flex-direction:column">
+        <!-- Toolbar -->
+        <div style="background:var(--white);border-bottom:1px solid var(--gray1);display:flex;align-items:center;gap:8px;padding:8px 16px;flex-shrink:0;z-index:10">
+          <button class="btn btn-ghost btn-sm" onclick="closeWhiteboard()">← Назад</button>
+          <div id="wb-title-input" contenteditable="true" style="font-family:var(--font-h);font-size:20px;color:var(--bv);min-width:120px;outline:none;border-bottom:1px solid transparent" onfocus="this.style.borderBottomColor='var(--bv)'" onblur="saveWbTitle(this.textContent);this.style.borderBottomColor='transparent'"></div>
+          <div style="flex:1"></div>
+          <!-- Tools -->
+          <div style="display:flex;gap:4px;background:var(--gray1);border-radius:10px;padding:4px" id="wb-tool-bar">
+            ${[
+              {id:'select',  icon:'↖',  title:'Выбор'},
+              {id:'sticky',  icon:'🗒',  title:'Стикер'},
+              {id:'text',    icon:'T',   title:'Текст'},
+              {id:'rect',    icon:'▭',   title:'Прямоугольник'},
+              {id:'circle',  icon:'○',   title:'Круг'},
+              {id:'arrow',   icon:'→',   title:'Стрелка'},
+              {id:'pen',     icon:'✏',   title:'Карандаш'},
+            ].map(t=>`<button id="wbt-${t.id}" onclick="setWbTool('${t.id}')" title="${t.title}" style="background:${t.id==='select'?'var(--white)':'transparent'};border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .12s">${t.icon}</button>`).join('')}
+          </div>
+          <!-- Colors -->
+          <div style="display:flex;gap:4px" id="wb-colors">
+            ${['#FFEB3B','#4CAF50','#2196F3','#F44336','#9C27B0','#FF9800','#FFFFFF','#212121'].map(c=>`<button onclick="setWbColor('${c}')" style="width:22px;height:22px;border-radius:50%;background:${c};border:2px solid ${c==='#FFFFFF'?'#ccc':'transparent'};cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" title="${c}"></button>`).join('')}
+          </div>
+          <button class="btn btn-sm btn-ghost" onclick="wbUndo()" title="Отменить">↩</button>
+          <button class="btn btn-sm btn-ghost" onclick="wbRedo()" title="Повторить">↪</button>
+          <button class="btn btn-sm btn-ghost" onclick="copyWbShareLink()" title="Поделиться">🔗 Ссылка</button>
+          <button class="btn btn-bv btn-sm" onclick="saveWhiteboard()">Сохранить</button>
+        </div>
+        <!-- Canvas area -->
+        <div id="wb-stage" style="flex:1;position:relative;overflow:hidden;cursor:default"
+          onmousedown="wbMouseDown(event)"
+          onmousemove="wbMouseMove(event)"
+          onmouseup="wbMouseUp(event)"
+          ondblclick="wbDblClick(event)"
+          onwheel="wbWheel(event)">
+          <!-- Grid bg -->
+          <svg style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none" id="wb-grid-svg">
+            <defs>
+              <pattern id="wbgrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#d0d0d0" stroke-width="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#wbgrid)"/>
+          </svg>
+          <!-- Elements container (transformed) -->
+          <div id="wb-elements" style="position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform"></div>
+          <!-- SVG for arrows/pen -->
+          <svg id="wb-arrows-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
+        </div>
+        <!-- Status bar -->
+        <div style="background:var(--white);border-top:1px solid var(--gray1);padding:4px 16px;font-size:11.5px;color:var(--gray4);display:flex;gap:20px;flex-shrink:0">
+          <span id="wb-zoom-label">100%</span>
+          <span>Зажмите Space + тащите для перемещения · Ctrl+колесо для масштаба · Двойной клик для редактирования</span>
         </div>
       </div>
     </div>
@@ -654,26 +734,41 @@ tbody tr:last-child{border-bottom:none}
         </div><!-- end LEFT column -->
 
         <!-- RIGHT: Tools panel -->
-        <div style="background:var(--white);overflow-y:auto;display:flex;flex-direction:column">
-          <!-- Tab bar -->
-          <div style="border-bottom:1px solid var(--gray1);padding:0 20px;display:flex;align-items:center;gap:0;flex-shrink:0">
-            <div id="proj-tool-tab-processes" onclick="switchProjTool('processes',this)"
-              style="padding:14px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--bv);color:var(--bv);white-space:nowrap">
-              Бизнес-процессы
+        <div style="background:var(--white);overflow-y:auto;display:flex;flex-direction:column;border-left:1px solid var(--gray1)">
+
+          <!-- Vertical tool sections -->
+
+          <!-- Section: Заметки -->
+          <div style="border-bottom:1px solid var(--gray1)">
+            <div onclick="toggleProjPanel('notes')" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);user-select:none" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
+              <span>📝 Заметки</span>
+              <span id="proj-panel-arrow-notes" style="font-size:10px;color:var(--gray4)">▲</span>
+            </div>
+            <div id="proj-tool-panel-notes" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+              <div style="background:var(--paper);border-radius:10px;padding:12px">
+                <input id="note-title" placeholder="Тема / заголовок..." style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:12.5px;outline:none;margin-bottom:7px;box-sizing:border-box" onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'">
+                <textarea id="note-body" placeholder="Текст заметки..." rows="4" style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:12.5px;outline:none;resize:vertical;box-sizing:border-box;line-height:1.5" onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'"></textarea>
+                <button onclick="saveNote()" style="width:100%;margin-top:7px;background:var(--bv);color:white;border:none;border-radius:8px;padding:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font-b)">+ Сохранить</button>
+              </div>
+              <div id="proj-notes-list" style="display:flex;flex-direction:column;gap:8px"></div>
             </div>
           </div>
 
-          <!-- Tool: Processes -->
-          <div id="proj-tool-panel-processes" style="padding:20px;flex:1">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap">
-              <div class="search-box" style="flex:1;min-width:0">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="proj-proc-search" placeholder="Поиск..." oninput="renderProjProcesses()" style="min-width:0">
-              </div>
-              <button class="btn btn-sm btn-bv" onclick="openProcModal()">+</button>
+          <!-- Section: Процессы -->
+          <div style="border-bottom:1px solid var(--gray1)">
+            <div onclick="toggleProjPanel('processes')" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);user-select:none" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
+              <span>⚙️ Процессы</span>
+              <span id="proj-panel-arrow-processes" style="font-size:10px;color:var(--gray4)">▼</span>
             </div>
-            <div id="proj-proc-list"></div>
+            <div id="proj-tool-panel-processes" style="display:none;padding:14px 16px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                <input type="text" id="proj-proc-search" placeholder="🔍 Поиск процессов..." oninput="renderProjProcesses()" style="flex:1;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:12.5px;outline:none" onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'">
+                <button class="btn btn-sm btn-bv" onclick="openProcModal()" title="Новый процесс">+</button>
+              </div>
+              <div id="proj-proc-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
           </div>
+
         </div><!-- end RIGHT column -->
 
       </div><!-- end grid -->
@@ -1460,8 +1555,29 @@ function saveSystemUsers() {
   try { localStorage.setItem('bt_system_users', JSON.stringify(systemUsers)); } catch(e) {}
 }
 let dmConversations = {};
+let meetingNotes = []; // [{id, title, body, date, projectId, projectName}]
 let activeChatIsDm = false;
 let activeDmUser = null;
+
+// ─── WHITEBOARDS ───
+let whiteboards = (() => { try { return JSON.parse(localStorage.getItem('bt_wbs')||'[]'); } catch(e){return[];} })();
+let activeWbId = null;
+let wbTool = 'select';
+let wbColor = '#FFEB3B';
+let wbZoom = 1;
+let wbPanX = 0, wbPanY = 0;
+let wbDragging = null;   // {el, startX, startY, origX, origY}
+let wbDrawing = null;    // current draw operation
+let wbSpaceDown = false;
+let wbPanning = false;   // space+drag pan
+let wbPanStart = null;
+let wbHistory = [];      // undo stack
+let wbFuture = [];       // redo stack
+let wbSelectedId = null;
+let wbPenPoints = [];
+let wbArrowStart = null;
+
+function saveWhiteboards() { try { localStorage.setItem('bt_wbs', JSON.stringify(whiteboards)); } catch(e){} }
 
 let passwords = [
   {id:1, name:'HH.ru (HeadHunter)',  url:'https://hh.ru',            login:'hr@bytime.agency',    pass:'hh_pass_2026',   cat:'Сервисы', note:'Корпоративный аккаунт HR',  access:['u1','u2']},
@@ -1641,7 +1757,7 @@ function nav(el) {
   if (page==='org') renderOrg();
   if (page==='processes') renderProcesses();
   if (page==='tools')     { renderProcesses(); }
-  if (page==='projects') { renderProjectsList(); renderProjProcesses(); }
+  if (page==='projects') { renderProjectsList(); renderProjProcesses(); renderNotes(); }
   if (page==='users') renderUsersTable();
 }
 
@@ -4805,6 +4921,114 @@ function saveProjComment(clientId, value) {
   showToast('Комментарий сохранён ✓');
 }
 
+// ─── NOTES ───
+function saveNote() {
+  const title = document.getElementById('note-title')?.value.trim();
+  const body  = document.getElementById('note-body')?.value.trim();
+  if (!body) { showToast('Введите текст заметки'); return; }
+  const now = new Date();
+  meetingNotes.unshift({
+    id: 'n'+Date.now(),
+    title: title || 'Заметка',
+    body,
+    date: now.toLocaleDateString('ru-RU')+' '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0'),
+    projectId: null,
+    projectName: null,
+  });
+  document.getElementById('note-title').value = '';
+  document.getElementById('note-body').value = '';
+  renderNotes();
+  showToast('Заметка сохранена ✓');
+}
+
+function renderNotes() {
+  const el = document.getElementById('proj-notes-list');
+  if (!el) return;
+  if (!meetingNotes.length) {
+    el.innerHTML = '<div style="color:var(--gray4);font-size:13px;text-align:center;padding:20px 0">Заметок пока нет</div>';
+    return;
+  }
+  el.innerHTML = meetingNotes.map(n=>`
+    <div style="background:var(--white);border:1.5px solid var(--gray1);border-radius:10px;overflow:hidden;${n.projectId?'border-left:3px solid var(--bv)':''}">
+      <div style="padding:11px 14px 8px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+          <div style="font-weight:700;font-size:13.5px;color:var(--ink);line-height:1.3">${n.title}</div>
+          <button onclick="deleteNote('${n.id}')" style="background:none;border:none;cursor:pointer;color:var(--gray3);font-size:14px;flex-shrink:0;opacity:.5;padding:0" onmouseover="this.style.opacity=1;this.style.color='var(--danger)'" onmouseout="this.style.opacity=.5;this.style.color='var(--gray3)'">✕</button>
+        </div>
+        <div style="font-size:12.5px;color:var(--gray4);line-height:1.5;white-space:pre-wrap">${n.body.slice(0,200)}${n.body.length>200?'…':''}</div>
+        <div style="font-size:11px;color:var(--gray3);margin-top:6px">${n.date}</div>
+      </div>
+      <div style="border-top:1px solid var(--gray1);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--paper)">
+        ${n.projectId
+          ? `<span style="font-size:12px;color:var(--bv);font-weight:600">📎 ${n.projectName}</span>
+             <button onclick="detachNoteFromProject('${n.id}')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--gray4)" title="Открепить">Открепить</button>`
+          : `<span style="font-size:12px;color:var(--gray4)">Не привязана к проекту</span>
+             <button onclick="openAttachNoteModal('${n.id}')" style="background:none;border:1.5px solid var(--bv);border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;color:var(--bv);font-weight:600;font-family:var(--font-b);transition:all .15s" onmouseover="this.style.background='var(--bv)';this.style.color='white'" onmouseout="this.style.background='none';this.style.color='var(--bv)'">+ В проект</button>`}
+      </div>
+    </div>`).join('');
+}
+
+function deleteNote(id) {
+  meetingNotes = meetingNotes.filter(n=>n.id!==id);
+  renderNotes();
+}
+
+function detachNoteFromProject(id) {
+  const n = meetingNotes.find(x=>x.id===id); if (!n) return;
+  n.projectId = null; n.projectName = null;
+  renderNotes(); showToast('Заметка откреплена');
+}
+
+function openAttachNoteModal(noteId) {
+  const note = meetingNotes.find(x=>x.id===noteId); if (!note) return;
+  const overlay = document.createElement('div');
+  overlay.className='modal-overlay open'; overlay.style.zIndex='600';
+  overlay.innerHTML=`<div class="modal"><div class="modal-head">
+    <div class="modal-title">Добавить заметку в проект</div>
+    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div style="background:var(--paper);border-radius:8px;padding:12px 14px;font-size:13px;margin-bottom:16px;border-left:3px solid var(--bv)">
+      <div style="font-weight:700;margin-bottom:4px">${note.title}</div>
+      <div style="color:var(--gray4);font-size:12.5px">${note.body.slice(0,120)}${note.body.length>120?'…':''}</div>
+    </div>
+    <div class="form-row"><label>Выберите проект</label>
+      <select id="attach-project-sel" style="width:100%;padding:10px 13px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13.5px;outline:none">
+        ${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+      </select>
+    </div>
+    <div style="font-size:12.5px;color:var(--gray4);margin-top:4px">Заметка будет добавлена в комментарий проекта</div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Отмена</button>
+    <button class="btn btn-bv" onclick="attachNoteToProject('${noteId}',this)">Добавить в проект</button>
+  </div></div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+  // Pre-select active project
+  if (activeClientId) {
+    setTimeout(()=>{ const s=document.getElementById('attach-project-sel'); if(s) s.value=activeClientId; }, 30);
+  }
+}
+
+function attachNoteToProject(noteId, btn) {
+  const note = meetingNotes.find(x=>x.id===noteId); if (!note) return;
+  const sel = document.getElementById('attach-project-sel');
+  const projectId = sel?.value; if (!projectId) return;
+  const c = clients.find(x=>x.id===projectId); if (!c) return;
+  note.projectId = projectId;
+  note.projectName = c.name;
+  // Append to project comment
+  const sep = c.comment ? '\n\n' : '';
+  c.comment = (c.comment||'') + sep + `[${note.date}] ${note.title}\n${note.body}`;
+  // Refresh comment textarea if visible
+  const ta = document.getElementById(`proj-comment-${projectId}`);
+  if (ta) ta.value = c.comment;
+  btn.closest('.modal-overlay').remove();
+  renderNotes();
+  showToast(`Заметка добавлена в «${c.name}» ✓`);
+}
+
 function switchProjTool(tool, el) {
   document.querySelectorAll('[id^="proj-tool-tab-"]').forEach(t=>{
     t.style.borderBottom='2px solid transparent'; t.style.color='var(--gray4)';
@@ -4812,8 +5036,9 @@ function switchProjTool(tool, el) {
   el.style.borderBottom='2px solid var(--bv)'; el.style.color='var(--bv)';
   document.querySelectorAll('[id^="proj-tool-panel-"]').forEach(p=>p.style.display='none');
   const panel=document.getElementById('proj-tool-panel-'+tool);
-  if(panel) panel.style.display='';
+  if(panel) panel.style.display='flex';
   if(tool==='processes') renderProjProcesses();
+  if(tool==='notes') renderNotes();
 }
 
 function renderProjProcesses() {
@@ -4834,10 +5059,55 @@ function renderProjProcesses() {
 function switchToolTab(tab, el) {
   document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  document.querySelectorAll('#page-tools [id^="tool-"]').forEach(t=>t.style.display='none');
+  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards').forEach(t=>t.style.display='none');
   const panel = document.getElementById('tool-'+tab);
   if (panel) panel.style.display='';
   if (tab==='processes') renderProcesses();
+  if (tab==='boards') renderBoardsList();
+  if (tab==='notes') renderToolNotes();
+}
+
+// Global notes (in Инструменты)
+let toolNotes = (() => { try { return JSON.parse(localStorage.getItem('bt_tool_notes')||'[]'); } catch(e){return[];} })();
+function saveToolNoteData() { try { localStorage.setItem('bt_tool_notes', JSON.stringify(toolNotes)); } catch(e){} }
+
+function saveToolNote() {
+  const title = document.getElementById('tool-note-title')?.value.trim();
+  const body  = document.getElementById('tool-note-body')?.value.trim();
+  if (!title && !body) return;
+  toolNotes.unshift({ id:'tn_'+Date.now(), title, body, date:new Date().toLocaleDateString('ru-RU') });
+  saveToolNoteData();
+  document.getElementById('tool-note-title').value='';
+  document.getElementById('tool-note-body').value='';
+  renderToolNotes();
+  showToast('Заметка сохранена ✓');
+}
+
+function renderToolNotes() {
+  const el = document.getElementById('tool-notes-list'); if (!el) return;
+  if (!toolNotes.length) { el.innerHTML='<div style="color:var(--gray4);font-size:13px;text-align:center;padding:30px">Нет заметок</div>'; return; }
+  el.innerHTML = toolNotes.map((n,i)=>`
+    <div style="background:var(--white);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--gray1);padding:18px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div style="font-weight:700;font-size:15px;color:var(--ink)">${n.title||'Без названия'}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:11.5px;color:var(--gray4)">${n.date}</span>
+          <button onclick="toolNotes.splice(${i},1);saveToolNoteData();renderToolNotes()" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.4;font-size:16px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>
+        </div>
+      </div>
+      ${n.body?`<div style="font-size:13.5px;color:var(--gray4);white-space:pre-wrap;line-height:1.6">${n.body}</div>`:''}
+    </div>`).join('');
+}
+
+// Accordion toggle for right-panel tools in Операционка
+function toggleProjPanel(section) {
+  const panel = document.getElementById('proj-tool-panel-'+section);
+  const arrow = document.getElementById('proj-panel-arrow-'+section);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : '';
+  if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
+  if (!isOpen && section==='processes') renderProjProcesses();
 }
 
 function downloadProjectTemplate() {
@@ -4866,6 +5136,402 @@ function downloadProjectTemplate() {
     s.onload = doLoad; document.head.appendChild(s);
   } else { doLoad(); }
 }
+
+// ════════════════════════════════════════════
+// WHITEBOARD
+// ════════════════════════════════════════════
+function renderBoardsList() {
+  const q = (document.getElementById('wb-search')?.value||'').toLowerCase();
+  const el = document.getElementById('wb-boards-grid'); if (!el) return;
+  const list = whiteboards.filter(b=>!q||b.name.toLowerCase().includes(q));
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🗒</div><div class="empty-text">Нет досок. Нажмите «+ Новая доска»</div></div>`; return;
+  }
+  el.innerHTML = list.map(b=>`
+    <div style="background:var(--white);border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--gray1);border-top:4px solid var(--bv);overflow:hidden;cursor:pointer;transition:all .18s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+      <div onclick="openWhiteboard('${b.id}')" style="height:110px;background:${b.preview||'linear-gradient(135deg,rgba(84,5,43,.06),rgba(2,70,56,.06))'};display:flex;align-items:center;justify-content:center;font-size:36px">${b.icon||'🗒'}</div>
+      <div style="padding:14px 16px">
+        <div style="font-weight:700;font-size:15px;color:var(--ink)">${b.name}</div>
+        <div style="font-size:11.5px;color:var(--gray4);margin-top:3px">${b.elements?.length||0} объектов · ${b.updated||b.created}</div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button onclick="event.stopPropagation();openWhiteboard('${b.id}')" class="btn btn-sm btn-bv" style="flex:1">Открыть</button>
+          <button onclick="event.stopPropagation();copyWbShareLinkById('${b.id}')" class="btn btn-sm btn-ghost" title="Скопировать ссылку">🔗</button>
+          <button onclick="event.stopPropagation();deleteWhiteboard('${b.id}')" class="btn btn-sm btn-ghost" style="color:var(--danger)" title="Удалить">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function createNewWhiteboard() {
+  const name = prompt('Название доски:', 'Новая доска');
+  if (!name) return;
+  const id = 'wb_'+Date.now();
+  whiteboards.push({ id, name, icon:'🗒', created:new Date().toLocaleDateString('ru-RU'), updated:new Date().toLocaleDateString('ru-RU'), elements:[], arrows:[] });
+  saveWhiteboards();
+  renderBoardsList();
+  openWhiteboard(id);
+}
+
+function deleteWhiteboard(id) {
+  if (!confirm('Удалить доску?')) return;
+  whiteboards = whiteboards.filter(b=>b.id!==id);
+  saveWhiteboards(); renderBoardsList();
+}
+
+function openWhiteboard(id) {
+  activeWbId = id;
+  const b = whiteboards.find(x=>x.id===id); if (!b) return;
+  wbZoom=1; wbPanX=0; wbPanY=0; wbHistory=[]; wbFuture=[]; wbSelectedId=null;
+  document.getElementById('tool-main-view').style.display='none';
+  const cv = document.getElementById('wb-canvas-view');
+  cv.style.display='flex';
+  document.getElementById('wb-title-input').textContent = b.name;
+  setWbTool('select');
+  renderWbElements();
+  renderWbArrows();
+}
+
+function closeWhiteboard() {
+  saveWhiteboard();
+  document.getElementById('wb-canvas-view').style.display='none';
+  document.getElementById('tool-main-view').style.display='';
+  renderBoardsList();
+}
+
+function saveWhiteboard() {
+  const b = whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  b.updated = new Date().toLocaleDateString('ru-RU');
+  saveWhiteboards();
+}
+
+function saveWbTitle(text) {
+  const b = whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  b.name = text.trim()||'Без названия';
+  saveWhiteboards();
+}
+
+function setWbTool(tool) {
+  wbTool = tool;
+  document.querySelectorAll('[id^="wbt-"]').forEach(b=>b.style.background='transparent');
+  const btn = document.getElementById('wbt-'+tool);
+  if (btn) btn.style.background='var(--white)';
+  const stage = document.getElementById('wb-stage');
+  if (stage) stage.style.cursor = tool==='select'?'default':tool==='pen'?'crosshair':'crosshair';
+}
+
+function setWbColor(c) {
+  wbColor = c;
+  document.querySelectorAll('#wb-colors button').forEach(b=>b.style.border='2px solid transparent');
+  event.target.style.border='2px solid var(--bv)';
+  if (wbSelectedId) {
+    const b = whiteboards.find(x=>x.id===activeWbId);
+    const el = b?.elements.find(x=>x.id===wbSelectedId);
+    if (el) { el.color=c; renderWbElements(); saveWhiteboards(); }
+  }
+}
+
+function getWbTransform() { return `translate(${wbPanX}px,${wbPanY}px) scale(${wbZoom})`; }
+function updateWbTransform() {
+  const el = document.getElementById('wb-elements');
+  if (el) el.style.transform = getWbTransform();
+  const svg = document.getElementById('wb-arrows-svg');
+  if (svg) {
+    svg.style.transformOrigin='0 0';
+    svg.style.transform = `translate(${wbPanX}px,${wbPanY}px) scale(${wbZoom})`;
+  }
+  document.getElementById('wb-zoom-label').textContent = Math.round(wbZoom*100)+'%';
+}
+
+function stageCoords(e) {
+  const stage = document.getElementById('wb-stage').getBoundingClientRect();
+  return { x:(e.clientX-stage.left-wbPanX)/wbZoom, y:(e.clientY-stage.top-wbPanY)/wbZoom };
+}
+
+function wbMouseDown(e) {
+  if (e.button===1 || (e.button===0 && wbSpaceDown)) {
+    wbPanning=true; wbPanStart={x:e.clientX-wbPanX, y:e.clientY-wbPanY};
+    document.getElementById('wb-stage').style.cursor='grabbing'; return;
+  }
+  if (e.button!==0) return;
+  const pt = stageCoords(e);
+  const b = whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+
+  if (wbTool==='select') {
+    // deselect
+    wbSelectedId=null; renderWbElements(); return;
+  }
+  if (wbTool==='pen') {
+    wbPenPoints=[pt]; wbDrawing='pen'; return;
+  }
+  if (wbTool==='arrow') {
+    wbArrowStart=pt; wbDrawing='arrow'; return;
+  }
+
+  // Create element
+  wbPushHistory();
+  const id='el_'+Date.now();
+  const COLORS = {sticky:wbColor||'#FFEB3B',text:'transparent',rect:wbColor||'#FFFFFF',circle:wbColor||'#FFFFFF'};
+  const el = {id, type:wbTool, x:pt.x-80, y:pt.y-50, w:160, h:100, text:'', color:COLORS[wbTool]||wbColor};
+  b.elements.push(el);
+  renderWbElements();
+  // Focus text immediately for sticky/text
+  setTimeout(()=>{
+    const domEl = document.getElementById('wbel-'+id);
+    const ta = domEl?.querySelector('.wb-text');
+    if (ta) ta.focus();
+  },50);
+}
+
+function wbMouseMove(e) {
+  if (wbPanning && wbPanStart) {
+    wbPanX=e.clientX-wbPanStart.x; wbPanY=e.clientY-wbPanStart.y;
+    updateWbTransform(); return;
+  }
+  if (wbDragging) {
+    const dx=(e.clientX-wbDragging.startX)/wbZoom;
+    const dy=(e.clientY-wbDragging.startY)/wbZoom;
+    const el=document.getElementById('wbel-'+wbDragging.id);
+    if (el) { el.style.left=(wbDragging.origX+dx)+'px'; el.style.top=(wbDragging.origY+dy)+'px'; }
+    return;
+  }
+  if (wbDrawing==='pen') {
+    wbPenPoints.push(stageCoords(e));
+    renderWbPenPreview(); return;
+  }
+  if (wbDrawing==='arrow' && wbArrowStart) {
+    const pt=stageCoords(e);
+    renderWbArrowPreview(wbArrowStart,pt); return;
+  }
+}
+
+function wbMouseUp(e) {
+  if (wbPanning) { wbPanning=false; document.getElementById('wb-stage').style.cursor='default'; wbPanStart=null; return; }
+  if (wbDragging) {
+    const dx=(e.clientX-wbDragging.startX)/wbZoom;
+    const dy=(e.clientY-wbDragging.startY)/wbZoom;
+    const b=whiteboards.find(x=>x.id===activeWbId);
+    const el=b?.elements.find(x=>x.id===wbDragging.id);
+    if (el) { el.x=wbDragging.origX+dx; el.y=wbDragging.origY+dy; }
+    wbDragging=null; saveWhiteboards(); return;
+  }
+  if (wbDrawing==='pen' && wbPenPoints.length>1) {
+    wbPushHistory();
+    const b=whiteboards.find(x=>x.id===activeWbId);
+    if (!b.arrows) b.arrows=[];
+    b.arrows.push({id:'arr_'+Date.now(),type:'pen',points:wbPenPoints,color:wbColor==='#FFEB3B'?'#212121':wbColor,width:2});
+    clearWbPenPreview(); renderWbArrows(); saveWhiteboards();
+  }
+  if (wbDrawing==='arrow' && wbArrowStart) {
+    const pt=stageCoords(e);
+    if (Math.abs(pt.x-wbArrowStart.x)>10||Math.abs(pt.y-wbArrowStart.y)>10) {
+      wbPushHistory();
+      const b=whiteboards.find(x=>x.id===activeWbId);
+      if (!b.arrows) b.arrows=[];
+      b.arrows.push({id:'arr_'+Date.now(),type:'arrow',x1:wbArrowStart.x,y1:wbArrowStart.y,x2:pt.x,y2:pt.y,color:'#212121',width:2});
+      clearWbArrowPreview(); renderWbArrows(); saveWhiteboards();
+    }
+  }
+  wbDrawing=null; wbArrowStart=null;
+}
+
+function wbDblClick(e) {
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  // Check if clicking on empty space
+  if (e.target.id==='wb-stage'||e.target.id==='wb-elements'||e.target.closest('#wb-grid-svg')) {
+    const pt=stageCoords(e);
+    wbPushHistory();
+    const id='el_'+Date.now();
+    b.elements.push({id,type:'sticky',x:pt.x-80,y:pt.y-50,w:160,h:100,text:'',color:'#FFEB3B'});
+    renderWbElements();
+    setTimeout(()=>{ document.querySelector('#wbel-'+id+' .wb-text')?.focus(); },50);
+  }
+}
+
+function wbWheel(e) {
+  if (e.ctrlKey) {
+    e.preventDefault();
+    const stage=document.getElementById('wb-stage').getBoundingClientRect();
+    const mx=e.clientX-stage.left, my=e.clientY-stage.top;
+    const delta=e.deltaY<0?1.1:0.9;
+    wbPanX=mx-(mx-wbPanX)*delta;
+    wbPanY=my-(my-wbPanY)*delta;
+    wbZoom=Math.max(0.2,Math.min(3,wbZoom*delta));
+    updateWbTransform();
+  }
+}
+
+document.addEventListener('keydown',e=>{ if(e.code==='Space'&&document.getElementById('wb-canvas-view')?.style.display==='flex'){wbSpaceDown=true;document.getElementById('wb-stage').style.cursor='grab';} });
+document.addEventListener('keyup',e=>{ if(e.code==='Space'){wbSpaceDown=false;if(!wbPanning)document.getElementById('wb-stage').style.cursor='default';} });
+
+function renderWbElements() {
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  const container=document.getElementById('wb-elements'); if (!container) return;
+  container.innerHTML=b.elements.map(el=>renderWbElement(el)).join('');
+  updateWbTransform();
+}
+
+function renderWbElement(el) {
+  const isSelected=el.id===wbSelectedId;
+  const border=isSelected?'2px solid var(--bv)':'2px solid transparent';
+  const shadow=el.type==='sticky'?'0 3px 12px rgba(0,0,0,.15)':el.type==='text'?'none':'0 2px 8px rgba(0,0,0,.1)';
+  const bg=el.type==='text'?'transparent':el.color||'#FFEB3B';
+  const radius=el.type==='circle'?'50%':el.type==='sticky'?'4px':'8px';
+  const fontStyle=el.type==='sticky'?'font-size:14px;font-family:\"Onest\",sans-serif;':el.type==='text'?'font-size:16px;font-weight:600;font-family:\"Bebas Neue\",sans-serif;':'font-size:13px;font-family:\"Onest\",sans-serif;';
+  return `<div id="wbel-${el.id}" style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;min-height:${el.h}px;background:${bg};border:${border};border-radius:${radius};box-shadow:${shadow};cursor:move;user-select:none"
+    onmousedown="wbElMouseDown(event,'${el.id}')"
+    onclick="wbElClick(event,'${el.id}')">
+    <textarea class="wb-text" style="width:100%;min-height:${el.h-16}px;background:transparent;border:none;outline:none;resize:none;padding:10px;${fontStyle}color:${el.type==='sticky'?'#333':'inherit'};cursor:text"
+      placeholder="${el.type==='sticky'?'Заметка...':el.type==='text'?'Текст...':''}"
+      onchange="wbElTextChange('${el.id}',this.value)"
+      oninput="this.parentElement.style.height=Math.max(${el.h},this.scrollHeight+20)+'px'"
+    >${el.text||''}</textarea>
+    ${isSelected?`<div style="position:absolute;bottom:-4px;right:-4px;width:10px;height:10px;background:var(--bv);border-radius:50%;cursor:se-resize" onmousedown="wbResizeStart(event,'${el.id}')"></div>`:''}
+  </div>`;
+}
+
+function wbElClick(e,id) { e.stopPropagation(); if(wbTool==='select'){wbSelectedId=id;renderWbElements();} }
+function wbElMouseDown(e,id) {
+  if (wbTool!=='select') return;
+  if (e.target.tagName==='TEXTAREA') return;
+  e.stopPropagation();
+  const b=whiteboards.find(x=>x.id===activeWbId);
+  const el=b?.elements.find(x=>x.id===id); if (!el) return;
+  wbPushHistory();
+  wbDragging={id,startX:e.clientX,startY:e.clientY,origX:el.x,origY:el.y};
+  wbSelectedId=id;
+}
+
+function wbElTextChange(id,text) {
+  const b=whiteboards.find(x=>x.id===activeWbId);
+  const el=b?.elements.find(x=>x.id===id);
+  if(el){el.text=text;saveWhiteboards();}
+}
+
+let wbResizing=null;
+function wbResizeStart(e,id) {
+  e.stopPropagation(); e.preventDefault();
+  const b=whiteboards.find(x=>x.id===activeWbId);
+  const el=b?.elements.find(x=>x.id===id); if (!el) return;
+  const startX=e.clientX, startY=e.clientY, origW=el.w, origH=el.h;
+  const move=ev=>{ el.w=Math.max(80,origW+(ev.clientX-startX)/wbZoom); el.h=Math.max(50,origH+(ev.clientY-startY)/wbZoom); renderWbElements(); };
+  const up=()=>{ document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); saveWhiteboards(); };
+  document.addEventListener('mousemove',move); document.addEventListener('mouseup',up);
+}
+
+function deleteSelectedWbEl() {
+  if (!wbSelectedId) return;
+  wbPushHistory();
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  b.elements=b.elements.filter(x=>x.id!==wbSelectedId);
+  wbSelectedId=null; renderWbElements(); saveWhiteboards();
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Delete'&&wbSelectedId&&document.getElementById('wb-canvas-view')?.style.display==='flex') deleteSelectedWbEl(); });
+
+function renderWbArrows() {
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  const svg=document.getElementById('wb-arrows-svg'); if (!svg) return;
+  svg.innerHTML=(b.arrows||[]).map(a=>{
+    if(a.type==='arrow') {
+      const dx=a.x2-a.x1,dy=a.y2-a.y1,len=Math.sqrt(dx*dx+dy*dy)||1;
+      const ux=dx/len,uy=dy/len,hs=12;
+      const ax=a.x2-ux*hs-uy*hs*0.4,ay=a.y2-uy*hs+ux*hs*0.4;
+      const bx=a.x2-ux*hs+uy*hs*0.4,by=a.y2-uy*hs-ux*hs*0.4;
+      return `<g><line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${a.color}" stroke-width="${a.width}" stroke-linecap="round"/>
+        <polygon points="${a.x2},${a.y2} ${ax},${ay} ${bx},${by}" fill="${a.color}"/></g>`;
+    }
+    if(a.type==='pen'&&a.points?.length>1) {
+      const d=a.points.map((p,i)=>(i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');
+      return `<path d="${d}" stroke="${a.color}" stroke-width="${a.width}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    return '';
+  }).join('');
+  updateWbTransform();
+}
+
+function renderWbPenPreview() {
+  const svg=document.getElementById('wb-arrows-svg'); if (!svg||wbPenPoints.length<2) return;
+  let preview=svg.querySelector('#wb-pen-preview');
+  if(!preview){preview=document.createElementNS('http://www.w3.org/2000/svg','path');preview.id='wb-pen-preview';svg.appendChild(preview);}
+  const d=wbPenPoints.map((p,i)=>(i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');
+  preview.setAttribute('d',d);
+  preview.setAttribute('stroke',wbColor==='#FFEB3B'?'#212121':wbColor);
+  preview.setAttribute('stroke-width','2');
+  preview.setAttribute('fill','none');
+  preview.setAttribute('stroke-linecap','round');
+}
+function clearWbPenPreview() { document.querySelector('#wb-pen-preview')?.remove(); }
+
+function renderWbArrowPreview(s,e) {
+  const svg=document.getElementById('wb-arrows-svg'); if (!svg) return;
+  let prev=svg.querySelector('#wb-arrow-preview'); if(!prev){prev=document.createElementNS('http://www.w3.org/2000/svg','line');prev.id='wb-arrow-preview';svg.appendChild(prev);}
+  prev.setAttribute('x1',s.x);prev.setAttribute('y1',s.y);prev.setAttribute('x2',e.x);prev.setAttribute('y2',e.y);
+  prev.setAttribute('stroke','#212121');prev.setAttribute('stroke-width','2');prev.setAttribute('stroke-dasharray','6');
+}
+function clearWbArrowPreview() { document.querySelector('#wb-arrow-preview')?.remove(); }
+
+function wbPushHistory() {
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  wbHistory.push(JSON.stringify({elements:b.elements,arrows:b.arrows||[]}));
+  if(wbHistory.length>50) wbHistory.shift();
+  wbFuture=[];
+}
+function wbUndo() {
+  if (!wbHistory.length) return;
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  wbFuture.push(JSON.stringify({elements:b.elements,arrows:b.arrows||[]}));
+  const prev=JSON.parse(wbHistory.pop());
+  b.elements=prev.elements; b.arrows=prev.arrows;
+  renderWbElements(); renderWbArrows(); saveWhiteboards();
+}
+function wbRedo() {
+  if (!wbFuture.length) return;
+  const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
+  wbHistory.push(JSON.stringify({elements:b.elements,arrows:b.arrows||[]}));
+  const next=JSON.parse(wbFuture.pop());
+  b.elements=next.elements; b.arrows=next.arrows;
+  renderWbElements(); renderWbArrows(); saveWhiteboards();
+}
+
+function copyWbShareLink() { copyWbShareLinkById(activeWbId); }
+function copyWbShareLinkById(id) {
+  const url=window.location.origin+window.location.pathname+'?wbread='+id;
+  navigator.clipboard?.writeText(url).catch(()=>{});
+  showToast('Ссылка скопирована — открывает доску в режиме чтения ✓');
+}
+
+// Read-only mode: if URL has ?wbread=id, show board read-only
+(function checkWbReadMode(){
+  const params=new URLSearchParams(location.search);
+  const wbid=params.get('wbread');
+  if(!wbid) return;
+  window.addEventListener('DOMContentLoaded',()=>{
+    const b=whiteboards.find(x=>x.id===wbid);
+    if(!b){document.body.innerHTML='<div style="padding:40px;font-family:sans-serif;color:#666">Доска не найдена или нет доступа.</div>';return;}
+    document.getElementById('login-screen').style.display='none';
+    // Show read-only board
+    const div=document.createElement('div');
+    div.style.cssText='position:fixed;inset:0;background:#f0f0f0;z-index:9999;display:flex;flex-direction:column';
+    div.innerHTML=`<div style="background:#fff;border-bottom:1px solid #e0e0e0;padding:12px 24px;display:flex;align-items:center;gap:12px">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#54052B">BYTIME</span>
+      <span style="font-size:18px;font-weight:700;color:#1a0a0f">${b.name}</span>
+      <span style="margin-left:8px;background:#f0f0f0;border-radius:20px;padding:3px 12px;font-size:12px;color:#666">Режим чтения</span>
+    </div>
+    <div style="flex:1;overflow:hidden;position:relative">
+      <div id="wb-ro-els" style="position:absolute;top:0;left:0;transform-origin:0 0"></div>
+      <svg id="wb-ro-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
+    </div>`;
+    document.body.appendChild(div);
+    // Render read-only
+    document.getElementById('wb-ro-els').innerHTML=b.elements.map(el=>`
+      <div style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;min-height:${el.h}px;background:${el.color||'#FFEB3B'};border-radius:${el.type==='circle'?'50%':'8px'};padding:10px;font-family:'Onest',sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.1)">${(el.text||'').replace(/\n/g,'<br>')}</div>`).join('');
+    const svg=document.getElementById('wb-ro-svg');
+    svg.innerHTML=(b.arrows||[]).map(a=>{
+      if(a.type==='pen'&&a.points?.length>1){const d=a.points.map((p,i)=>(i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');return `<path d="${d}" stroke="${a.color}" stroke-width="${a.width}" fill="none" stroke-linecap="round"/>`;}
+      if(a.type==='arrow'){const dx=a.x2-a.x1,dy=a.y2-a.y1,len=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/len,uy=dy/len,hs=12,ax=a.x2-ux*hs-uy*hs*0.4,ay=a.y2-uy*hs+ux*hs*0.4,bx=a.x2-ux*hs+uy*hs*0.4,by2=a.y2-uy*hs-ux*hs*0.4;return `<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${a.color}" stroke-width="${a.width}"/><polygon points="${a.x2},${a.y2} ${ax},${ay} ${bx},${by2}" fill="${a.color}"/>`;}
+      return '';
+    }).join('');
+  });
+})();
 
 function showToast(msg) {
   const t=document.createElement('div');
