@@ -372,8 +372,7 @@ tbody tr:last-child{border-bottom:none}
       <div class="sb-section">Управление</div>
       <div class="sb-item" data-page="finance" onclick="nav(this)"><span class="icon"></span>Финансы</div>
       <div class="sb-item" data-page="metrics" onclick="nav(this)"><span class="icon"></span>Метрики</div>
-      <div class="sb-item" data-page="org" onclick="nav(this)"><span class="icon"></span>Орг. структура</div>
-      <div class="sb-item" data-page="users" onclick="nav(this)"><span class="icon"></span>Пользователи</div>
+      <div class="sb-item" data-page="users" onclick="nav(this)"><span class="icon"></span>Команда</div>
 
       <div class="sb-section">Процессы</div>
       <div class="sb-item sb-item-crm" data-page="crm" onclick="navExternal('crm')"><span class="icon"></span>CRM</div>
@@ -626,7 +625,7 @@ tbody tr:last-child{border-bottom:none}
     <!-- USERS -->
     <div id="page-users" class="page">
       <div class="page-header">
-        <div><div class="page-title">Пользователи</div><div class="page-subtitle">Управление доступом к системе</div></div>
+        <div><div class="page-title">Команда</div><div class="page-subtitle">Управление доступом к системе</div></div>
         <div class="header-actions">
           <button class="btn btn-bv" onclick="openAddUserModal()">+ Добавить пользователя</button>
         </div>
@@ -1113,7 +1112,11 @@ tbody tr:last-child{border-bottom:none}
   <div class="modal modal-lg">
     <div class="modal-head"><div class="modal-title" id="edm-title">Карточка сотрудника</div><button class="modal-close" onclick="closeModal('emp-detail-modal')">✕</button></div>
     <div class="modal-body" id="emp-detail-body"></div>
-    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('emp-detail-modal')">Закрыть</button></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('emp-detail-modal')">Закрыть</button>
+      <button class="btn btn-ghost" id="edm-edit-btn" onclick="switchEmpDetailToEdit()">✏️ Редактировать</button>
+      <button class="btn btn-bv"   id="edm-save-btn" style="display:none" onclick="saveEmpDetailEdit()">Сохранить</button>
+    </div>
   </div>
 </div>
 
@@ -1135,8 +1138,7 @@ const ALL_PAGES = [
   {id:'dashboard',  label:'Рабочий стол'},
   {id:'finance',    label:'Финансы'},
   {id:'metrics',    label:'Метрики'},
-  {id:'org',        label:'Орг. структура'},
-  {id:'users',      label:'Пользователи'},
+  {id:'users',      label:'Команда'},
   {id:'crm',        label:'CRM'},
   {id:'tasks',      label:'Задачник'},
   {id:'hrm',        label:'HRM'},
@@ -1149,10 +1151,10 @@ const ALL_PAGES = [
 
 // Default page access per role (true = visible)
 const ROLE_DEFAULTS = {
-  admin:      {dashboard:1,finance:1,metrics:1,org:1,users:1,crm:1,tasks:1,hrm:1,projects:1,processes:1,kb:1,passwords:1,chat:1},
-  hr:         {dashboard:1,finance:0,metrics:1,org:1,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:1,kb:1,passwords:0,chat:1},
-  ops:        {dashboard:1,finance:1,metrics:1,org:1,users:0,crm:1,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:0,chat:1},
-  contractor: {dashboard:1,finance:0,metrics:0,org:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:0,kb:1,passwords:0,chat:1},
+  admin:      {dashboard:1,finance:1,metrics:1,users:1,crm:1,tasks:1,hrm:1,projects:1,processes:1,kb:1,passwords:1,chat:1},
+  hr:         {dashboard:1,finance:0,metrics:1,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:1,kb:1,passwords:0,chat:1},
+  ops:        {dashboard:1,finance:1,metrics:1,users:0,crm:1,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:0,chat:1},
+  contractor: {dashboard:1,finance:0,metrics:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:0,kb:1,passwords:0,chat:1},
 };
 
 let USERS = {
@@ -1166,15 +1168,33 @@ let currentUser = null;
 let currentPage = 'dashboard';
 let editEmpId = null;
 
-let employees = [
-  {id:1, first:'Ульяна',  last:'Майорова', pos:'Генеральный директор', dept:'Операции',  sysrole:'Администратор', email:'admin@bytime.agency', phone:'+7 999 100 00 01', hire:'2020-01-15', status:'Активен',  salary:200000, bonus:'15% от прибыли'},
-  {id:2, first:'Анна',    last:'Петрова',  pos:'HR-директор',          dept:'HR',        sysrole:'HR',            email:'hr@bytime.agency',    phone:'+7 999 100 00 02', hire:'2021-03-01', status:'Активен',  salary:120000, bonus:'5% от закрытых вакансий'},
-  {id:3, first:'Дмитрий', last:'Козлов',   pos:'Руководитель продаж',  dept:'Продажи',   sysrole:'Опер.менеджер',  email:'ops@bytime.agency',   phone:'+7 999 100 00 03', hire:'2021-06-15', status:'Активен',  salary:130000, bonus:'8% от выручки отдела'},
-  {id:4, first:'Мария',   last:'Сидорова', pos:'Операционный директор',dept:'Операции',  sysrole:'Опер.менеджер',  email:'maria@bytime.agency', phone:'+7 999 100 00 04', hire:'2022-01-10', status:'Активен',  salary:150000, bonus:'KPI: 30 000 ₽ при выполнении плана'},
-  {id:5, first:'Игорь',   last:'Волков',   pos:'Менеджер по продажам', dept:'Продажи',   sysrole:'Опер.менеджер',  email:'igor@bytime.agency',  phone:'+7 999 100 00 05', hire:'2022-04-20', status:'Активен',  salary:90000,  bonus:'6% от личных сделок'},
-  {id:6, first:'Светлана',last:'Орлова',   pos:'HR-менеджер',          dept:'HR',        sysrole:'HR',            email:'sveta@bytime.agency', phone:'+7 999 100 00 06', hire:'2023-02-01', status:'В отпуске', salary:95000,  bonus:'3000 ₽ за закрытую вакансию'},
-  {id:7, first:'Павел',   last:'Николаев', pos:'Маркетолог',           dept:'Маркетинг', sysrole:'Опер.менеджер',  email:'pavel@bytime.agency', phone:'+7 999 100 00 07', hire:'2023-05-15', status:'Активен',  salary:100000, bonus:'5% от маркетинговых лидов'},
-];
+// Employee profiles — keyed by systemUser id, stores extra org fields
+let empProfiles = {
+  'u1': {pos:'Генеральный директор', dept:'Операции', phone:'+7 999 100 00 01', hire:'2020-01-15', dob:'', emergency:'', photo:null, files:[], status:'Активен'},
+  'u2': {pos:'HR-директор',          dept:'HR',       phone:'+7 999 100 00 02', hire:'2021-03-01', dob:'', emergency:'', photo:null, files:[], status:'Активен'},
+  'u3': {pos:'Руководитель продаж',  dept:'Продажи',  phone:'+7 999 100 00 03', hire:'2021-06-15', dob:'', emergency:'', photo:null, files:[], status:'Активен'},
+};
+
+// Compatibility helper — kept for task assignment etc
+function getEmployees() {
+  return systemUsers.map(u => {
+    const p = empProfiles[u.id] || {};
+    const [first,...rest] = (u.name||'').split(' ');
+    return {
+      id: u.id, first, last: rest.join(' '),
+      pos: p.pos||'', dept: p.dept||'',
+      sysrole: ROLE_NAMES[u.role]||u.role,
+      email: u.email, phone: p.phone||'',
+      hire: p.hire||'', dob: p.dob||'',
+      emergency: p.emergency||'',
+      status: p.status||u.status||'Активен',
+      photo: p.photo||null, files: p.files||[],
+    };
+  });
+}
+// Backward-compat alias
+let employees = [];
+
 
 let kanbanCols = ['Бэклог', 'В работе', 'На проверке', 'Готово'];
 // Boards: id, name, editable
@@ -1449,7 +1469,6 @@ function bootSession(email, user, savedPage) {
   } else {
     currentUser.pages = ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
   }
-  // Save session
   localStorage.setItem('bt_session', JSON.stringify({email, pass:user.pass}));
 
   document.getElementById('login-screen').style.display = 'none';
@@ -1462,13 +1481,19 @@ function bootSession(email, user, savedPage) {
   applyPagePermissions();
   initAll();
 
-  // Restore last page
+  // Restore last page AFTER initAll
   const page = savedPage || localStorage.getItem('bt_last_page') || 'dashboard';
-  const sbEl = document.querySelector(`.sb-item[data-page="${page}"]`);
-  if (sbEl && sbEl.style.display !== 'none') {
-    if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) navExternal(page);
-    else sbEl && nav(sbEl);
-  }
+  setTimeout(() => {
+    const sbEl = document.querySelector(`.sb-item[data-page="${page}"]`);
+    if (sbEl && sbEl.style.display !== 'none') {
+      if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) navExternal(page);
+      else nav(sbEl);
+    } else {
+      // fallback to dashboard
+      const dash = document.querySelector('.sb-item[data-page="dashboard"]');
+      if (dash) nav(dash);
+    }
+  }, 0);
 }
 
 function applyPagePermissions() {
@@ -1537,6 +1562,7 @@ function accessDenied(el) {
 // INIT
 // ════════════════════════════════════════════
 function initAll() {
+  employees = getEmployees();
   renderDashboard();
   renderOrg();
   renderBoardTabs();
@@ -1549,7 +1575,6 @@ function initAll() {
   renderProcesses();
   renderProjectsList();
   renderUsersTable();
-  // Sync external tasks in background
   setTimeout(syncExternalTasksToPersonal, 1500);
 }
 
@@ -1720,44 +1745,68 @@ const orgHierarchy = {
 const deptAccent = {Операции:'brnz',HR:'em',Продажи:'',Маркетинг:'purp',Финансы:'blue'};
 
 function renderOrg() {
+  employees = getEmployees();
   const q = (document.getElementById('org-search')?.value||'').toLowerCase();
-  const filtered = employees.filter(e => !q || `${e.first} ${e.last} ${e.pos} ${e.dept}`.toLowerCase().includes(q));
+  const filtered = employees.filter(e => !q || `${e.first} ${e.last} ${e.pos} ${e.dept} ${e.email}`.toLowerCase().includes(q));
+  const DEPTS = ['Операции','HR','Продажи','Маркетинг','Финансы','IT','Другое'];
+  const STATUSES = ['Активен','В отпуске','Уволен'];
+
   document.getElementById('org-table').innerHTML = filtered.map(e=>`
-    <tr>
-      <td><div class="flex items-center gap-2"><div class="avatar avatar-sm" style="background:${avatarColor(e.dept)}">${e.first[0]}${e.last[0]}</div><div><div class="fw-6">${e.first} ${e.last}</div><div class="text-xs color-gray">${e.email}</div></div></div></td>
-      <td>${e.pos}</td>
-      <td><span class="badge badge-bv">${e.dept}</span></td>
+    <tr id="org-row-${e.id}">
       <td>
-        <div style="position:relative;display:inline-block">
-          <button onclick="toggleStatusMenu(${e.id},this)" class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'}" style="border:none;cursor:pointer;gap:4px;padding:4px 10px;font-size:12px">
-            ${e.status} <span style="font-size:10px;opacity:.7">▼</span>
-          </button>
-          <div id="status-menu-${e.id}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--white);border:1.5px solid var(--gray2);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.14);z-index:200;min-width:150px;overflow:hidden">
-            ${['Активен','В отпуске','Уволен'].map(s=>`
-              <div onclick="setEmpStatus(${e.id},'${s}')" style="padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s;color:${s==='Активен'?'var(--em)':s==='В отпуске'?'var(--warn)':'var(--danger)'}" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
-                <span style="width:8px;height:8px;border-radius:50%;background:${s==='Активен'?'var(--em)':s==='В отпуске'?'var(--warn)':'var(--danger)'}"></span>
-                ${s}${e.status===s?' ✓':''}
-              </div>`).join('')}
+        <div class="flex items-center gap-2">
+          ${e.photo
+            ? `<img src="${e.photo}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+            : `<div class="avatar avatar-sm" style="background:${avatarColor(e.dept)}">${(e.first||'?')[0]}${(e.last||'')[0]||''}</div>`}
+          <div>
+            <div class="fw-6">${e.first} ${e.last}</div>
+            <div class="text-xs color-gray">${e.email}</div>
           </div>
         </div>
       </td>
-      <td><span class="badge badge-gray">${e.sysrole}</span></td>
-      <td style="display:flex;gap:6px">
-        <button class="btn btn-sm btn-ghost" onclick="openEmpModal(${e.id})">✏️</button>
-        <button class="btn btn-sm btn-ghost" onclick="openEmpDetail(${e.id})">Карточка</button>
+      <td>
+        <input value="${e.pos||''}" placeholder="Должность"
+          onchange="saveOrgField('${e.id}','pos',this.value)"
+          style="border:none;background:transparent;font-family:var(--font-b);font-size:13.5px;width:100%;outline:none;padding:2px 4px;border-radius:5px"
+          onfocus="this.style.background='var(--gray1)'" onblur="this.style.background='transparent'">
       </td>
-    </tr>`).join('');
+      <td>
+        <select onchange="saveOrgField('${e.id}','dept',this.value)"
+          style="border:1.5px solid var(--gray2);border-radius:7px;padding:4px 8px;font-family:var(--font-b);font-size:12.5px;font-weight:600;color:var(--bv);background:rgba(84,5,43,.05);cursor:pointer;outline:none">
+          ${DEPTS.map(d=>`<option${e.dept===d?' selected':''}>${d}</option>`).join('')}
+        </select>
+      </td>
+      <td>
+        <select onchange="saveOrgField('${e.id}','status',this.value)"
+          style="border:1.5px solid ${e.status==='Активен'?'rgba(2,70,56,.3)':e.status==='В отпуске'?'rgba(202,138,4,.3)':'rgba(192,57,43,.3)'};border-radius:7px;padding:4px 8px;font-family:var(--font-b);font-size:12.5px;font-weight:600;color:${e.status==='Активен'?'var(--success)':e.status==='В отпуске'?'var(--warn)':'var(--danger)'};background:${e.status==='Активен'?'rgba(39,174,96,.07)':e.status==='В отпуске'?'rgba(202,138,4,.07)':'rgba(192,57,43,.07)'};cursor:pointer;outline:none">
+          ${STATUSES.map(s=>`<option${e.status===s?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </td>
+      <td><span class="badge badge-gray">${e.sysrole}</span></td>
+      <td>
+        <button class="btn btn-sm btn-ghost" onclick="openEmpDetail('${e.id}')">Карточка</button>
+      </td>
+    </tr>`).join('') ||
+    `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray4)">
+      ${q ? 'Ничего не найдено' : 'Нет сотрудников. Добавьте пользователей в разделе «Пользователи».'}
+    </td></tr>`;
+}
+
+function saveOrgField(userId, field, value) {
+  if (!empProfiles[userId]) empProfiles[userId] = {};
+  empProfiles[userId][field] = value;
+  employees = getEmployees();
+  // No full re-render — just update tooltip if needed
+  showToast('Сохранено ✓');
 }
 
 function toggleStatusMenu(empId, btn) {
-  // Close all other open menus
   document.querySelectorAll('[id^="status-menu-"]').forEach(m => {
     if (m.id !== 'status-menu-'+empId) m.style.display='none';
   });
   const menu = document.getElementById('status-menu-'+empId);
   if (!menu) return;
   menu.style.display = menu.style.display==='none' ? 'block' : 'none';
-  // Close on outside click
   if (menu.style.display==='block') {
     setTimeout(()=>{
       document.addEventListener('click', function closeMenu(e) {
@@ -1771,13 +1820,12 @@ function toggleStatusMenu(empId, btn) {
 }
 
 function setEmpStatus(empId, status) {
-  const e = employees.find(x=>x.id===empId);
-  if (!e) return;
-  const old = e.status;
-  e.status = status;
+  if (!empProfiles[empId]) empProfiles[empId] = {};
+  empProfiles[empId].status = status;
+  employees = getEmployees();
   document.querySelectorAll('[id^="status-menu-"]').forEach(m=>m.style.display='none');
   renderOrg();
-  showToast(`${e.first} ${e.last}: статус → «${status}» ✓`);
+  showToast(`Статус → «${status}» ✓`);
 }
 
 function buildOrgChart(container, parentId, q) {
@@ -1950,44 +1998,35 @@ function switchOrgTab(tab, el) {
 }
 function openEmpModal(id) {
   editEmpId = id||null;
-  document.getElementById('emp-modal-title').textContent = id?'Редактировать сотрудника':'Новый сотрудник';
+  document.getElementById('emp-modal-title').textContent = 'Редактировать сотрудника';
   if (id) {
-    const e = employees.find(x=>x.id===id);
-    document.getElementById('ef-first').value=e.first;
-    document.getElementById('ef-last').value=e.last;
-    document.getElementById('ef-pos').value=e.pos;
-    document.getElementById('ef-email').value=e.email;
+    const e = getEmployees().find(x=>String(x.id)===String(id));
+    if (!e) return;
+    document.getElementById('ef-pos').value=e.pos||'';
     document.getElementById('ef-phone').value=e.phone||'';
     document.getElementById('ef-hire').value=e.hire||'';
     document.getElementById('ef-dob').value=e.dob||'';
     document.getElementById('ef-emergency').value=e.emergency||'';
-    document.getElementById('ef-dept').value=e.dept||'Продажи';
+    document.getElementById('ef-dept').value=e.dept||'Операции';
     document.getElementById('ef-sysrole').value=e.sysrole||'Опер.менеджер';
     document.getElementById('ef-status').value=e.status||'Активен';
-  } else {
-    ['ef-first','ef-last','ef-pos','ef-email','ef-phone','ef-hire','ef-dob','ef-emergency'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
   }
   openModal('emp-modal');
 }
 function saveEmployee() {
-  const data = {
-    first:v('ef-first'), last:v('ef-last'), pos:v('ef-pos'),
-    dept:v('ef-dept'), sysrole:v('ef-sysrole'), email:v('ef-email'),
-    phone:v('ef-phone'), hire:v('ef-hire'), dob:v('ef-dob'),
-    emergency:v('ef-emergency'), status:v('ef-status')
-  };
-  if (!data.first||!data.last) return;
-  if (editEmpId) {
-    const emp = employees.find(e=>e.id===editEmpId);
-    Object.assign(emp, data);
-  } else {
-    data.id = Date.now();
-    employees.push(data);
-  }
+  if (!editEmpId) return;
+  if (!empProfiles[editEmpId]) empProfiles[editEmpId] = {};
+  Object.assign(empProfiles[editEmpId], {
+    pos: v('ef-pos'), dept: v('ef-dept'),
+    phone: v('ef-phone'), hire: v('ef-hire'),
+    dob: v('ef-dob'), emergency: v('ef-emergency'),
+    status: v('ef-status')
+  });
+  employees = getEmployees();
   closeModal('emp-modal'); renderOrg(); renderDashboard();
 }
 function openEmpDetail(id) {
-  const e = employees.find(x=>x.id===id);
+  const e = getEmployees().find(x=>String(x.id)===String(id));
   if (!e) return;
   document.getElementById('edm-title').textContent = `${e.first} ${e.last}`;
 
@@ -1996,34 +2035,64 @@ function openEmpDetail(id) {
     ? `<img src="${e.photo}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--gray2);cursor:pointer" onclick="document.getElementById('photo-upload-${e.id}').click()" title="Сменить фото">`
     : `<div class="avatar avatar-lg" style="background:${avatarColor(e.dept)};cursor:pointer" onclick="document.getElementById('photo-upload-${e.id}').click()" title="Загрузить фото">${e.first[0]}${e.last[0]}</div>`;
 
+  const DEPTS = ['Операции','HR','Продажи','Маркетинг','Финансы','IT','Другое'];
+  const STATUSES = ['Активен','В отпуске','Уволен'];
+
+  document.getElementById('edm-edit-btn').style.display = '';
+  document.getElementById('edm-save-btn').style.display = 'none';
+
   document.getElementById('emp-detail-body').innerHTML = `
     <!-- Header -->
     <div style="display:flex;gap:18px;align-items:flex-start;margin-bottom:20px">
       <div style="position:relative;flex-shrink:0">
         ${photoHtml}
-        <input type="file" id="photo-upload-${e.id}" accept="image/*" style="display:none" onchange="uploadEmpPhoto(${e.id},this)">
-        <div style="position:absolute;bottom:0;right:0;background:var(--bv);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:white" onclick="document.getElementById('photo-upload-${e.id}').click()">✏</div>
+        <input type="file" id="photo-upload-${e.id}" accept="image/*" style="display:none" onchange="uploadEmpPhoto('${e.id}',this)">
+        <div style="position:absolute;bottom:0;right:0;background:var(--bv);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:white" onclick="document.getElementById('photo-upload-${e.id}').click()" title="Сменить фото">✏</div>
       </div>
       <div style="flex:1">
         <div style="font-size:20px;font-weight:700">${e.first} ${e.last}</div>
-        <div class="color-gray" style="margin-top:2px">${e.pos}</div>
+        <div class="color-gray" style="margin-top:2px">${e.pos||'—'}</div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
           <span class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'}">${e.status}</span>
-          <span class="badge badge-gray">${e.dept}</span>
+          <span class="badge badge-gray">${e.dept||'—'}</span>
           <span class="badge badge-gray">${e.sysrole}</span>
         </div>
       </div>
     </div>
     <div class="divider"></div>
 
-    <!-- Contacts -->
-    <div class="cols-2 mb-4" style="margin-top:16px">
-      <div><div class="text-xs color-gray fw-6">Email</div><div class="mt-1">${e.email}</div></div>
-      <div><div class="text-xs color-gray fw-6">Телефон</div><div class="mt-1">${e.phone||'—'}</div></div>
-      <div><div class="text-xs color-gray fw-6">Дата рождения</div><div class="mt-1">${e.dob||'—'}</div></div>
-      <div><div class="text-xs color-gray fw-6">Дата найма</div><div class="mt-1">${e.hire||'—'}</div></div>
-      <div style="grid-column:1/-1"><div class="text-xs color-gray fw-6">Резервный контакт</div><div class="mt-1">${e.emergency||'—'}</div></div>
+    <!-- View fields -->
+    <div id="edm-view" style="margin-top:16px">
+      <div class="cols-2 mb-4">
+        <div><div class="text-xs color-gray fw-6">Email</div><div class="mt-1">${e.email}</div></div>
+        <div><div class="text-xs color-gray fw-6">Телефон</div><div class="mt-1">${e.phone||'—'}</div></div>
+        <div><div class="text-xs color-gray fw-6">Дата рождения</div><div class="mt-1">${e.dob||'—'}</div></div>
+        <div><div class="text-xs color-gray fw-6">Дата найма</div><div class="mt-1">${e.hire||'—'}</div></div>
+        <div style="grid-column:1/-1"><div class="text-xs color-gray fw-6">Резервный контакт</div><div class="mt-1">${e.emergency||'—'}</div></div>
+      </div>
     </div>
+
+    <!-- Edit fields (hidden by default) -->
+    <div id="edm-edit" style="display:none;margin-top:16px">
+      <div class="form-grid mb-2">
+        <div class="form-row"><label>Должность</label><input id="edm-pos" value="${e.pos||''}"></div>
+        <div class="form-row"><label>Отдел</label>
+          <select id="edm-dept">${DEPTS.map(d=>`<option${e.dept===d?' selected':''}>${d}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-grid mb-2">
+        <div class="form-row"><label>Телефон</label><input id="edm-phone" value="${e.phone||''}"></div>
+        <div class="form-row"><label>Статус</label>
+          <select id="edm-status">${STATUSES.map(s=>`<option${e.status===s?' selected':''}>${s}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-grid mb-2">
+        <div class="form-row"><label>Дата рождения</label><input id="edm-dob" type="date" value="${e.dob||''}"></div>
+        <div class="form-row"><label>Дата найма</label><input id="edm-hire" type="date" value="${e.hire||''}"></div>
+      </div>
+      <div class="form-row mb-2"><label>Резервный контакт</label><input id="edm-emergency" value="${e.emergency||''}" placeholder="Имя, телефон"></div>
+    </div>
+
     <div class="divider"></div>
 
     <!-- Files -->
@@ -2032,7 +2101,7 @@ function openEmpDetail(id) {
         <div class="text-xs color-gray fw-6">Файлы сотрудника</div>
         <label class="btn btn-sm btn-ghost" style="cursor:pointer">
           + Загрузить
-          <input type="file" multiple style="display:none" onchange="uploadEmpFile(${e.id},this)">
+          <input type="file" multiple style="display:none" onchange="uploadEmpFile('${e.id}',this)">
         </label>
       </div>
       <div id="emp-files-${e.id}">
@@ -2042,41 +2111,72 @@ function openEmpDetail(id) {
               <span style="font-size:16px">📎</span>
               <span style="flex:1;font-size:13px">${f.name}</span>
               <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost">↓</a>
-              <button onclick="removeEmpFile(${e.id},${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
+              <button onclick="removeEmpFile('${e.id}',${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
             </div>`).join('')
           : '<div style="color:var(--gray4);font-size:13px">Нет прикреплённых файлов</div>'}
       </div>
     </div>`;
 
+  // Store current userId for save
+  document.getElementById('emp-detail-modal').dataset.userId = e.id;
   openModal('emp-detail-modal');
+}
+
+function switchEmpDetailToEdit() {
+  document.getElementById('edm-view').style.display = 'none';
+  document.getElementById('edm-edit').style.display = '';
+  document.getElementById('edm-edit-btn').style.display = 'none';
+  document.getElementById('edm-save-btn').style.display = '';
+  document.getElementById('edm-pos')?.focus();
+}
+
+function saveEmpDetailEdit() {
+  const userId = document.getElementById('emp-detail-modal')?.dataset.userId;
+  if (!userId) return;
+  if (!empProfiles[userId]) empProfiles[userId] = {};
+  Object.assign(empProfiles[userId], {
+    pos:       document.getElementById('edm-pos')?.value.trim()||'',
+    dept:      document.getElementById('edm-dept')?.value||'',
+    phone:     document.getElementById('edm-phone')?.value.trim()||'',
+    status:    document.getElementById('edm-status')?.value||'Активен',
+    dob:       document.getElementById('edm-dob')?.value||'',
+    hire:      document.getElementById('edm-hire')?.value||'',
+    emergency: document.getElementById('edm-emergency')?.value.trim()||'',
+  });
+  employees = getEmployees();
+  renderOrg();
+  openEmpDetail(userId); // reload in view mode
+  showToast('Карточка сохранена ✓');
 }
 
 function uploadEmpPhoto(id, input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const emp = employees.find(x=>x.id===id);
-    if (emp) { emp.photo = e.target.result; openEmpDetail(id); }
+    if (!empProfiles[id]) empProfiles[id] = {};
+    empProfiles[id].photo = e.target.result;
+    employees = getEmployees();
+    openEmpDetail(id);
   };
   reader.readAsDataURL(file);
 }
 
 function uploadEmpFile(id, input) {
-  const emp = employees.find(x=>x.id===id); if (!emp) return;
-  if (!emp.files) emp.files = [];
+  if (!empProfiles[id]) empProfiles[id] = {};
+  if (!empProfiles[id].files) empProfiles[id].files = [];
   const files = [...input.files];
   files.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      emp.files.push({name: file.name, data: e.target.result});
-      // Refresh file list
+      empProfiles[id].files.push({name: file.name, data: e.target.result});
+      employees = getEmployees();
       const el = document.getElementById(`emp-files-${id}`);
-      if (el) el.innerHTML = emp.files.map((f,fi)=>`
+      if (el) el.innerHTML = empProfiles[id].files.map((f,fi)=>`
         <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray1)">
           <span style="font-size:16px">📎</span>
           <span style="flex:1;font-size:13px">${f.name}</span>
           <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost">↓</a>
-          <button onclick="removeEmpFile(${id},${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
+          <button onclick="removeEmpFile('${id}',${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
         </div>`).join('');
     };
     reader.readAsDataURL(file);
@@ -2085,8 +2185,9 @@ function uploadEmpFile(id, input) {
 }
 
 function removeEmpFile(id, idx) {
-  const emp = employees.find(x=>x.id===id); if (!emp) return;
-  emp.files.splice(idx,1);
+  if (!empProfiles[id]?.files) return;
+  empProfiles[id].files.splice(idx,1);
+  employees = getEmployees();
   openEmpDetail(id);
 }
 
@@ -3399,10 +3500,13 @@ function savePassword() {
 function renderUsersTable() {
   const el = document.getElementById('users-table'); if (!el) return;
   el.innerHTML = systemUsers.map(u=>{
-    const pages = u.pages || ROLE_DEFAULTS[u.role] || {};
+    const prof = empProfiles[u.id];
+    const hasCard = !!prof;
     return `<tr>
       <td><div class="flex items-center gap-2">
-        <div class="avatar avatar-sm" style="background:${u.role==='admin'?'var(--bv)':u.role==='hr'?'var(--em)':u.role==='contractor'?'var(--gray3)':'var(--bronze)'}">${u.initials}</div>
+        ${prof?.photo
+          ? `<img src="${prof.photo}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+          : `<div class="avatar avatar-sm" style="background:${u.role==='admin'?'var(--bv)':u.role==='hr'?'var(--em)':u.role==='contractor'?'var(--gray3)':'var(--bronze)'}">${u.initials}</div>`}
         <div><div class="fw-6">${u.name}</div><div style="font-size:11.5px;color:var(--gray4)">${u.email}</div></div>
       </div></td>
       <td>
@@ -3414,14 +3518,33 @@ function renderUsersTable() {
       <td><span class="badge badge-${u.status==='Активен'?'green':'red'}">${u.status}</span></td>
       <td style="color:var(--gray4);font-size:12.5px">${u.lastLogin||'—'}</td>
       <td>
-        <div class="flex gap-2">
-          <button class="btn btn-sm btn-ghost" onclick="openPermissionsPanel('${u.id}')">🔑 Доступы</button>
+        <div class="flex gap-2" style="flex-wrap:wrap">
+          <button class="btn btn-sm btn-ghost" onclick="openEmpDetail('${u.id}')">Карточка</button>
+          <button class="btn btn-sm btn-ghost" onclick="openPermissionsPanel('${u.id}')">Доступы</button>
           <button class="btn btn-sm btn-ghost" onclick="openResetPassModal('${u.id}')">Пароль</button>
           <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="toggleUserStatus('${u.id}')">${u.status==='Активен'?'Блок.':'Разблок.'}</button>
+          <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="deleteUser('${u.id}')">✕</button>
         </div>
       </td>
     </tr>`;
   }).join('');
+}
+
+function deleteUser(id) {
+  const u = systemUsers.find(x=>x.id===id); if (!u) return;
+  // Protect last admin
+  if (u.role==='admin' && systemUsers.filter(x=>x.role==='admin').length<=1) {
+    showToast('Нельзя удалить последнего администратора'); return;
+  }
+  if (!confirm(`Удалить пользователя «${u.name}»? Это действие нельзя отменить.`)) return;
+  // Remove from all storages
+  delete USERS[u.email];
+  delete empProfiles[id];
+  const idx = systemUsers.findIndex(x=>x.id===id);
+  if (idx>-1) systemUsers.splice(idx,1);
+  employees = getEmployees();
+  renderUsersTable();
+  showToast(`«${u.name}» удалён ✓`);
 }
 
 function openPermissionsPanel(userId) {
@@ -3522,11 +3645,8 @@ async function saveNewUser() {
   // 1. Register in BYTIME OS
   USERS[email] = {pass, role, name, initials};
   systemUsers.push({id, email, name, role, initials, lastLogin:'—', status:'Активен', pages:pageDefaults});
-  employees.push({
-    id: Date.now()+1, first, last: last||'', pos:'Сотрудник',
-    dept:'Операции', sysrole:ROLE_NAMES[role]||role,
-    email, phone:'', hire:new Date().toISOString().split('T')[0], status:'Активен'
-  });
+  empProfiles[id] = {pos:'', dept:'Операции', phone:'', hire:new Date().toISOString().split('T')[0], dob:'', emergency:'', photo:null, files:[], status:'Активен'};
+  employees = getEmployees();
 
   closeModal('add-user-modal');
   renderUsersTable();
