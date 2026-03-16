@@ -367,25 +367,25 @@ tbody tr:last-child{border-bottom:none}
     </div>
     <div class="sb-nav">
       <!-- Рабочий стол — вне блоков -->
-      <div class="sb-item active" data-page="dashboard" onclick="nav(this)" style="margin-bottom:4px"><span class="icon">🏠</span>Рабочий стол</div>
+      <div class="sb-item active" data-page="dashboard" onclick="nav(this)" style="margin-bottom:4px"><span class="icon"></span>Рабочий стол</div>
 
       <div class="sb-section">Управление</div>
-      <div class="sb-item" data-page="finance" onclick="nav(this)"><span class="icon">💰</span>Финансы</div>
-      <div class="sb-item" data-page="metrics" onclick="nav(this)"><span class="icon">📊</span>Метрики</div>
-      <div class="sb-item" data-page="org" onclick="nav(this)"><span class="icon">🏢</span>Орг. структура</div>
-      <div class="sb-item" data-page="users" onclick="nav(this)"><span class="icon">👤</span>Пользователи</div>
+      <div class="sb-item" data-page="finance" onclick="nav(this)"><span class="icon"></span>Финансы</div>
+      <div class="sb-item" data-page="metrics" onclick="nav(this)"><span class="icon"></span>Метрики</div>
+      <div class="sb-item" data-page="org" onclick="nav(this)"><span class="icon"></span>Орг. структура</div>
+      <div class="sb-item" data-page="users" onclick="nav(this)"><span class="icon"></span>Пользователи</div>
 
       <div class="sb-section">Процессы</div>
-      <div class="sb-item sb-item-crm" data-page="crm" onclick="navExternal('crm')"><span class="icon">📇</span>CRM</div>
-      <div class="sb-item" data-page="tasks" onclick="nav(this)"><span class="icon">✅</span>Задачник<span class="sb-badge" id="tasks-badge">5</span></div>
-      <div class="sb-item sb-item-hrm" data-page="hrm" onclick="navExternal('hrm')"><span class="icon">👥</span>HRM</div>
-      <div class="sb-item" data-page="projects" onclick="nav(this)"><span class="icon">🗂</span>Операционка</div>
-      <div class="sb-item" data-page="processes" onclick="nav(this)"><span class="icon">⚙️</span>Бизнес-процессы</div>
-      <div class="sb-item" data-page="kb" onclick="nav(this)"><span class="icon">📚</span>База знаний</div>
-      <div class="sb-item" data-page="passwords" onclick="nav(this)"><span class="icon">🔐</span>Пароли</div>
+      <div class="sb-item sb-item-crm" data-page="crm" onclick="navExternal('crm')"><span class="icon"></span>CRM</div>
+      <div class="sb-item" data-page="tasks" onclick="nav(this)"><span class="icon"></span>Задачник<span class="sb-badge" id="tasks-badge">5</span></div>
+      <div class="sb-item sb-item-hrm" data-page="hrm" onclick="navExternal('hrm')"><span class="icon"></span>HRM</div>
+      <div class="sb-item" data-page="projects" onclick="nav(this)"><span class="icon"></span>Операционка</div>
+      <div class="sb-item" data-page="processes" onclick="nav(this)"><span class="icon"></span>Бизнес-процессы</div>
+      <div class="sb-item" data-page="kb" onclick="nav(this)"><span class="icon"></span>База знаний</div>
+      <div class="sb-item" data-page="passwords" onclick="nav(this)"><span class="icon"></span>Пароли</div>
 
       <div class="sb-section">Коммуникации</div>
-      <div class="sb-item" data-page="chat" onclick="nav(this)"><span class="icon">💬</span>Чат<span class="sb-badge" id="chat-badge">3</span></div>
+      <div class="sb-item" data-page="chat" onclick="nav(this)"><span class="icon"></span>Чат<span class="sb-badge" id="chat-badge">3</span></div>
     </div>
     <div class="sb-user">
       <div class="flex items-center gap-2">
@@ -454,17 +454,9 @@ tbody tr:last-child{border-bottom:none}
         <div><div class="page-title">Оргструктура</div><div class="page-subtitle">Команда и сотрудники</div></div>
         <div class="header-actions">
           <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="org-search" placeholder="Поиск сотрудника..." oninput="renderOrg()"></div>
-          <button class="btn btn-bv" onclick="openEmpModal()">+ Добавить сотрудника</button>
         </div>
       </div>
-      <div class="tabs">
-        <div class="tab active" onclick="switchOrgTab('tree',this)">Дерево</div>
-        <div class="tab" onclick="switchOrgTab('list',this)">Список</div>
-      </div>
-      <div id="org-tree-view"><div id="org-tree"></div></div>
-      <div id="org-list-view" style="display:none">
-        <div class="table-wrap"><table><thead><tr><th>Сотрудник</th><th>Должность</th><th>Отдел</th><th>Статус</th><th>Роль</th><th></th></tr></thead><tbody id="org-table"></tbody></table></div>
-      </div>
+      <div class="table-wrap"><table><thead><tr><th>Сотрудник</th><th>Должность</th><th>Отдел</th><th>Статус</th><th>Роль</th><th></th></tr></thead><tbody id="org-table"></tbody></table></div>
     </div>
 
     <!-- METRICS -->
@@ -480,6 +472,7 @@ tbody tr:last-child{border-bottom:none}
             <option value="3">Март 2026</option><option value="2">Февраль 2026</option><option value="1">Январь 2026</option>
           </select>
           <button class="btn btn-ghost" onclick="openPlanModal()">🎯 Поставить план</button>
+          <button class="btn btn-ghost" onclick="openEditMetricsModal()">✏️ Редактировать метрики</button>
           <button class="btn btn-bv" onclick="saveMetrics()">💾 Сохранить</button>
         </div>
       </div>
@@ -758,6 +751,38 @@ tbody tr:last-child{border-bottom:none}
   </div>
 </div>
 
+<!-- EDIT METRICS MODAL -->
+<div class="modal-overlay" id="edit-metrics-modal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div class="modal-title">✏️ Редактировать метрики</div>
+      <button class="modal-close" onclick="closeModal('edit-metrics-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs" style="margin-bottom:20px" id="em-tabs">
+        <div class="tab active" onclick="switchEmTab('sales',this)">📈 Продажи</div>
+        <div class="tab" onclick="switchEmTab('finance',this)">💰 Финансы</div>
+        <div class="tab" onclick="switchEmTab('hr',this)">👥 HR</div>
+        <div class="tab" onclick="switchEmTab('ops',this)">⚙️ Операционные</div>
+      </div>
+      <div id="em-content"></div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gray1)">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray4);margin-bottom:10px">Добавить метрику</div>
+        <div style="display:grid;grid-template-columns:40px 1fr 90px 60px;gap:8px;align-items:end">
+          <div><label style="font-size:11px;color:var(--gray4)">Иконка</label><input id="nm-icon" placeholder="📊" maxlength="4" style="width:100%;padding:8px;border:1.5px solid var(--gray2);border-radius:7px;font-size:18px;text-align:center;outline:none"></div>
+          <div><label style="font-size:11px;color:var(--gray4)">Название</label><input id="nm-name" placeholder="Название метрики" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:13px;outline:none"></div>
+          <div><label style="font-size:11px;color:var(--gray4)">Единица</label><input id="nm-unit" placeholder="шт / ₽ / %" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:13px;outline:none"></div>
+          <button class="btn btn-bv" onclick="addMetric()" style="padding:8px 14px">+ Добавить</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('edit-metrics-modal')">Отмена</button>
+      <button class="btn btn-bv" onclick="saveEditedMetrics()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <!-- PLAN MODAL -->
 <div class="modal-overlay" id="plan-modal">
   <div class="modal modal-lg">
@@ -866,14 +891,14 @@ tbody tr:last-child{border-bottom:none}
         <div class="form-row"><label>Телефон</label><input id="ef-phone" placeholder="+7 999 000 00 00"></div>
       </div>
       <div class="form-grid">
+        <div class="form-row"><label>Дата рождения</label><input id="ef-dob" type="date"></div>
         <div class="form-row"><label>Дата найма</label><input id="ef-hire" type="date"></div>
+      </div>
+      <div class="form-grid">
         <div class="form-row"><label>Статус</label>
           <select id="ef-status"><option>Активен</option><option>В отпуске</option><option>Уволен</option></select>
         </div>
-      </div>
-      <div class="form-grid">
-        <div class="form-row"><label>Оклад (₽)</label><input id="ef-salary" type="number" placeholder="80000"></div>
-        <div class="form-row"><label>Переменная часть</label><input id="ef-bonus" placeholder="10% от сделок"></div>
+        <div class="form-row"><label>Резервный контакт</label><input id="ef-emergency" placeholder="Имя, телефон"></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1431,6 +1456,8 @@ function initAll() {
   renderProcesses();
   renderProjectsList();
   renderUsersTable();
+  // Sync external tasks in background
+  setTimeout(syncExternalTasksToPersonal, 1500);
 }
 
 // ════════════════════════════════════════════
@@ -1600,39 +1627,32 @@ const deptAccent = {Операции:'brnz',HR:'em',Продажи:'',Марке
 
 function renderOrg() {
   const q = (document.getElementById('org-search')?.value||'').toLowerCase();
-
-  if (activeOrgTab === 'tree') {
-    const el = document.getElementById('org-tree');
-    el.innerHTML = `<div class="org-chart-wrap"><div class="org-chart" id="oc-root"></div></div>`;
-    buildOrgChart(document.getElementById('oc-root'), null, q);
-  } else {
-    const filtered = employees.filter(e => !q || `${e.first} ${e.last} ${e.pos} ${e.dept}`.toLowerCase().includes(q));
-    document.getElementById('org-table').innerHTML = filtered.map(e=>`
-      <tr>
-        <td><div class="flex items-center gap-2"><div class="avatar avatar-sm" style="background:${avatarColor(e.dept)}">${e.first[0]}${e.last[0]}</div><div><div class="fw-6">${e.first} ${e.last}</div><div class="text-xs color-gray">${e.email}</div></div></div></td>
-        <td>${e.pos}</td>
-        <td><span class="badge badge-bv">${e.dept}</span></td>
-        <td>
-          <div style="position:relative;display:inline-block">
-            <button onclick="toggleStatusMenu(${e.id},this)" class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'}" style="border:none;cursor:pointer;gap:4px;padding:4px 10px;font-size:12px">
-              ${e.status} <span style="font-size:10px;opacity:.7">▼</span>
-            </button>
-            <div id="status-menu-${e.id}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--white);border:1.5px solid var(--gray2);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.14);z-index:200;min-width:150px;overflow:hidden">
-              ${['Активен','В отпуске','Уволен'].map(s=>`
-                <div onclick="setEmpStatus(${e.id},'${s}')" style="padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s;color:${s==='Активен'?'var(--em)':s==='В отпуске'?'var(--warn)':'var(--danger)'}" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
-                  <span style="width:8px;height:8px;border-radius:50%;background:${s==='Активен'?'var(--em)':s==='В отпуске'?'var(--warn)':'var(--danger)'}"></span>
-                  ${s}${e.status===s?' ✓':''}
-                </div>`).join('')}
-            </div>
+  const filtered = employees.filter(e => !q || `${e.first} ${e.last} ${e.pos} ${e.dept}`.toLowerCase().includes(q));
+  document.getElementById('org-table').innerHTML = filtered.map(e=>`
+    <tr>
+      <td><div class="flex items-center gap-2"><div class="avatar avatar-sm" style="background:${avatarColor(e.dept)}">${e.first[0]}${e.last[0]}</div><div><div class="fw-6">${e.first} ${e.last}</div><div class="text-xs color-gray">${e.email}</div></div></div></td>
+      <td>${e.pos}</td>
+      <td><span class="badge badge-bv">${e.dept}</span></td>
+      <td>
+        <div style="position:relative;display:inline-block">
+          <button onclick="toggleStatusMenu(${e.id},this)" class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'}" style="border:none;cursor:pointer;gap:4px;padding:4px 10px;font-size:12px">
+            ${e.status} <span style="font-size:10px;opacity:.7">▼</span>
+          </button>
+          <div id="status-menu-${e.id}" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:var(--white);border:1.5px solid var(--gray2);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.14);z-index:200;min-width:150px;overflow:hidden">
+            ${['Активен','В отпуске','Уволен'].map(s=>`
+              <div onclick="setEmpStatus(${e.id},'${s}')" style="padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s;color:${s==='Активен'?'var(--em)':s==='В отпуске'?'var(--warn)':'var(--danger)'}" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
+                <span style="width:8px;height:8px;border-radius:50%;background:${s==='Активен'?'var(--em)':s==='В отпуске'?'var(--warn)':'var(--danger)'}"></span>
+                ${s}${e.status===s?' ✓':''}
+              </div>`).join('')}
           </div>
-        </td>
-        <td><span class="badge badge-gray">${e.sysrole}</span></td>
-        <td style="display:flex;gap:6px">
-          <button class="btn btn-sm btn-ghost" onclick="openEmpModal(${e.id})">✏️</button>
-          <button class="btn btn-sm btn-ghost" onclick="openEmpDetail(${e.id})">Карточка</button>
-        </td>
-      </tr>`).join('');
-  }
+        </div>
+      </td>
+      <td><span class="badge badge-gray">${e.sysrole}</span></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-ghost" onclick="openEmpModal(${e.id})">✏️</button>
+        <button class="btn btn-sm btn-ghost" onclick="openEmpDetail(${e.id})">Карточка</button>
+      </td>
+    </tr>`).join('');
 }
 
 function toggleStatusMenu(empId, btn) {
@@ -1843,20 +1863,29 @@ function openEmpModal(id) {
     document.getElementById('ef-last').value=e.last;
     document.getElementById('ef-pos').value=e.pos;
     document.getElementById('ef-email').value=e.email;
-    document.getElementById('ef-phone').value=e.phone;
-    document.getElementById('ef-hire').value=e.hire;
-    document.getElementById('ef-salary').value=e.salary;
-    document.getElementById('ef-bonus').value=e.bonus;
+    document.getElementById('ef-phone').value=e.phone||'';
+    document.getElementById('ef-hire').value=e.hire||'';
+    document.getElementById('ef-dob').value=e.dob||'';
+    document.getElementById('ef-emergency').value=e.emergency||'';
+    document.getElementById('ef-dept').value=e.dept||'Продажи';
+    document.getElementById('ef-sysrole').value=e.sysrole||'Операционщик';
+    document.getElementById('ef-status').value=e.status||'Активен';
   } else {
-    ['ef-first','ef-last','ef-pos','ef-email','ef-phone','ef-hire','ef-salary','ef-bonus'].forEach(id=>document.getElementById(id).value='');
+    ['ef-first','ef-last','ef-pos','ef-email','ef-phone','ef-hire','ef-dob','ef-emergency'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
   }
   openModal('emp-modal');
 }
 function saveEmployee() {
-  const data = {first:v('ef-first'),last:v('ef-last'),pos:v('ef-pos'),dept:v('ef-dept'),sysrole:v('ef-sysrole'),email:v('ef-email'),phone:v('ef-phone'),hire:v('ef-hire'),status:v('ef-status'),salary:parseInt(v('ef-salary'))||0,bonus:v('ef-bonus')};
+  const data = {
+    first:v('ef-first'), last:v('ef-last'), pos:v('ef-pos'),
+    dept:v('ef-dept'), sysrole:v('ef-sysrole'), email:v('ef-email'),
+    phone:v('ef-phone'), hire:v('ef-hire'), dob:v('ef-dob'),
+    emergency:v('ef-emergency'), status:v('ef-status')
+  };
   if (!data.first||!data.last) return;
   if (editEmpId) {
-    Object.assign(employees.find(e=>e.id===editEmpId), data);
+    const emp = employees.find(e=>e.id===editEmpId);
+    Object.assign(emp, data);
   } else {
     data.id = Date.now();
     employees.push(data);
@@ -1865,27 +1894,106 @@ function saveEmployee() {
 }
 function openEmpDetail(id) {
   const e = employees.find(x=>x.id===id);
+  if (!e) return;
   document.getElementById('edm-title').textContent = `${e.first} ${e.last}`;
-  const canSeeSalary = hasAccess(['admin','hr']);
+
+  // Photo: stored in e.photo (base64) or initials avatar
+  const photoHtml = e.photo
+    ? `<img src="${e.photo}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--gray2);cursor:pointer" onclick="document.getElementById('photo-upload-${e.id}').click()" title="Сменить фото">`
+    : `<div class="avatar avatar-lg" style="background:${avatarColor(e.dept)};cursor:pointer" onclick="document.getElementById('photo-upload-${e.id}').click()" title="Загрузить фото">${e.first[0]}${e.last[0]}</div>`;
+
   document.getElementById('emp-detail-body').innerHTML = `
-    <div class="flex gap-4 mb-4">
-      <div class="avatar avatar-lg" style="background:${avatarColor(e.dept)}">${e.first[0]}${e.last[0]}</div>
-      <div><div style="font-size:20px;font-weight:700">${e.first} ${e.last}</div><div class="color-gray">${e.pos}</div><div class="mt-1"><span class="badge badge-bv">${e.dept}</span> <span class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'} mt-1">${e.status}</span></div></div>
+    <!-- Header -->
+    <div style="display:flex;gap:18px;align-items:flex-start;margin-bottom:20px">
+      <div style="position:relative;flex-shrink:0">
+        ${photoHtml}
+        <input type="file" id="photo-upload-${e.id}" accept="image/*" style="display:none" onchange="uploadEmpPhoto(${e.id},this)">
+        <div style="position:absolute;bottom:0;right:0;background:var(--bv);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:white" onclick="document.getElementById('photo-upload-${e.id}').click()">✏</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:20px;font-weight:700">${e.first} ${e.last}</div>
+        <div class="color-gray" style="margin-top:2px">${e.pos}</div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'}">${e.status}</span>
+          <span class="badge badge-gray">${e.dept}</span>
+          <span class="badge badge-gray">${e.sysrole}</span>
+        </div>
+      </div>
     </div>
     <div class="divider"></div>
-    <div class="cols-2 mb-4">
+
+    <!-- Contacts -->
+    <div class="cols-2 mb-4" style="margin-top:16px">
       <div><div class="text-xs color-gray fw-6">Email</div><div class="mt-1">${e.email}</div></div>
-      <div><div class="text-xs color-gray fw-6">Телефон</div><div class="mt-1">${e.phone}</div></div>
-      <div><div class="text-xs color-gray fw-6">Дата найма</div><div class="mt-1">${e.hire}</div></div>
-      <div><div class="text-xs color-gray fw-6">Роль в системе</div><div class="mt-1"><span class="badge badge-gray">${e.sysrole}</span></div></div>
+      <div><div class="text-xs color-gray fw-6">Телефон</div><div class="mt-1">${e.phone||'—'}</div></div>
+      <div><div class="text-xs color-gray fw-6">Дата рождения</div><div class="mt-1">${e.dob||'—'}</div></div>
+      <div><div class="text-xs color-gray fw-6">Дата найма</div><div class="mt-1">${e.hire||'—'}</div></div>
+      <div style="grid-column:1/-1"><div class="text-xs color-gray fw-6">Резервный контакт</div><div class="mt-1">${e.emergency||'—'}</div></div>
     </div>
-    ${canSeeSalary?`<div class="divider"></div>
-    <div class="cols-2">
-      <div><div class="text-xs color-gray fw-6">Оклад (фикс)</div><div class="mt-1 fw-7" style="font-size:18px;color:var(--em)">₽${e.salary.toLocaleString()}</div></div>
-      <div><div class="text-xs color-gray fw-6">Переменная часть</div><div class="mt-1">${e.bonus||'—'}</div></div>
-    </div>`:''}`
-  ;
+    <div class="divider"></div>
+
+    <!-- Files -->
+    <div style="margin-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="text-xs color-gray fw-6">Файлы сотрудника</div>
+        <label class="btn btn-sm btn-ghost" style="cursor:pointer">
+          + Загрузить
+          <input type="file" multiple style="display:none" onchange="uploadEmpFile(${e.id},this)">
+        </label>
+      </div>
+      <div id="emp-files-${e.id}">
+        ${(e.files||[]).length
+          ? (e.files||[]).map((f,fi)=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray1)">
+              <span style="font-size:16px">📎</span>
+              <span style="flex:1;font-size:13px">${f.name}</span>
+              <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost">↓</a>
+              <button onclick="removeEmpFile(${e.id},${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
+            </div>`).join('')
+          : '<div style="color:var(--gray4);font-size:13px">Нет прикреплённых файлов</div>'}
+      </div>
+    </div>`;
+
   openModal('emp-detail-modal');
+}
+
+function uploadEmpPhoto(id, input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const emp = employees.find(x=>x.id===id);
+    if (emp) { emp.photo = e.target.result; openEmpDetail(id); }
+  };
+  reader.readAsDataURL(file);
+}
+
+function uploadEmpFile(id, input) {
+  const emp = employees.find(x=>x.id===id); if (!emp) return;
+  if (!emp.files) emp.files = [];
+  const files = [...input.files];
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      emp.files.push({name: file.name, data: e.target.result});
+      // Refresh file list
+      const el = document.getElementById(`emp-files-${id}`);
+      if (el) el.innerHTML = emp.files.map((f,fi)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray1)">
+          <span style="font-size:16px">📎</span>
+          <span style="flex:1;font-size:13px">${f.name}</span>
+          <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost">↓</a>
+          <button onclick="removeEmpFile(${id},${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
+        </div>`).join('');
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function removeEmpFile(id, idx) {
+  const emp = employees.find(x=>x.id===id); if (!emp) return;
+  emp.files.splice(idx,1);
+  openEmpDetail(id);
 }
 
 // ════════════════════════════════════════════
@@ -1894,7 +2002,10 @@ function openEmpDetail(id) {
 function renderBoardTabs() {
   const bar = document.getElementById('board-tabs-bar');
   if (!bar) return;
-  const allBoards = [...boards, {id:'personal', name:'👤 Личная', editable:false}];
+  const allBoards = [
+    ...boards,
+    {id:'personal', name:'👤 Личная', editable:false},
+  ];
   bar.innerHTML = allBoards.map(b=>`
     <div onclick="setBoard('${b.id}')" style="
       padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;
@@ -1903,7 +2014,6 @@ function renderBoardTabs() {
       transition:all .15s;white-space:nowrap;
       border-right:1px solid var(--gray2)
     ">${b.name}</div>`).join('');
-  // Remove last border
   const last = bar.lastElementChild;
   if (last) last.style.borderRight = 'none';
 }
@@ -1912,6 +2022,7 @@ function setBoard(id) {
   activeBoardId = id;
   renderBoardTabs();
   renderBoard();
+  if (id === 'personal') syncExternalTasksToPersonal();
 }
 
 function getDateFilterFn() {
@@ -1945,10 +2056,14 @@ function renderBoard() {
 
   let boardTasks;
   if (activeBoardId === 'personal') {
-    // All tasks across all boards assigned to current user
-    boardTasks = Object.entries(tasks).flatMap(([bid,arr])=>
-      arr.map(t=>({...t, _board:bid}))
-    ).filter(t => t.assign === currentUser?.name);
+    // Local tasks assigned to current user
+    const localTasks = Object.entries(tasks)
+      .filter(([bid]) => bid !== '_ext')
+      .flatMap(([bid,arr]) => arr.map(t=>({...t,_board:bid})))
+      .filter(t => t.assign === currentUser?.name);
+    // External tasks (CRM + HRM)
+    const extTasks = (tasks._ext||[]).map(t=>({...t,_board:'_ext'}));
+    boardTasks = [...localTasks, ...extTasks];
   } else {
     if (!tasks[activeBoardId]) tasks[activeBoardId] = [];
     boardTasks = (tasks[activeBoardId]||[]).map(t=>({...t, _board:activeBoardId}));
@@ -1988,7 +2103,13 @@ function renderBoard() {
             onclick="openTaskDetail(${t.id},'${t._board}')">
             ${t.tags?.length?`<div class="kc-tags">${t.tags.map(tg=>`<span class="kc-tag" style="background:rgba(84,5,43,.08);color:var(--bv)">${tg}</span>`).join('')}</div>`:''}
             <div class="kc-title">${t.title}</div>
-            ${activeBoardId==='personal'?`<div style="font-size:11px;color:var(--gray3);margin-bottom:6px">${boards.find(b=>b.id===t._board)?.name||t._board}</div>`:''}
+            ${activeBoardId==='personal'?`<div style="font-size:11px;color:var(--gray3);margin-bottom:6px">${
+              t._ext
+                ? (t._board==='_ext'
+                    ? `<span style="background:${t.tags?.[0]==='CRM'?'rgba(84,5,43,.1)':'rgba(2,70,56,.1)'};color:${t.tags?.[0]==='CRM'?'var(--bv)':'var(--em)'};padding:1px 7px;border-radius:20px;font-weight:600;font-size:10.5px">${t.tags?.[0]||'Внешняя'}</span>`
+                    : '')
+                : (boards.find(b=>b.id===t._board)?.name||t._board)
+            }</div>`:''}
             <div class="kc-meta">
               <div class="avatar avatar-sm" style="background:${empAvatarBg(t.assign)}" title="${t.assign}">${t.assign.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
               <div style="font-size:11.5px;color:${isOverdue?'var(--danger)':isToday?'var(--warn)':'var(--gray4)'};font-weight:${isOverdue||isToday?700:400}">${t.deadline||'—'}</div>
@@ -3860,8 +3981,178 @@ function toggleEtapCollapse(clientId, etap) {
 }
 
 // ════════════════════════════════════════════
-// UTILS
+// EXTERNAL TASKS SYNC (CRM + HRM → Личная)
 // ════════════════════════════════════════════
+const EXT = {
+  crm: { url:'https://jvmagwvupjcmpydzvnin.supabase.co', key:'sb_publishable_oqH0PBg3rAd9mpAkt5ECMw_HLXu2MmH' },
+  hrm: { url:'https://izajropzyjmedxueawgd.supabase.co',  key:'sb_publishable_8bD0xkdxGwLhYw4-M6rDCw_dO-WlVtJ' },
+};
+
+async function fetchSupabase(source, table, params='') {
+  const {url,key} = EXT[source];
+  const res = await fetch(`${url}/rest/v1/${table}?${params}&limit=500`, {
+    headers:{ apikey:key, Authorization:'Bearer '+key }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// Match external task assignee to current BYTIME OS user by email or name
+function matchesCurrentUser(assignee) {
+  if (!currentUser || !assignee) return false;
+  const a = String(assignee).toLowerCase();
+  const name  = (currentUser.name||'').toLowerCase();
+  const email = (currentUser.email||'').toLowerCase();
+  return a.includes(name.split(' ')[0]) || a === email || name.includes(a);
+}
+
+async function syncExternalTasksToPersonal() {
+  const myName = currentUser?.name || '';
+  const myEmail= currentUser?.email || '';
+  if (!myName && !myEmail) return;
+
+  const lastColIdx = kanbanCols.length - 1; // «Готово»
+
+  // Remove previously synced external tasks to avoid duplicates
+  Object.keys(tasks).forEach(b => {
+    tasks[b] = tasks[b].filter(t => !t._ext);
+  });
+
+  if (!tasks._ext) tasks._ext = [];
+
+  // ── CRM: tasks live inside clients[].data.tasks[] ──
+  try {
+    const rows = await fetchSupabase('crm', 'clients', 'select=id,data');
+    (rows||[]).forEach(row => {
+      const d = row.data || {};
+      (d.tasks||[]).forEach(t => {
+        if (t.status === 'done') return;
+        const mgr = (d.manager||'').toLowerCase();
+        if (!matchesCurrentUser(mgr)) return;
+        tasks._ext.push({
+          id:       'crm_'+t.id,
+          title:    t.text || t.title || '—',
+          assign:   d.manager || myName,
+          priority: 'mid',
+          col:      0,
+          deadline: t.deadline || '',
+          desc:     'CRM · '+d.name,
+          tags:     ['CRM', d.name].filter(Boolean),
+          _ext:     true,
+        });
+      });
+    });
+  } catch(e) { console.warn('CRM sync error:', e); }
+
+  // ── HRM: tasks in table `tasks`, column `assignee` ──
+  try {
+    const hrmTasks = await fetchSupabase('hrm', 'tasks',
+      `status=neq.done&status=neq.cancelled&select=id,title,assignee,due_date,project,status`
+    );
+    (hrmTasks||[]).forEach(t => {
+      if (!matchesCurrentUser(t.assignee)) return;
+      const statusMap = { pending:0, in_progress:1, review:2, done:lastColIdx };
+      tasks._ext.push({
+        id:       'hrm_'+t.id,
+        title:    t.title || '—',
+        assign:   t.assignee || myName,
+        priority: 'mid',
+        col:      statusMap[t.status] ?? 0,
+        deadline: t.due_date || '',
+        desc:     'HRM' + (t.project ? ' · '+t.project : ''),
+        tags:     ['HRM', t.project].filter(Boolean),
+        _ext:     true,
+      });
+    });
+  } catch(e) { console.warn('HRM sync error:', e); }
+
+  // Refresh board if on personal tab
+  if (activeBoardId === 'personal') renderBoard();
+}
+
+// ════════════════════════════════════════════
+// EDIT METRICS
+// ════════════════════════════════════════════
+let currentEmTab = 'sales';
+const EM_TAB_LABELS = {sales:'📈 Продажи', finance:'💰 Финансы', hr:'👥 HR', ops:'⚙️ Операционные'};
+
+function openEditMetricsModal() {
+  currentEmTab = activeMetricsTab;
+  // Activate matching tab
+  document.querySelectorAll('#em-tabs .tab').forEach(t=>t.classList.remove('active'));
+  const tabs = document.querySelectorAll('#em-tabs .tab');
+  const order = ['sales','finance','hr','ops'];
+  const idx = order.indexOf(currentEmTab);
+  if (tabs[idx]) tabs[idx].classList.add('active');
+  renderEmContent(currentEmTab);
+  openModal('edit-metrics-modal');
+}
+
+function switchEmTab(tab, el) {
+  currentEmTab = tab;
+  document.querySelectorAll('#em-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderEmContent(tab);
+}
+
+function renderEmContent(tab) {
+  const data = metricsData[tab]||[];
+  document.getElementById('em-content').innerHTML = data.length ? `
+    <div style="display:grid;gap:8px">
+      ${data.map((m,i)=>`
+        <div style="display:grid;grid-template-columns:40px 1fr 90px 90px 40px;gap:8px;align-items:center;padding:10px 14px;background:var(--gray1);border-radius:8px">
+          <input value="${m.icon||''}" maxlength="4" onchange="updateMetricField('${tab}',${i},'icon',this.value)"
+            style="width:38px;padding:5px;border:1.5px solid var(--gray2);border-radius:7px;font-size:18px;text-align:center;outline:none;background:white">
+          <div>
+            <input value="${m.name}" onchange="updateMetricField('${tab}',${i},'name',this.value)"
+              style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:13px;font-weight:600;outline:none;background:white">
+            <input value="${m.desc||''}" placeholder="Описание (необязательно)" onchange="updateMetricField('${tab}',${i},'desc',this.value)"
+              style="width:100%;margin-top:4px;padding:5px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:11.5px;color:var(--gray4);outline:none;background:white">
+          </div>
+          <input value="${m.unit||''}" placeholder="шт / ₽ / %" onchange="updateMetricField('${tab}',${i},'unit',this.value)"
+            style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:13px;outline:none;background:white">
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--gray4);margin-bottom:2px">План</div>
+            <input type="number" value="${m.plan}" onchange="updateMetricField('${tab}',${i},'plan',parseInt(this.value)||0)"
+              style="width:100%;padding:7px 8px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-h);font-size:16px;text-align:center;outline:none;background:white">
+          </div>
+          <button onclick="deleteMetric('${tab}',${i})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:18px;opacity:.5;padding:0" title="Удалить метрику" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
+        </div>`).join('')}
+    </div>` : `<div style="text-align:center;padding:20px;color:var(--gray4);font-size:13px">Нет метрик. Добавьте ниже.</div>`;
+}
+
+function updateMetricField(tab, idx, field, val) {
+  if (metricsData[tab] && metricsData[tab][idx]) {
+    metricsData[tab][idx][field] = val;
+  }
+}
+
+function addMetric() {
+  const icon = document.getElementById('nm-icon')?.value.trim()||'📊';
+  const name = document.getElementById('nm-name')?.value.trim();
+  const unit = document.getElementById('nm-unit')?.value.trim()||'';
+  if (!name) { showToast('Введите название метрики'); return; }
+  const metric = name.toLowerCase().replace(/\s+/g,'_')+'_'+Date.now();
+  if (!metricsData[currentEmTab]) metricsData[currentEmTab]=[];
+  metricsData[currentEmTab].push({name, icon, unit, metric, plan:0, fact:0, desc:''});
+  document.getElementById('nm-icon').value='';
+  document.getElementById('nm-name').value='';
+  document.getElementById('nm-unit').value='';
+  renderEmContent(currentEmTab);
+  showToast('Метрика добавлена ✓');
+}
+
+function deleteMetric(tab, idx) {
+  if (!confirm(`Удалить метрику «${metricsData[tab][idx].name}»?`)) return;
+  metricsData[tab].splice(idx,1);
+  renderEmContent(tab);
+}
+
+function saveEditedMetrics() {
+  closeModal('edit-metrics-modal');
+  renderMetricsTab(activeMetricsTab);
+  showToast('Метрики обновлены ✓');
+}
 function v(id) { return document.getElementById(id)?.value||''; }
 function openModal(id) { const el=document.getElementById(id); if(el) el.classList.add('open'); }
 function closeModal(id) { const el=document.getElementById(id); if(el) el.classList.remove('open'); }
