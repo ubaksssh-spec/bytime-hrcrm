@@ -599,17 +599,30 @@ tbody tr:last-child{border-bottom:none}
           <button class="btn btn-ghost btn-sm" onclick="closeWhiteboard()">← Назад</button>
           <div id="wb-title-input" contenteditable="true" style="font-family:var(--font-h);font-size:20px;color:var(--bv);min-width:120px;outline:none;border-bottom:1px solid transparent" onfocus="this.style.borderBottomColor='var(--bv)'" onblur="saveWbTitle(this.textContent);this.style.borderBottomColor='transparent'"></div>
           <div style="flex:1"></div>
-          <!-- Tools -->
-          <div style="display:flex;gap:2px;background:var(--gray1);border-radius:10px;padding:4px" id="wb-tool-bar">
-            <button id="wbt-select" onclick="setWbTool('select')" title="Стрелка — выбор и редактирование (V)" style="background:var(--white);border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">↖</button>
-            <button id="wbt-hand"   onclick="setWbTool('hand')"   title="Рука — перемещение холста (H)"       style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✋</button>
-            <div style="width:1px;background:var(--gray2);margin:4px 2px"></div>
-            <button id="wbt-sticky" onclick="setWbTool('sticky')" title="Стикер"        style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">🗒</button>
-            <button id="wbt-text"   onclick="setWbTool('text')"   title="Текст"         style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">T</button>
-            <button id="wbt-rect"   onclick="setWbTool('rect')"   title="Прямоугольник" style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">▭</button>
-            <button id="wbt-circle" onclick="setWbTool('circle')" title="Круг"          style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">○</button>
-            <button id="wbt-arrow"  onclick="setWbTool('arrow')"  title="Стрелка-соединитель" style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">→</button>
-            <button id="wbt-pen"    onclick="setWbTool('pen')"    title="Карандаш"      style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">✏</button>
+          <!-- Primary tools: only 2 buttons -->
+          <div style="display:flex;gap:4px;background:var(--gray1);border-radius:10px;padding:4px" id="wb-tool-bar">
+            <button id="wbt-select" onclick="setWbTool('select')" title="Стрелка — выбор и редактирование (V)"
+              style="background:var(--white);border:none;border-radius:7px;width:36px;height:32px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center">↖</button>
+            <button id="wbt-hand" onclick="setWbTool('hand')" title="Рука — перемещение холста (H)"
+              style="background:transparent;border:none;border-radius:7px;width:36px;height:32px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center">✋</button>
+          </div>
+          <!-- Separator -->
+          <div style="width:1px;height:24px;background:var(--gray2)"></div>
+          <!-- Creation tools dropdown -->
+          <div style="position:relative">
+            <button onclick="toggleWbAddMenu()" title="Добавить элемент"
+              style="background:var(--bv);color:white;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:14px;font-weight:600;font-family:var(--font-b);display:flex;align-items:center;gap:6px">
+              + Добавить <span style="font-size:10px">▾</span>
+            </button>
+            <div id="wb-add-menu" style="display:none;position:absolute;top:calc(100%+6px);right:0;background:var(--white);border:1.5px solid var(--gray1);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.12);z-index:100;min-width:160px;overflow:hidden">
+              <div onclick="pickWbTool('sticky')"  style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''"><span style="font-size:16px">🗒</span> Стикер</div>
+              <div onclick="pickWbTool('text')"    style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''"><span style="font-size:16px;font-weight:900">T</span> Текст</div>
+              <div onclick="pickWbTool('rect')"    style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''"><span style="font-size:16px">▭</span> Прямоугольник</div>
+              <div onclick="pickWbTool('circle')"  style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''"><span style="font-size:16px">○</span> Круг</div>
+              <div style="height:1px;background:var(--gray1);margin:2px 0"></div>
+              <div onclick="pickWbTool('arrow')"   style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''"><span style="font-size:16px">→</span> Стрелка</div>
+              <div onclick="pickWbTool('pen')"     style="padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''"><span style="font-size:16px">✏</span> Карандаш</div>
+            </div>
           </div>
           <!-- Colors: brand palette from guidebook -->
           <div style="display:flex;gap:5px;align-items:center" id="wb-colors">
@@ -5186,14 +5199,39 @@ function saveWbTitle(text) {
   saveWhiteboards();
 }
 
+function toggleWbAddMenu() {
+  const m = document.getElementById('wb-add-menu');
+  if (!m) return;
+  m.style.display = m.style.display === 'none' ? '' : 'none';
+  // Close on outside click
+  if (m.style.display !== 'none') {
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu(e) {
+        if (!m.contains(e.target) && !e.target.closest('[onclick="toggleWbAddMenu()"]')) {
+          m.style.display = 'none';
+        }
+        document.removeEventListener('click', closeMenu);
+      });
+    }, 10);
+  }
+}
+
+// Pick a creation tool from dropdown — one-shot: creates element then returns to select
+function pickWbTool(tool) {
+  document.getElementById('wb-add-menu').style.display = 'none';
+  setWbTool(tool);
+  // Show hint
+  showToast(`Кликни на доску, чтобы добавить: ${({sticky:'стикер',text:'текст',rect:'прямоугольник',circle:'круг',arrow:'стрелку',pen:'линию'})[tool]}`);
+}
+
 function setWbTool(tool) {
   wbTool = tool;
-  document.querySelectorAll('[id^="wbt-"]').forEach(b=>b.style.background='transparent');
-  const btn = document.getElementById('wbt-'+tool);
-  if (btn) btn.style.background='var(--white)';
+  // Only highlight the two primary buttons
+  document.getElementById('wbt-select').style.background = tool==='select' ? 'var(--white)' : 'transparent';
+  document.getElementById('wbt-hand').style.background   = tool==='hand'   ? 'var(--white)' : 'transparent';
   const stage = document.getElementById('wb-stage');
   if (!stage) return;
-  const cursors = { select:'default', hand:'grab', pen:'crosshair', arrow:'crosshair' };
+  const cursors = { select:'default', hand:'grab', pen:'crosshair', arrow:'crosshair', sticky:'cell', text:'text', rect:'crosshair', circle:'crosshair' };
   stage.style.cursor = cursors[tool] || 'crosshair';
 }
 
@@ -5277,17 +5315,20 @@ function wbMouseDown(e) {
     wbArrowStart=pt; wbDrawing='arrow'; return;
   }
 
-  // Create element
+  // Create element — only if a creation tool is active (not select/hand)
+  const creationTools = ['sticky','text','rect','circle'];
+  if (!creationTools.includes(wbTool)) return;
   wbPushHistory();
   const id='el_'+Date.now();
-  const COLORS = {sticky:wbColor||'#FFEB3B',text:'transparent',rect:wbColor||'#FFFFFF',circle:wbColor||'#FFFFFF'};
+  const COLORS = {sticky:wbColor||'#FFEB3B', text:'transparent', rect:wbColor||'#024638', circle:wbColor||'#024638'};
   const el = {id, type:wbTool, x:pt.x-80, y:pt.y-50, w:160, h:100, text:'', color:COLORS[wbTool]||wbColor};
   b.elements.push(el);
   renderWbElements();
-  // Focus text on new sticky/text element via dblClick simulation
-  setTimeout(()=>{
-    wbElDblClick({stopPropagation:()=>{}}, id);
-  },50);
+  // After placing, return to select tool
+  setWbTool('select');
+  wbSelectedId = id;
+  // Open for editing immediately
+  setTimeout(()=>{ wbElDblClick({stopPropagation:()=>{}}, id); }, 50);
 }
 
 function wbMouseMove(e) {
@@ -5333,6 +5374,7 @@ function wbMouseUp(e) {
     if (!b.arrows) b.arrows=[];
     b.arrows.push({id:'arr_'+Date.now(),type:'pen',points:wbPenPoints,color:wbColor==='#FFEB3B'?'#212121':wbColor,width:2});
     clearWbPenPreview(); renderWbArrows(); saveWhiteboards();
+    setWbTool('select');
   }
   if (wbDrawing==='arrow' && wbArrowStart) {
     const pt=stageCoords(e);
@@ -5342,6 +5384,7 @@ function wbMouseUp(e) {
       if (!b.arrows) b.arrows=[];
       b.arrows.push({id:'arr_'+Date.now(),type:'arrow',x1:wbArrowStart.x,y1:wbArrowStart.y,x2:pt.x,y2:pt.y,color:'#212121',width:2});
       clearWbArrowPreview(); renderWbArrows(); saveWhiteboards();
+      setWbTool('select');
     }
   }
   wbDrawing=null; wbArrowStart=null;
