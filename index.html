@@ -341,7 +341,7 @@ tbody tr:last-child{border-bottom:none}
     <div class="login-hint">
       <b>🔑 Демо-доступ:</b>
       <span>admin@bytime.agency / admin123 — Администратор</span>
-      <span>ops@bytime.agency / ops123 — Операционщик</span>
+      <span>ops@bytime.agency / ops123 — Опер.менеджер</span>
       <span>hr@bytime.agency / hr123 — HR-менеджер</span>
     </div>
     <div class="form-row">
@@ -631,12 +631,8 @@ tbody tr:last-child{border-bottom:none}
           <button class="btn btn-bv" onclick="openAddUserModal()">+ Добавить пользователя</button>
         </div>
       </div>
-      <div class="card mb-4" style="padding:16px 20px;background:rgba(84,5,43,.04);border-left:3px solid var(--bv)">
-        <div style="font-size:13px;color:var(--bv);font-weight:600">📌 Задача для интеграции</div>
-        <div style="font-size:12.5px;color:var(--gray4);margin-top:4px">Кнопка «Добавить пользователя» готова — при нажатии создаётся учётная запись в системе. Для реальной отправки email-приглашений требуется подключить почтовый сервис на бэкенде.</div>
-      </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Пользователь</th><th>Email</th><th>Роль</th><th>Статус</th><th>Последний вход</th><th></th></tr></thead>
+        <thead><tr><th>Пользователь</th><th>Роль</th><th>Статус</th><th>Последний вход</th><th></th></tr></thead>
         <tbody id="users-table"></tbody>
       </table></div>
     </div>
@@ -829,18 +825,29 @@ tbody tr:last-child{border-bottom:none}
         <div class="form-row"><label>Имя</label><input id="uf-first" placeholder="Анна"></div>
         <div class="form-row"><label>Фамилия</label><input id="uf-last" placeholder="Петрова"></div>
       </div>
-      <div class="form-row"><label>Email (логин)</label><input id="uf-email" type="email" placeholder="anna@bytime.agency"></div>
+      <div class="form-row"><label>Email — будет логином для входа</label><input id="uf-email" type="email" placeholder="anna@bytime.agency"></div>
       <div class="form-row"><label>Роль в системе</label>
-        <select id="uf-role"><option value="ops">Операционщик</option><option value="hr">HR</option><option value="admin">Администратор</option></select>
+        <select id="uf-role">
+          <option value="admin">Администратор — полный доступ</option>
+          <option value="hr">HR — оргструктура, HRM, задачник</option>
+          <option value="ops" selected>Опер.менеджер — задачи, проекты, CRM</option>
+          <option value="contractor">Подрядчик — задачник, операционка, база знаний</option>
+        </select>
       </div>
-      <div class="form-row"><label>Временный пароль</label><input id="uf-pass" type="password" placeholder="Введите временный пароль"></div>
-      <div style="background:rgba(84,5,43,.04);border-radius:8px;padding:12px;font-size:12.5px;color:var(--gray4);margin-top:4px">
-        📌 После создания пользователь появится в системе. Email-приглашение будет доступно после подключения почтового сервиса.
+      <div class="form-row">
+        <label>Пароль для входа</label>
+        <div style="display:flex;gap:8px">
+          <input id="uf-pass" type="password" placeholder="Придумайте пароль" style="flex:1">
+          <button type="button" onclick="togglePassVis('uf-pass',this)" class="btn btn-sm btn-ghost">👁</button>
+        </div>
+      </div>
+      <div style="background:rgba(2,70,56,.06);border-left:3px solid var(--em);border-radius:0 8px 8px 0;padding:11px 14px;font-size:12.5px;color:var(--gray4);margin-top:4px">
+        ✓ После создания пользователь сразу сможет войти через экран авторизации по этому email и паролю.
       </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('add-user-modal')">Отмена</button>
-      <button class="btn btn-bv" onclick="saveNewUser()">Создать пользователя</button>
+      <button class="btn btn-bv" onclick="saveNewUser()">Создать и дать доступ</button>
     </div>
   </div>
 </div>
@@ -883,7 +890,7 @@ tbody tr:last-child{border-bottom:none}
           <select id="ef-dept"><option>Продажи</option><option>HR</option><option>Операции</option><option>Маркетинг</option><option>Финансы</option></select>
         </div>
         <div class="form-row"><label>Роль в системе</label>
-          <select id="ef-sysrole"><option>Операционщик</option><option>HR</option><option>Администратор</option></select>
+          <select id="ef-sysrole"><option>Опер.менеджер</option><option>HR</option><option>Администратор</option></select>
         </div>
       </div>
       <div class="form-grid">
@@ -1114,12 +1121,46 @@ tbody tr:last-child{border-bottom:none}
 // ════════════════════════════════════════════
 // DATA
 // ════════════════════════════════════════════
-const USERS = {
-  'admin@bytime.agency': {pass:'admin123', role:'admin', name:'Ульяна Майорова', initials:'УМ'},
-  'ops@bytime.agency':   {pass:'ops123',   role:'ops',   name:'Дмитрий Козлов',  initials:'ДК'},
-  'hr@bytime.agency':    {pass:'hr123',    role:'hr',    name:'Анна Петрова',    initials:'АП'},
+// Dynamic user registry — new users added here get immediate login access
+// ─── ROLES & PERMISSIONS ───
+const ROLE_NAMES = {
+  admin:       'Администратор',
+  hr:          'HR',
+  ops:         'Опер.менеджер',
+  contractor:  'Подрядчик',
 };
-const ROLE_NAMES = {admin:'Администратор', ops:'Операционщик', hr:'HR-менеджер'};
+
+// All navigable pages
+const ALL_PAGES = [
+  {id:'dashboard',  label:'Рабочий стол'},
+  {id:'finance',    label:'Финансы'},
+  {id:'metrics',    label:'Метрики'},
+  {id:'org',        label:'Орг. структура'},
+  {id:'users',      label:'Пользователи'},
+  {id:'crm',        label:'CRM'},
+  {id:'tasks',      label:'Задачник'},
+  {id:'hrm',        label:'HRM'},
+  {id:'projects',   label:'Операционка'},
+  {id:'processes',  label:'Бизнес-процессы'},
+  {id:'kb',         label:'База знаний'},
+  {id:'passwords',  label:'Пароли'},
+  {id:'chat',       label:'Чат'},
+];
+
+// Default page access per role (true = visible)
+const ROLE_DEFAULTS = {
+  admin:      {dashboard:1,finance:1,metrics:1,org:1,users:1,crm:1,tasks:1,hrm:1,projects:1,processes:1,kb:1,passwords:1,chat:1},
+  hr:         {dashboard:1,finance:0,metrics:1,org:1,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:1,kb:1,passwords:0,chat:1},
+  ops:        {dashboard:1,finance:1,metrics:1,org:1,users:0,crm:1,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:0,chat:1},
+  contractor: {dashboard:1,finance:0,metrics:0,org:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:0,kb:1,passwords:0,chat:1},
+};
+
+let USERS = {
+  'admin@bytime.agency':      {pass:'admin123',      role:'admin',      name:'Ульяна Майорова', initials:'УМ'},
+  'ops@bytime.agency':        {pass:'ops123',        role:'ops',        name:'Дмитрий Козлов',  initials:'ДК'},
+  'hr@bytime.agency':         {pass:'hr123',         role:'hr',         name:'Анна Петрова',    initials:'АП'},
+  'partner@bytime.agency':    {pass:'partner123',    role:'contractor', name:'Подрядчик',        initials:'ПД'},
+};
 
 let currentUser = null;
 let currentPage = 'dashboard';
@@ -1128,11 +1169,11 @@ let editEmpId = null;
 let employees = [
   {id:1, first:'Ульяна',  last:'Майорова', pos:'Генеральный директор', dept:'Операции',  sysrole:'Администратор', email:'admin@bytime.agency', phone:'+7 999 100 00 01', hire:'2020-01-15', status:'Активен',  salary:200000, bonus:'15% от прибыли'},
   {id:2, first:'Анна',    last:'Петрова',  pos:'HR-директор',          dept:'HR',        sysrole:'HR',            email:'hr@bytime.agency',    phone:'+7 999 100 00 02', hire:'2021-03-01', status:'Активен',  salary:120000, bonus:'5% от закрытых вакансий'},
-  {id:3, first:'Дмитрий', last:'Козлов',   pos:'Руководитель продаж',  dept:'Продажи',   sysrole:'Операционщик',  email:'ops@bytime.agency',   phone:'+7 999 100 00 03', hire:'2021-06-15', status:'Активен',  salary:130000, bonus:'8% от выручки отдела'},
-  {id:4, first:'Мария',   last:'Сидорова', pos:'Операционный директор',dept:'Операции',  sysrole:'Операционщик',  email:'maria@bytime.agency', phone:'+7 999 100 00 04', hire:'2022-01-10', status:'Активен',  salary:150000, bonus:'KPI: 30 000 ₽ при выполнении плана'},
-  {id:5, first:'Игорь',   last:'Волков',   pos:'Менеджер по продажам', dept:'Продажи',   sysrole:'Операционщик',  email:'igor@bytime.agency',  phone:'+7 999 100 00 05', hire:'2022-04-20', status:'Активен',  salary:90000,  bonus:'6% от личных сделок'},
+  {id:3, first:'Дмитрий', last:'Козлов',   pos:'Руководитель продаж',  dept:'Продажи',   sysrole:'Опер.менеджер',  email:'ops@bytime.agency',   phone:'+7 999 100 00 03', hire:'2021-06-15', status:'Активен',  salary:130000, bonus:'8% от выручки отдела'},
+  {id:4, first:'Мария',   last:'Сидорова', pos:'Операционный директор',dept:'Операции',  sysrole:'Опер.менеджер',  email:'maria@bytime.agency', phone:'+7 999 100 00 04', hire:'2022-01-10', status:'Активен',  salary:150000, bonus:'KPI: 30 000 ₽ при выполнении плана'},
+  {id:5, first:'Игорь',   last:'Волков',   pos:'Менеджер по продажам', dept:'Продажи',   sysrole:'Опер.менеджер',  email:'igor@bytime.agency',  phone:'+7 999 100 00 05', hire:'2022-04-20', status:'Активен',  salary:90000,  bonus:'6% от личных сделок'},
   {id:6, first:'Светлана',last:'Орлова',   pos:'HR-менеджер',          dept:'HR',        sysrole:'HR',            email:'sveta@bytime.agency', phone:'+7 999 100 00 06', hire:'2023-02-01', status:'В отпуске', salary:95000,  bonus:'3000 ₽ за закрытую вакансию'},
-  {id:7, first:'Павел',   last:'Николаев', pos:'Маркетолог',           dept:'Маркетинг', sysrole:'Операционщик',  email:'pavel@bytime.agency', phone:'+7 999 100 00 07', hire:'2023-05-15', status:'Активен',  salary:100000, bonus:'5% от маркетинговых лидов'},
+  {id:7, first:'Павел',   last:'Николаев', pos:'Маркетолог',           dept:'Маркетинг', sysrole:'Опер.менеджер',  email:'pavel@bytime.agency', phone:'+7 999 100 00 07', hire:'2023-05-15', status:'Активен',  salary:100000, bonus:'5% от маркетинговых лидов'},
 ];
 
 let kanbanCols = ['Бэклог', 'В работе', 'На проверке', 'Готово'];
@@ -1302,9 +1343,9 @@ let clients = [
 ];
 
 let systemUsers = [
-  {id:'u1', email:'admin@bytime.agency', name:'Ульяна Майорова', role:'admin',  initials:'УМ', lastLogin:'16.03.2026 09:15', status:'Активен'},
-  {id:'u2', email:'hr@bytime.agency',    name:'Анна Петрова',    role:'hr',     initials:'АП', lastLogin:'16.03.2026 08:30', status:'Активен'},
-  {id:'u3', email:'ops@bytime.agency',   name:'Дмитрий Козлов',  role:'ops',    initials:'ДК', lastLogin:'16.03.2026 09:20', status:'Активен'},
+  {id:'u1', email:'admin@bytime.agency', name:'Ульяна Майорова', role:'admin',  initials:'УМ', lastLogin:'16.03.2026 09:15', status:'Активен', pages:null},
+  {id:'u2', email:'hr@bytime.agency',    name:'Анна Петрова',    role:'hr',     initials:'АП', lastLogin:'16.03.2026 08:30', status:'Активен', pages:null},
+  {id:'u3', email:'ops@bytime.agency',   name:'Дмитрий Козлов',  role:'ops',    initials:'ДК', lastLogin:'16.03.2026 09:20', status:'Активен', pages:null},
 ];
 let dmConversations = {};
 let activeChatIsDm = false;
@@ -1389,16 +1430,50 @@ function doLogin() {
   if (!user || user.pass !== pass) {
     document.getElementById('l-err').style.display = 'block'; return;
   }
+  if (user._blocked) {
+    document.getElementById('l-err').textContent = 'Доступ заблокирован. Обратитесь к администратору.';
+    document.getElementById('l-err').style.display = 'block'; return;
+  }
   document.getElementById('l-err').style.display = 'none';
+  document.getElementById('l-err').textContent = 'Неверный email или пароль';
   currentUser = {...user, email};
+  // Load per-user page permissions
+  const su = systemUsers.find(u=>u.email===email);
+  if (su) {
+    const now=new Date();
+    su.lastLogin=now.toLocaleDateString('ru-RU')+' '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+    currentUser.pages = su.pages || ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
+  } else {
+    currentUser.pages = ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
+  }
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('sb-name').textContent = user.name;
-  document.getElementById('sb-role').textContent = ROLE_NAMES[user.role];
+  document.getElementById('sb-role').textContent = ROLE_NAMES[user.role]||user.role;
   document.getElementById('sb-avatar').textContent = user.initials;
   const now = new Date();
   document.getElementById('dash-date').textContent = now.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  applyPagePermissions();
   initAll();
+}
+
+function applyPagePermissions() {
+  const pages = currentUser?.pages || {};
+  document.querySelectorAll('.sb-item[data-page]').forEach(el => {
+    const page = el.dataset.page;
+    if (!page) return;
+    el.style.display = pages[page] ? '' : 'none';
+  });
+  // Also hide section headers if all items below are hidden
+  document.querySelectorAll('.sb-section').forEach(sec => {
+    let next = sec.nextElementSibling;
+    let hasVisible = false;
+    while (next && !next.classList.contains('sb-section')) {
+      if (next.classList.contains('sb-item') && next.style.display !== 'none') hasVisible = true;
+      next = next.nextElementSibling;
+    }
+    sec.style.display = hasVisible ? '' : 'none';
+  });
 }
 function doLogout() {
   currentUser = null;
@@ -1868,7 +1943,7 @@ function openEmpModal(id) {
     document.getElementById('ef-dob').value=e.dob||'';
     document.getElementById('ef-emergency').value=e.emergency||'';
     document.getElementById('ef-dept').value=e.dept||'Продажи';
-    document.getElementById('ef-sysrole').value=e.sysrole||'Операционщик';
+    document.getElementById('ef-sysrole').value=e.sysrole||'Опер.менеджер';
     document.getElementById('ef-status').value=e.status||'Активен';
   } else {
     ['ef-first','ef-last','ef-pos','ef-email','ef-phone','ef-hire','ef-dob','ef-emergency'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
@@ -3303,58 +3378,254 @@ function savePassword() {
 // USERS
 // ════════════════════════════════════════════
 function renderUsersTable() {
-  const el=document.getElementById('users-table'); if (!el) return;
-  el.innerHTML=systemUsers.map(u=>`
-    <tr>
+  const el = document.getElementById('users-table'); if (!el) return;
+  el.innerHTML = systemUsers.map(u=>{
+    const pages = u.pages || ROLE_DEFAULTS[u.role] || {};
+    return `<tr>
       <td><div class="flex items-center gap-2">
-        <div class="avatar avatar-sm" style="background:${u.role==='admin'?'var(--bv)':u.role==='hr'?'var(--em)':'var(--bronze)'}">${u.initials}</div>
-        <div><div class="fw-6">${u.name}</div></div>
+        <div class="avatar avatar-sm" style="background:${u.role==='admin'?'var(--bv)':u.role==='hr'?'var(--em)':u.role==='contractor'?'var(--gray3)':'var(--bronze)'}">${u.initials}</div>
+        <div><div class="fw-6">${u.name}</div><div style="font-size:11.5px;color:var(--gray4)">${u.email}</div></div>
       </div></td>
-      <td style="color:var(--gray4)">${u.email}</td>
-      <td><span class="badge badge-${u.role==='admin'?'bv':u.role==='hr'?'green':'gray'}">${ROLE_NAMES[u.role]||u.role}</span></td>
+      <td>
+        <select onchange="setUserRole('${u.id}',this.value)"
+          style="padding:5px 8px;border:1.5px solid var(--gray2);border-radius:7px;font-family:var(--font-b);font-size:12.5px;font-weight:600;color:${u.role==='admin'?'var(--bv)':u.role==='hr'?'var(--em)':'var(--gray4)'};background:${u.role==='admin'?'rgba(84,5,43,.06)':u.role==='hr'?'rgba(2,70,56,.06)':'var(--white)'};cursor:pointer;outline:none">
+          ${Object.entries(ROLE_NAMES).map(([k,v])=>`<option value="${k}"${u.role===k?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </td>
       <td><span class="badge badge-${u.status==='Активен'?'green':'red'}">${u.status}</span></td>
       <td style="color:var(--gray4);font-size:12.5px">${u.lastLogin||'—'}</td>
       <td>
         <div class="flex gap-2">
-          <button class="btn btn-sm btn-ghost" onclick="changeUserRole('${u.id}')">Роль</button>
+          <button class="btn btn-sm btn-ghost" onclick="openPermissionsPanel('${u.id}')">🔑 Доступы</button>
+          <button class="btn btn-sm btn-ghost" onclick="openResetPassModal('${u.id}')">Пароль</button>
           <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="toggleUserStatus('${u.id}')">${u.status==='Активен'?'Блок.':'Разблок.'}</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
+
+function openPermissionsPanel(userId) {
+  const u = systemUsers.find(x=>x.id===userId); if (!u) return;
+  const pages = u.pages || {...(ROLE_DEFAULTS[u.role] || {})};
+
+  const overlay = document.createElement('div');
+  overlay.className='modal-overlay open'; overlay.style.zIndex='600';
+  overlay.innerHTML=`<div class="modal modal-lg"><div class="modal-head">
+    <div class="modal-title">🔑 Доступы — ${u.name}</div>
+    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:12px 16px;background:var(--gray1);border-radius:10px">
+      <div class="avatar avatar-sm" style="background:${u.role==='admin'?'var(--bv)':u.role==='hr'?'var(--em)':'var(--bronze)'}">${u.initials}</div>
+      <div>
+        <div style="font-weight:700">${u.name}</div>
+        <div style="font-size:12px;color:var(--gray4)">Роль: ${ROLE_NAMES[u.role]||u.role}</div>
+      </div>
+      <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="resetToRoleDefaults('${userId}',this)">↺ Сбросить к роли</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      ${ALL_PAGES.map(p=>`
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--gray2);border-radius:9px;cursor:pointer;transition:all .15s;${pages[p.id]?'background:rgba(2,70,56,.05);border-color:rgba(2,70,56,.25)':''}" onmouseover="this.style.borderColor='var(--em)'" onmouseout="this.style.borderColor='${pages[p.id]?'rgba(2,70,56,.25)':'var(--gray2)'}'">
+          <input type="checkbox" id="perm-${userId}-${p.id}" ${pages[p.id]?'checked':''} onchange="updatePermCheck('${userId}','${p.id}',this.checked)"
+            style="width:16px;height:16px;accent-color:var(--em);cursor:pointer">
+          <span style="font-size:13.5px;font-weight:500">${p.label}</span>
+        </label>`).join('')}
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Закрыть</button>
+    <button class="btn btn-bv" onclick="savePermissions('${userId}',this)">Сохранить доступы</button>
+  </div></div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+}
+
+function updatePermCheck(userId, pageId, checked) {
+  // Live visual only — save on button click
+}
+
+function resetToRoleDefaults(userId, btn) {
+  const u = systemUsers.find(x=>x.id===userId); if (!u) return;
+  const defaults = ROLE_DEFAULTS[u.role] || {};
+  ALL_PAGES.forEach(p => {
+    const cb = document.getElementById(`perm-${userId}-${p.id}`);
+    if (cb) {
+      cb.checked = !!defaults[p.id];
+      const label = cb.closest('label');
+      if (label) {
+        label.style.background = defaults[p.id]?'rgba(2,70,56,.05)':'';
+        label.style.borderColor = defaults[p.id]?'rgba(2,70,56,.25)':'var(--gray2)';
+      }
+    }
+  });
+}
+
+function savePermissions(userId, btn) {
+  const u = systemUsers.find(x=>x.id===userId); if (!u) return;
+  const newPages = {};
+  ALL_PAGES.forEach(p => {
+    const cb = document.getElementById(`perm-${userId}-${p.id}`);
+    if (cb) newPages[p.id] = cb.checked ? 1 : 0;
+  });
+  u.pages = newPages;
+  // If this is the current user, apply immediately
+  if (currentUser?.email === u.email) {
+    currentUser.pages = newPages;
+    applyPagePermissions();
+  }
+  btn.closest('.modal-overlay').remove();
+  showToast(`Доступы ${u.name} сохранены ✓`);
+}
+
 function openAddUserModal() {
-  ['uf-first','uf-last','uf-email','uf-pass'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['uf-first','uf-last','uf-email'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const p=document.getElementById('uf-pass'); if(p){p.value='';p.type='password';}
   openModal('add-user-modal');
 }
-function saveNewUser() {
-  const first=document.getElementById('uf-first')?.value.trim();
-  const last=document.getElementById('uf-last')?.value.trim();
-  const email=document.getElementById('uf-email')?.value.trim();
-  const role=document.getElementById('uf-role')?.value||'ops';
-  if (!first||!email) { showToast('Заполните имя и email'); return; }
-  const initials=(first[0]+(last?last[0]:'')).toUpperCase();
-  const id='u'+Date.now();
-  systemUsers.push({id,email,name:first+(last?' '+last:''),role,initials,lastLogin:'—',status:'Активен'});
-  // Also add to employees for task assignment
-  if (last) employees.push({id:Date.now(),first,last,pos:'Новый сотрудник',dept:'Операции',sysrole:ROLE_NAMES[role]||role,email,phone:'',hire:new Date().toISOString().split('T')[0],status:'Активен',salary:0,bonus:''});
+
+async function saveNewUser() {
+  const first = document.getElementById('uf-first')?.value.trim();
+  const last  = document.getElementById('uf-last')?.value.trim();
+  const email = document.getElementById('uf-email')?.value.trim().toLowerCase();
+  const role  = document.getElementById('uf-role')?.value || 'ops';
+  const pass  = document.getElementById('uf-pass')?.value;
+  if (!first) { showToast('Введите имя'); return; }
+  if (!email) { showToast('Введите email'); return; }
+  if (!pass || pass.length < 4) { showToast('Пароль минимум 4 символа'); return; }
+  if (USERS[email]) { showToast('Пользователь с таким email уже существует'); return; }
+
+  const name = first + (last?' '+last:'');
+  const initials = (first[0]+(last?last[0]:'')).toUpperCase();
+  const id = 'u'+Date.now();
+  const pageDefaults = {...(ROLE_DEFAULTS[role]||ROLE_DEFAULTS.contractor)};
+
+  // 1. Register in BYTIME OS
+  USERS[email] = {pass, role, name, initials};
+  systemUsers.push({id, email, name, role, initials, lastLogin:'—', status:'Активен', pages:pageDefaults});
+  employees.push({
+    id: Date.now()+1, first, last: last||'', pos:'Сотрудник',
+    dept:'Операции', sysrole:ROLE_NAMES[role]||role,
+    email, phone:'', hire:new Date().toISOString().split('T')[0], status:'Активен'
+  });
+
   closeModal('add-user-modal');
-  renderUsersTable(); showToast('Пользователь «'+first+' '+(last||'')+'» создан ✓');
+  renderUsersTable();
+  showToast(`✓ ${name} создан. Регистрирую в CRM и HRM…`);
+
+  // 2. Register in CRM Supabase (auth.signUp)
+  try {
+    const crmRes = await fetch(`${EXT.crm.url}/auth/v1/signup`, {
+      method:'POST',
+      headers:{'apikey':EXT.crm.key,'Content-Type':'application/json'},
+      body: JSON.stringify({email, password:pass})
+    });
+    const crmData = await crmRes.json();
+    if (crmData.user || crmData.id) {
+      // Add profile
+      await fetch(`${EXT.crm.url}/rest/v1/profiles`, {
+        method:'POST',
+        headers:{'apikey':EXT.crm.key,'Authorization':'Bearer '+EXT.crm.key,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body: JSON.stringify({id:crmData.user?.id||crmData.id, name, email, role: role==='admin'?'admin':'user'})
+      });
+      showToast(`✓ ${name} зарегистрирован в CRM`);
+    }
+  } catch(e) { console.warn('CRM signup error:', e); }
+
+  // 3. Register in HRM Supabase (auth.signUp)
+  try {
+    const hrmRes = await fetch(`${EXT.hrm.url}/auth/v1/signup`, {
+      method:'POST',
+      headers:{'apikey':EXT.hrm.key,'Content-Type':'application/json'},
+      body: JSON.stringify({email, password:pass})
+    });
+    const hrmData = await hrmRes.json();
+    if (hrmData.user || hrmData.id) {
+      // Add to team_members
+      await fetch(`${EXT.hrm.url}/rest/v1/team_members`, {
+        method:'POST',
+        headers:{'apikey':EXT.hrm.key,'Authorization':'Bearer '+EXT.hrm.key,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body: JSON.stringify({name, email, role: role==='admin'?'admin':role==='hr'?'recruiter':'project'})
+      });
+      showToast(`✓ ${name} зарегистрирован в HRM`);
+    }
+  } catch(e) { console.warn('HRM signup error:', e); }
 }
-function changeUserRole(id) {
-  const u=systemUsers.find(x=>x.id===id); if (!u) return;
-  const roles={admin:'Администратор',ops:'Операционщик',hr:'HR-менеджер'};
-  const current=u.role;
-  const keys=Object.keys(roles);
-  const next=keys[(keys.indexOf(current)+1)%keys.length];
-  if (!confirm(`Изменить роль «${u.name}» с ${roles[current]} на ${roles[next]}?`)) return;
-  u.role=next; renderUsersTable(); showToast('Роль обновлена ✓');
+
+function setUserRole(id, role) {
+  const u = systemUsers.find(x=>x.id===id); if (!u) return;
+  u.role = role;
+  // Reset pages to role defaults (keep custom overrides if already set)
+  if (!u.pages) u.pages = {...(ROLE_DEFAULTS[role]||{})};
+  if (USERS[u.email]) USERS[u.email].role = role;
+  // If current user, reapply
+  if (currentUser?.email === u.email) {
+    currentUser.role = role;
+    currentUser.pages = u.pages;
+    applyPagePermissions();
+  }
+  renderUsersTable();
+  showToast('Роль обновлена ✓');
 }
+
 function toggleUserStatus(id) {
-  const u=systemUsers.find(x=>x.id===id); if (!u) return;
-  if (u.id==='u1') { showToast('Нельзя заблокировать администратора'); return; }
-  u.status=u.status==='Активен'?'Заблокирован':'Активен';
-  renderUsersTable(); showToast(`Пользователь ${u.status==='Активен'?'разблокирован':'заблокирован'} ✓`);
+  const u = systemUsers.find(x=>x.id===id); if (!u) return;
+  const adminUsers = systemUsers.filter(x=>x.role==='admin'&&x.status==='Активен');
+  if (u.role==='admin' && adminUsers.length<=1 && u.status==='Активен') {
+    showToast('Нельзя заблокировать последнего администратора'); return;
+  }
+  u.status = u.status==='Активен' ? 'Заблокирован' : 'Активен';
+  // Block from login if blocked
+  if (USERS[u.email]) {
+    USERS[u.email]._blocked = u.status==='Заблокирован';
+  }
+  renderUsersTable();
+  showToast(`Пользователь ${u.status==='Активен'?'разблокирован':'заблокирован'} ✓`);
 }
+
+function openResetPassModal(id) {
+  const u = systemUsers.find(x=>x.id===id); if (!u) return;
+  const overlay = document.createElement('div');
+  overlay.className='modal-overlay open'; overlay.style.zIndex='600';
+  overlay.innerHTML=`<div class="modal"><div class="modal-head">
+    <div class="modal-title">🔑 Сменить пароль</div>
+    <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+  </div>
+  <div class="modal-body">
+    <div style="font-size:13px;color:var(--gray4);margin-bottom:16px">${u.name} · ${u.email}</div>
+    <div class="form-row">
+      <label>Новый пароль</label>
+      <div style="display:flex;gap:8px">
+        <input id="rp-pass" type="password" placeholder="Введите новый пароль" style="flex:1;padding:10px 13px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:14px;outline:none">
+        <button type="button" onclick="togglePassVis('rp-pass',this)" class="btn btn-sm btn-ghost">👁</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Отмена</button>
+    <button class="btn btn-bv" onclick="doResetPass('${u.email}',this)">Сохранить</button>
+  </div></div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{ if(e.target===overlay) overlay.remove(); });
+  setTimeout(()=>document.getElementById('rp-pass')?.focus(),50);
+}
+
+function doResetPass(email, btn) {
+  const pass = document.getElementById('rp-pass')?.value;
+  if (!pass || pass.length < 4) { showToast('Пароль минимум 4 символа'); return; }
+  if (USERS[email]) USERS[email].pass = pass;
+  btn.closest('.modal-overlay').remove();
+  showToast('Пароль обновлён ✓');
+}
+
+function togglePassVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁' : '🙈';
+}
+
+function changeUserRole(id) {} // deprecated, kept for compat
 
 // ════════════════════════════════════════════
 // КОМПЛЕКСНЫЕ ПРОЕКТЫ
