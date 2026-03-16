@@ -272,6 +272,33 @@ tr:hover td{background:#FBF9F7}
 </style>
 </head>
 <body>
+<!-- ЭКРАН ВХОДА -->
+<div id="login-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--burgundy-dark);display:flex;align-items:center;justify-content:center;z-index:9999">
+  <!-- Loading state -->
+  <div id="auth-loading" style="text-align:center;color:#fff">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;margin-bottom:12px">BYTIME</div>
+    <div style="font-size:14px;opacity:0.7">Загрузка...</div>
+  </div>
+  <!-- Login form -->
+  <div id="login-form-wrap" style="display:none;background:#fff;border-radius:16px;padding:40px 44px;width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.4)">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--burgundy)">BYTIME</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px">HR CRM — система управления подбором</div>
+    </div>
+    <div id="login-error" style="display:none;background:#FFEBEE;color:#C62828;padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:16px"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-control" id="login-email" type="email" placeholder="email@bytime.ru" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Пароль</label>
+      <input class="form-control" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;margin-top:8px" onclick="doLogin()" id="login-btn">Войти</button>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">BYTIME · Бизнес-решения</div>
+  </div><!-- end login-form-wrap -->
+</div>
+
 <div class="app">
   <div class="topbar">
     <span class="logo" style="color:#fff">BYTIME</span>
@@ -6089,13 +6116,13 @@ sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Показываем форму входа сразу после загрузки DOM
-document.addEventListener('DOMContentLoaded', () => {
+// Показываем форму входа сразу
+(function() {
   const authLoading = document.getElementById('auth-loading');
   const loginForm = document.getElementById('login-form-wrap');
   if(authLoading) authLoading.style.display = 'none';
   if(loginForm) loginForm.style.display = '';
-});
+})();
 
 // Проверяем авторизацию при загрузке
 (async function checkAuth() {
@@ -6263,32 +6290,6 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
-<!-- ЭКРАН ВХОДА -->
-<div id="login-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--burgundy-dark);display:flex;align-items:center;justify-content:center;z-index:9999">
-  <!-- Loading state -->
-  <div id="auth-loading" style="text-align:center;color:#fff">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:4px;margin-bottom:12px">BYTIME</div>
-    <div style="font-size:14px;opacity:0.7">Загрузка...</div>
-  </div>
-  <!-- Login form -->
-  <div id="login-form-wrap" style="display:none;background:#fff;border-radius:16px;padding:40px 44px;width:420px;box-shadow:0 24px 80px rgba(0,0,0,0.4)">
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;color:var(--burgundy)">BYTIME</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-top:4px">HR CRM — система управления подбором</div>
-    </div>
-    <div id="login-error" style="display:none;background:#FFEBEE;color:#C62828;padding:10px 14px;border-radius:7px;font-size:13px;margin-bottom:16px"></div>
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input class="form-control" id="login-email" type="email" placeholder="email@bytime.ru" />
-    </div>
-    <div class="form-group">
-      <label class="form-label">Пароль</label>
-      <input class="form-control" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
-    </div>
-    <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;margin-top:8px" onclick="doLogin()" id="login-btn">Войти</button>
-    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">BYTIME · Бизнес-решения</div>
-  </div><!-- end login-form-wrap -->
-</div>
 
 </body>
 </html>
