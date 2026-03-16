@@ -1436,8 +1436,11 @@ function doLogin() {
   }
   document.getElementById('l-err').style.display = 'none';
   document.getElementById('l-err').textContent = 'Неверный email или пароль';
+  bootSession(email, user);
+}
+
+function bootSession(email, user, savedPage) {
   currentUser = {...user, email};
-  // Load per-user page permissions
   const su = systemUsers.find(u=>u.email===email);
   if (su) {
     const now=new Date();
@@ -1446,6 +1449,9 @@ function doLogin() {
   } else {
     currentUser.pages = ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
   }
+  // Save session
+  localStorage.setItem('bt_session', JSON.stringify({email, pass:user.pass}));
+
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('sb-name').textContent = user.name;
@@ -1455,6 +1461,14 @@ function doLogin() {
   document.getElementById('dash-date').textContent = now.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   applyPagePermissions();
   initAll();
+
+  // Restore last page
+  const page = savedPage || localStorage.getItem('bt_last_page') || 'dashboard';
+  const sbEl = document.querySelector(`.sb-item[data-page="${page}"]`);
+  if (sbEl && sbEl.style.display !== 'none') {
+    if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) navExternal(page);
+    else sbEl && nav(sbEl);
+  }
 }
 
 function applyPagePermissions() {
@@ -1464,7 +1478,6 @@ function applyPagePermissions() {
     if (!page) return;
     el.style.display = pages[page] ? '' : 'none';
   });
-  // Also hide section headers if all items below are hidden
   document.querySelectorAll('.sb-section').forEach(sec => {
     let next = sec.nextElementSibling;
     let hasVisible = false;
@@ -1475,11 +1488,28 @@ function applyPagePermissions() {
     sec.style.display = hasVisible ? '' : 'none';
   });
 }
+
 function doLogout() {
   currentUser = null;
+  localStorage.removeItem('bt_session');
+  localStorage.removeItem('bt_last_page');
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 }
+
+// Auto-restore session on page load
+(function restoreSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('bt_session')||'null');
+    if (!saved) return;
+    const user = USERS[saved.email];
+    if (!user || user.pass !== saved.pass || user._blocked) {
+      localStorage.removeItem('bt_session'); return;
+    }
+    bootSession(saved.email, user);
+  } catch(e) { localStorage.removeItem('bt_session'); }
+})();
+
 document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 // ════════════════════════════════════════════
@@ -1490,13 +1520,13 @@ function nav(el) {
   el.classList.add('active');
   const page = el.dataset.page;
   if (!page) return;
-  // External iframe pages
   if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) { navExternal(page); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pageEl = document.getElementById('page-'+page);
   if (!pageEl) return;
   pageEl.classList.add('active');
   currentPage = page;
+  localStorage.setItem('bt_last_page', page);
   if (page==='tasks') { renderBoardTabs(); renderBoard(); }
   if (page==='finance') renderFinance();
   if (page==='metrics') renderMetrics();
@@ -1683,6 +1713,7 @@ function navExternal(pageId) {
   }
 
   currentPage = pageId;
+  localStorage.setItem('bt_last_page', pageId);
 }
 
 // ════════════════════════════════════════════
