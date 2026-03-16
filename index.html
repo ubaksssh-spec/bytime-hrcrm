@@ -6091,9 +6091,18 @@ sb.auth.onAuthStateChange((event, session) => {
 
 // Проверяем авторизацию при загрузке
 (async function checkAuth() {
+  const showLogin = () => {
+    document.getElementById('auth-loading').style.display = 'none';
+    document.getElementById('login-form-wrap').style.display = '';
+  };
+
+  // Failsafe — показать форму входа через 3 секунды если ничего не произошло
+  const failsafe = setTimeout(showLogin, 3000);
+
   try {
-    const {data: {session}} = await sb.auth.getSession();
-    if(session) {
+    const {data: {session}, error} = await sb.auth.getSession();
+    clearTimeout(failsafe);
+    if(session && !error) {
       document.getElementById('login-screen').style.display = 'none';
       await loadUserProfile();
       setTimeout(() => {
@@ -6108,15 +6117,13 @@ sb.auth.onAuthStateChange((event, session) => {
       setTimeout(updateUnreadCounter, 2000);
       setInterval(updateUnreadCounter, 60000);
     } else {
-      // No session — show login form
-      document.getElementById('auth-loading').style.display = 'none';
-      document.getElementById('login-form-wrap').style.display = '';
+      showLogin();
     }
   } catch(e) {
-    // On error also show login form
-    document.getElementById('auth-loading').style.display = 'none';
-    document.getElementById('login-form-wrap').style.display = '';
+    clearTimeout(failsafe);
+    showLogin();
   }
+})();
 })();
 
 </script>
