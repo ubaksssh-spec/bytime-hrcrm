@@ -615,8 +615,8 @@ tbody tr:last-child{border-bottom:none}
         <!-- Dashboard row -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px" id="proj-kpi-row"></div>
 
-        <!-- Filters + urgent -->
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:20px">
+        <!-- Filters + client card + urgent -->
+        <div style="display:grid;grid-template-columns:1fr 260px 320px;gap:16px;margin-bottom:20px;align-items:start">
           <!-- Filters -->
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <select id="proj-filter-resp" onchange="renderClientView()" style="padding:8px 13px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13px;outline:none;cursor:pointer;background:white">
@@ -631,6 +631,15 @@ tbody tr:last-child{border-bottom:none}
             </select>
             <button class="btn btn-sm btn-ghost" onclick="resetProjFilters()">↺ Сбросить</button>
           </div>
+
+          <!-- Client card + comment -->
+          <div style="background:var(--white);border:1.5px solid var(--gray1);border-radius:10px;overflow:hidden">
+            <div style="background:var(--bv);padding:10px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.6px">Карточка клиента</div>
+            <div style="padding:12px 14px" id="proj-client-card-block">
+              <!-- filled by renderClientView -->
+            </div>
+          </div>
+
           <!-- Urgent -->
           <div style="background:rgba(192,57,43,.06);border:1.5px solid rgba(192,57,43,.2);border-radius:10px;padding:12px 16px">
             <div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--danger);margin-bottom:8px">🔥 Горят (дедлайн ≤ 1 день)</div>
@@ -1396,7 +1405,7 @@ let activeClientId = null;
 let clients = [
   {
     id:'zoom', name:'ZOOM LENSES', manager:'Ульяна Майорова', status:'В работе', start:'2026-02-09',
-    color:'var(--bv)', crmClientId:null, crmClientName:null,
+    color:'var(--bv)', crmClientId:null, crmClientName:null, comment:'',
     tasks: [
       {etap:'Организация формата взаимодействия в рамках аудита',task:'Определение каналов коммуникации и рабочих чатов',resp:'Яна / Виталий',status:'Сделано',result:'',start:'2026-02-09',deadline:'2026-02-10'},
       {etap:'Операционный аудит',task:'Настройка формата ежедневной отчётности',resp:'Яна / Виталий',status:'Сделано',result:'',start:'2026-02-09',deadline:'2026-02-10'},
@@ -4053,6 +4062,33 @@ function renderClientView() {
       </div>`).join('')
     : '<div style="color:var(--gray4);font-size:12px">Горящих задач нет 🎉</div>';
 
+  // Client card block
+  const cardEl = document.getElementById('proj-client-card-block');
+  if (cardEl) {
+    cardEl.innerHTML = c.crmClientId
+      ? `<div style="margin-bottom:10px">
+          <div style="font-size:12.5px;font-weight:700;color:var(--ink)">${c.crmClientName||c.crmClientId}</div>
+          <div style="font-size:11.5px;color:var(--gray4);margin-top:2px">${c.manager} · ${c.start}</div>
+        </div>
+        <button onclick="openCrmClientCard('${c.id}')" style="width:100%;background:var(--bv);color:white;border:none;border-radius:8px;padding:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font-b);margin-bottom:10px">
+          Открыть в CRM →
+        </button>
+        <div style="font-size:11px;color:var(--gray4);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Комментарий</div>
+        <textarea id="proj-comment-${c.id}" placeholder="Заметка по клиенту..." rows="3"
+          style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:12.5px;resize:vertical;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--bv)'" onblur="saveProjComment('${c.id}',this.value);this.style.borderColor='var(--gray2)'"
+        >${c.comment||''}</textarea>`
+      : `<div style="font-size:12px;color:var(--gray4);margin-bottom:10px">CRM-клиент не привязан</div>
+        <button onclick="openLinkCrmModal('${c.id}')" style="width:100%;background:none;border:1.5px dashed var(--gray2);border-radius:8px;padding:8px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--gray4);font-family:var(--font-b);margin-bottom:10px;transition:all .15s" onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'" onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray4)'">
+          + Привязать клиента CRM
+        </button>
+        <div style="font-size:11px;color:var(--gray4);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Комментарий</div>
+        <textarea id="proj-comment-${c.id}" placeholder="Заметка по проекту..." rows="3"
+          style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:12.5px;resize:vertical;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--bv)'" onblur="saveProjComment('${c.id}',this.value);this.style.borderColor='var(--gray2)'"
+        >${c.comment||''}</textarea>`;
+  }
+
   // Build one big table with Этап in col1 (merged-style rowspan) and Задача in col2
   const etaps = [...new Set(filtered.map(t=>t.etap))];
   const statusColors = {Сделано:'var(--success)','В работе':'var(--bv)','Не в работе':'var(--gray4)'};
@@ -4384,6 +4420,8 @@ function openCrmClientCard(projectId) {
     showToast(`Открываю карточку «${c.crmClientName}» в CRM`);
   }, 800);
 }
+
+function openAddClientModal() {
   const sel = document.getElementById('cl-manager');
   if (sel) sel.innerHTML = employees.map(e=>`<option>${e.first} ${e.last}</option>`).join('');
   document.getElementById('cl-start').value = new Date().toISOString().split('T')[0];
@@ -4526,7 +4564,7 @@ function doReadExcelForNewClient(file, name, manager, projStatus) {
           id:'cl_'+Date.now(), name, manager, status:projStatus,
           start: valid[0]?.start || new Date().toISOString().split('T')[0],
           color: colors[clients.length % colors.length],
-          crmClientId:null, crmClientName:null,
+          crmClientId:null, crmClientName:null, comment:'',
           tasks: valid
         };
         clients.push(newClient);
@@ -4761,6 +4799,12 @@ document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('cli
 // ════════════════════════════════════════════
 // TOOLS PAGE
 // ════════════════════════════════════════════
+function saveProjComment(clientId, value) {
+  const c = clients.find(x=>x.id===clientId); if (!c) return;
+  c.comment = value;
+  showToast('Комментарий сохранён ✓');
+}
+
 function switchProjTool(tool, el) {
   document.querySelectorAll('[id^="proj-tool-tab-"]').forEach(t=>{
     t.style.borderBottom='2px solid transparent'; t.style.color='var(--gray4)';
@@ -4786,6 +4830,8 @@ function renderProjProcesses() {
       <div style="font-size:12px;color:var(--gray4);margin-top:3px">${p.dept||'—'}</div>
     </div>`).join('');
 }
+
+function switchToolTab(tab, el) {
   document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('#page-tools [id^="tool-"]').forEach(t=>t.style.display='none');
