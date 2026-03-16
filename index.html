@@ -1498,18 +1498,6 @@ function doLogout() {
 }
 
 // Auto-restore session on page load
-(function restoreSession() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('bt_session')||'null');
-    if (!saved) return;
-    const user = USERS[saved.email];
-    if (!user || user.pass !== saved.pass || user._blocked) {
-      localStorage.removeItem('bt_session'); return;
-    }
-    bootSession(saved.email, user);
-  } catch(e) { localStorage.removeItem('bt_session'); }
-})();
-
 document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
 // ════════════════════════════════════════════
@@ -4466,6 +4454,19 @@ function showToast(msg) {
   t.textContent=msg; document.body.appendChild(t);
   setTimeout(()=>t.remove(),2500);
 }
+
+// ── AUTO RESTORE SESSION ──
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('bt_session')||'null');
+    if (!saved) return;
+    const user = USERS[saved.email];
+    if (!user || user.pass !== saved.pass || user._blocked) {
+      localStorage.removeItem('bt_session'); return;
+    }
+    bootSession(saved.email, user);
+  } catch(e) { localStorage.removeItem('bt_session'); }
+});
 </script>
 </body>
 </html>
