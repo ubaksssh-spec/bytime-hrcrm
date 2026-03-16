@@ -3321,35 +3321,63 @@ async function renderWeekView() {
   const {data:weekTasks} = await sb.from('tasks').select('*').gte('due_date', weekStart).lte('due_date', weekEnd);
   const tasks = (weekTasks||[]).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
 
-  weekEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-      ${days.map((d,i) => {
-        const dateStr = d.toISOString().split('T')[0];
-        const isToday = dateStr === today.toISOString().split('T')[0];
-        const isWeekend = i >= 5;
-        const dayTasks = tasks.filter(t=>t.due_date===dateStr);
-        return `<div style="border-right:${i<6?'1px solid var(--border)':'none'};min-height:400px">
-          <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:${isToday?'var(--burgundy)':isWeekend?'#FFF5F5':'var(--cream)'}">
-            <div style="font-size:11px;font-weight:700;color:${isToday?'#fff':isWeekend?'#e53935':'var(--text-muted)'};text-transform:uppercase">${DAYS_RU[i]}</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${isToday?'#fff':isWeekend?'#e53935':'var(--text-primary)'}">${d.getDate()}</div>
-          </div>
-          <div style="padding:6px" onclick="openNewTaskForDate('${dateStr}')">
-            ${dayTasks.map(t => {
-              const taskId = t.id;
-              return `<div onclick="event.stopPropagation();openTaskView('${taskId}')" style="padding:4px 8px;margin-bottom:4px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'}">
-                ${t.time?t.time+' ':''}${t.title}
-              </div>`;
-            }).join('')}
-            ${dayTasks.length===0?`<div style="padding:8px 4px;font-size:11px;color:var(--border);text-align:center">+</div>`:''}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
+  // Build week grid using DOM
+  weekEl.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden';
+
+  days.forEach((d, i) => {
+    const dateStr = d.toISOString().split('T')[0];
+    const isToday = dateStr === today.toISOString().split('T')[0];
+    const isWeekend = i >= 5;
+    const dayTasks = tasks.filter(t=>t.due_date===dateStr);
+
+    const col = document.createElement('div');
+    col.style.cssText = `border-right:${i<6?'1px solid var(--border)':'none'};min-height:400px;display:flex;flex-direction:column`;
+
+    // Day header
+    const header = document.createElement('div');
+    header.style.cssText = `padding:10px 12px;border-bottom:1px solid var(--border);background:${isToday?'var(--burgundy)':isWeekend?'#FFF5F5':'var(--cream)'}`;
+    header.innerHTML = `<div style="font-size:11px;font-weight:700;color:${isToday?'#fff':isWeekend?'#e53935':'var(--text-muted)'};text-transform:uppercase">${DAYS_RU[i]}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${isToday?'#fff':isWeekend?'#e53935':'var(--text-primary)'}">${d.getDate()}</div>`;
+    col.appendChild(header);
+
+    // Tasks container
+    const body = document.createElement('div');
+    body.style.cssText = 'padding:6px;flex:1;cursor:pointer';
+    body.addEventListener('click', () => openNewTaskForDate(dateStr));
+
+    if(dayTasks.length === 0) {
+      const plus = document.createElement('div');
+      plus.style.cssText = 'padding:8px 4px;font-size:11px;color:var(--border);text-align:center';
+      plus.textContent = '+';
+      body.appendChild(plus);
+    } else {
+      dayTasks.forEach(t => {
+        const taskEl = document.createElement('div');
+        const taskId = t.id;
+        taskEl.style.cssText = `padding:4px 8px;margin-bottom:4px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'}`;
+        taskEl.textContent = (t.time ? t.time+' ' : '') + t.title;
+        taskEl.addEventListener('click', (e) => { e.stopPropagation(); openTaskView(taskId); });
+        body.appendChild(taskEl);
+      });
+    }
+    col.appendChild(body);
+    grid.appendChild(col);
+  });
+
+  weekEl.appendChild(grid);
 }
 // ============ КОНЕЦ ВИДОВ КАЛЕНДАРЯ ============
 
-function calPrev() { calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } renderCalendar(); }
-function calNext() { calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } renderCalendar(); }
+function calPrev() {
+  if(calView === 'week') { calWeekOffset = (calWeekOffset||0) - 7; renderWeekView(); return; }
+  calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } renderCalendar();
+}
+function calNext() {
+  if(calView === 'week') { calWeekOffset = (calWeekOffset||0) + 7; renderWeekView(); return; }
+  calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } renderCalendar();
+}
 function calGoToday() {
   const t = new Date();
   calYear = t.getFullYear();
