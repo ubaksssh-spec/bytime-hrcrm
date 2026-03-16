@@ -379,12 +379,14 @@ tbody tr:last-child{border-bottom:none}
       <div class="sb-item" data-page="tasks" onclick="nav(this)"><span class="icon"></span>Задачник<span class="sb-badge" id="tasks-badge">5</span></div>
       <div class="sb-item sb-item-hrm" data-page="hrm" onclick="navExternal('hrm')"><span class="icon"></span>HRM</div>
       <div class="sb-item" data-page="projects" onclick="nav(this)"><span class="icon"></span>Операционка</div>
-      <div class="sb-item" data-page="processes" onclick="nav(this)"><span class="icon"></span>Бизнес-процессы</div>
       <div class="sb-item" data-page="kb" onclick="nav(this)"><span class="icon"></span>База знаний</div>
       <div class="sb-item" data-page="passwords" onclick="nav(this)"><span class="icon"></span>Пароли</div>
 
       <div class="sb-section">Коммуникации</div>
       <div class="sb-item" data-page="chat" onclick="nav(this)"><span class="icon"></span>Чат<span class="sb-badge" id="chat-badge">3</span></div>
+
+      <div class="sb-section">Развитие</div>
+      <div class="sb-item" data-page="tools" onclick="nav(this)"><span class="icon"></span>Инструменты</div>
     </div>
     <div class="sb-user">
       <div class="flex items-center gap-2">
@@ -527,30 +529,42 @@ tbody tr:last-child{border-bottom:none}
       <div class="kanban-board" id="kanban-board"></div>
     </div>
 
-    <!-- PROCESSES -->
-    <div id="page-processes" class="page">
-      <div id="proc-list-view">
-        <div class="page-header">
-          <div><div class="page-title">Бизнес-процессы</div><div class="page-subtitle">Регламенты и операционные инструкции</div></div>
-          <div class="header-actions">
+    <!-- PROCESSES (kept for compat, hidden — now inside Tools) -->
+    <div id="page-processes" class="page" style="display:none!important"></div>
+
+    <!-- TOOLS -->
+    <div id="page-tools" class="page">
+      <div class="page-header">
+        <div><div class="page-title">Инструменты</div><div class="page-subtitle">Рабочие инструменты и процессы</div></div>
+      </div>
+      <!-- Tool tabs -->
+      <div class="tabs" style="margin-bottom:24px">
+        <div class="tab active" onclick="switchToolTab('processes',this)">Бизнес-процессы</div>
+      </div>
+      <!-- Tool: Processes (embedded) -->
+      <div id="tool-processes">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
             <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="proc-search" placeholder="Поиск процесса..." oninput="renderProcesses()"></div>
+          </div>
+          <div style="display:flex;gap:8px">
             <button class="btn btn-ghost" onclick="openFolderModal()">📁 Папка</button>
             <button class="btn btn-bv" onclick="openProcModal()">+ Процесс</button>
           </div>
         </div>
         <div class="tabs" id="proc-dept-tabs"></div>
         <div class="procs-grid" id="proc-grid"></div>
-      </div>
-      <!-- CANVAS EDITOR -->
-      <div id="proc-canvas-view" style="display:none">
-        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--gray2);background:var(--white)">
-          <button class="btn btn-ghost btn-sm" onclick="closeProcCanvas()">← Назад</button>
-          <div id="canvas-proc-title" style="font-family:var(--font-h);font-size:22px;color:var(--bv);flex:1"></div>
-          <button class="btn btn-sm btn-ghost" onclick="copyShareLink()">🔗 Поделиться</button>
-          <button class="btn btn-sm btn-bv" onclick="addCanvasCol()">+ Этап</button>
-        </div>
-        <div style="overflow:auto;height:calc(100vh - 140px);background:var(--gray1)">
-          <div id="proc-canvas" style="padding:20px;min-width:max-content"></div>
+        <!-- Canvas editor inside tools -->
+        <div id="proc-canvas-view" style="display:none">
+          <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--gray2);background:var(--white)">
+            <button class="btn btn-ghost btn-sm" onclick="closeProcCanvas()">← Назад</button>
+            <div id="canvas-proc-title" style="font-family:var(--font-h);font-size:22px;color:var(--bv);flex:1"></div>
+            <button class="btn btn-sm btn-ghost" onclick="copyShareLink()">🔗 Поделиться</button>
+            <button class="btn btn-sm btn-bv" onclick="addCanvasCol()">+ Этап</button>
+          </div>
+          <div style="overflow:auto;height:calc(100vh - 220px);background:var(--gray1)">
+            <div id="proc-canvas" style="padding:20px;min-width:max-content"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -570,6 +584,7 @@ tbody tr:last-child{border-bottom:none}
         <div class="page-header">
           <div><div class="page-title">Комплексные проекты</div><div class="page-subtitle">Дорожные карты клиентов</div></div>
           <div class="header-actions">
+            <button class="btn btn-ghost" onclick="downloadProjectTemplate()">📥 Шаблон Excel</button>
             <label class="btn btn-ghost" style="cursor:pointer">
               📎 Загрузить из Excel
               <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClientFromExcel(this)">
@@ -1147,33 +1162,57 @@ const ALL_PAGES = [
   {id:'kb',         label:'База знаний'},
   {id:'passwords',  label:'Пароли'},
   {id:'chat',       label:'Чат'},
+  {id:'tools',      label:'Инструменты'},
 ];
 
 // Default page access per role (true = visible)
 const ROLE_DEFAULTS = {
-  admin:      {dashboard:1,finance:1,metrics:1,users:1,crm:1,tasks:1,hrm:1,projects:1,processes:1,kb:1,passwords:1,chat:1},
-  hr:         {dashboard:1,finance:0,metrics:1,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:1,kb:1,passwords:0,chat:1},
-  ops:        {dashboard:1,finance:1,metrics:1,users:0,crm:1,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:0,chat:1},
-  contractor: {dashboard:1,finance:0,metrics:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:0,kb:1,passwords:0,chat:1},
+  admin:      {dashboard:1,finance:1,metrics:1,org:1,users:1,crm:1,tasks:1,hrm:1,projects:1,processes:1,kb:1,passwords:1,chat:1,tools:1},
+  hr:         {dashboard:1,finance:0,metrics:1,org:1,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:1,kb:1,passwords:0,chat:1,tools:1},
+  ops:        {dashboard:1,finance:1,metrics:1,org:1,users:0,crm:1,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:0,chat:1,tools:1},
+  contractor: {dashboard:1,finance:0,metrics:0,org:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:0,kb:1,passwords:0,chat:1,tools:0},
 };
 
-let USERS = {
-  'admin@bytime.agency':      {pass:'admin123',      role:'admin',      name:'Ульяна Майорова', initials:'УМ'},
-  'ops@bytime.agency':        {pass:'ops123',        role:'ops',        name:'Дмитрий Козлов',  initials:'ДК'},
-  'hr@bytime.agency':         {pass:'hr123',         role:'hr',         name:'Анна Петрова',    initials:'АП'},
-  'partner@bytime.agency':    {pass:'partner123',    role:'contractor', name:'Подрядчик',        initials:'ПД'},
+const USERS_DEFAULTS = {
+  'admin@bytime.agency':   {pass:'admin123',   role:'admin',      name:'Ульяна Майорова', initials:'УМ'},
+  'ops@bytime.agency':     {pass:'ops123',     role:'ops',        name:'Дмитрий Козлов',  initials:'ДК'},
+  'hr@bytime.agency':      {pass:'hr123',      role:'hr',         name:'Анна Петрова',    initials:'АП'},
+  'partner@bytime.agency': {pass:'partner123', role:'contractor', name:'Подрядчик',        initials:'ПД'},
 };
+
+// Merge defaults with any saved users/password changes
+let USERS = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('bt_users')||'null');
+    return saved ? {...USERS_DEFAULTS, ...saved} : {...USERS_DEFAULTS};
+  } catch(e) { return {...USERS_DEFAULTS}; }
+})();
+
+function saveUsers() {
+  try { localStorage.setItem('bt_users', JSON.stringify(USERS)); } catch(e) {}
+}
 
 let currentUser = null;
 let currentPage = 'dashboard';
 let editEmpId = null;
 
 // Employee profiles — keyed by systemUser id, stores extra org fields
-let empProfiles = {
+const EMP_PROFILES_DEFAULTS = {
   'u1': {pos:'Генеральный директор', dept:'Операции', phone:'+7 999 100 00 01', hire:'2020-01-15', dob:'', emergency:'', photo:null, files:[], status:'Активен'},
   'u2': {pos:'HR-директор',          dept:'HR',       phone:'+7 999 100 00 02', hire:'2021-03-01', dob:'', emergency:'', photo:null, files:[], status:'Активен'},
   'u3': {pos:'Руководитель продаж',  dept:'Продажи',  phone:'+7 999 100 00 03', hire:'2021-06-15', dob:'', emergency:'', photo:null, files:[], status:'Активен'},
 };
+
+let empProfiles = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('bt_profiles')||'null');
+    return saved ? {...EMP_PROFILES_DEFAULTS, ...saved} : {...EMP_PROFILES_DEFAULTS};
+  } catch(e) { return {...EMP_PROFILES_DEFAULTS}; }
+})();
+
+function saveProfiles() {
+  try { localStorage.setItem('bt_profiles', JSON.stringify(empProfiles)); } catch(e) {}
+}
 
 // Compatibility helper — kept for task assignment etc
 function getEmployees() {
@@ -1362,11 +1401,22 @@ let clients = [
   }
 ];
 
-let systemUsers = [
-  {id:'u1', email:'admin@bytime.agency', name:'Ульяна Майорова', role:'admin',  initials:'УМ', lastLogin:'16.03.2026 09:15', status:'Активен', pages:null},
-  {id:'u2', email:'hr@bytime.agency',    name:'Анна Петрова',    role:'hr',     initials:'АП', lastLogin:'16.03.2026 08:30', status:'Активен', pages:null},
-  {id:'u3', email:'ops@bytime.agency',   name:'Дмитрий Козлов',  role:'ops',    initials:'ДК', lastLogin:'16.03.2026 09:20', status:'Активен', pages:null},
+const SYSTEM_USERS_DEFAULTS = [
+  {id:'u1', email:'admin@bytime.agency', name:'Ульяна Майорова', role:'admin', initials:'УМ', lastLogin:'—', status:'Активен', pages:null},
+  {id:'u2', email:'hr@bytime.agency',    name:'Анна Петрова',    role:'hr',    initials:'АП', lastLogin:'—', status:'Активен', pages:null},
+  {id:'u3', email:'ops@bytime.agency',   name:'Дмитрий Козлов',  role:'ops',   initials:'ДК', lastLogin:'—', status:'Активен', pages:null},
 ];
+
+let systemUsers = (() => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('bt_system_users')||'null');
+    return saved || JSON.parse(JSON.stringify(SYSTEM_USERS_DEFAULTS));
+  } catch(e) { return JSON.parse(JSON.stringify(SYSTEM_USERS_DEFAULTS)); }
+})();
+
+function saveSystemUsers() {
+  try { localStorage.setItem('bt_system_users', JSON.stringify(systemUsers)); } catch(e) {}
+}
 let dmConversations = {};
 let activeChatIsDm = false;
 let activeDmUser = null;
@@ -1548,6 +1598,7 @@ function nav(el) {
   if (page==='passwords') renderPasswords();
   if (page==='org') renderOrg();
   if (page==='processes') renderProcesses();
+  if (page==='tools')     { renderProcesses(); }
   if (page==='projects') renderProjectsList();
   if (page==='users') renderUsersTable();
 }
@@ -1795,8 +1846,8 @@ function renderOrg() {
 function saveOrgField(userId, field, value) {
   if (!empProfiles[userId]) empProfiles[userId] = {};
   empProfiles[userId][field] = value;
+  saveProfiles();
   employees = getEmployees();
-  // No full re-render — just update tooltip if needed
   showToast('Сохранено ✓');
 }
 
@@ -2144,6 +2195,7 @@ function saveEmpDetailEdit() {
     emergency: document.getElementById('edm-emergency')?.value.trim()||'',
   });
   employees = getEmployees();
+  saveProfiles();
   renderOrg();
   openEmpDetail(userId); // reload in view mode
   showToast('Карточка сохранена ✓');
@@ -2155,6 +2207,7 @@ function uploadEmpPhoto(id, input) {
   reader.onload = e => {
     if (!empProfiles[id]) empProfiles[id] = {};
     empProfiles[id].photo = e.target.result;
+    saveProfiles();
     employees = getEmployees();
     openEmpDetail(id);
   };
@@ -2169,6 +2222,7 @@ function uploadEmpFile(id, input) {
     const reader = new FileReader();
     reader.onload = e => {
       empProfiles[id].files.push({name: file.name, data: e.target.result});
+      saveProfiles();
       employees = getEmployees();
       const el = document.getElementById(`emp-files-${id}`);
       if (el) el.innerHTML = empProfiles[id].files.map((f,fi)=>`
@@ -2187,6 +2241,7 @@ function uploadEmpFile(id, input) {
 function removeEmpFile(id, idx) {
   if (!empProfiles[id]?.files) return;
   empProfiles[id].files.splice(idx,1);
+  saveProfiles();
   employees = getEmployees();
   openEmpDetail(id);
 }
@@ -3611,11 +3666,11 @@ function savePermissions(userId, btn) {
     if (cb) newPages[p.id] = cb.checked ? 1 : 0;
   });
   u.pages = newPages;
-  // If this is the current user, apply immediately
   if (currentUser?.email === u.email) {
     currentUser.pages = newPages;
     applyPagePermissions();
   }
+  saveSystemUsers();
   btn.closest('.modal-overlay').remove();
   showToast(`Доступы ${u.name} сохранены ✓`);
 }
@@ -3646,6 +3701,7 @@ async function saveNewUser() {
   USERS[email] = {pass, role, name, initials};
   systemUsers.push({id, email, name, role, initials, lastLogin:'—', status:'Активен', pages:pageDefaults});
   empProfiles[id] = {pos:'', dept:'Операции', phone:'', hire:new Date().toISOString().split('T')[0], dob:'', emergency:'', photo:null, files:[], status:'Активен'};
+  saveUsers(); saveSystemUsers(); saveProfiles();
   employees = getEmployees();
 
   closeModal('add-user-modal');
@@ -3704,6 +3760,7 @@ function setUserRole(id, role) {
     applyPagePermissions();
   }
   renderUsersTable();
+  saveUsers(); saveSystemUsers();
   showToast('Роль обновлена ✓');
 }
 
@@ -3714,10 +3771,8 @@ function toggleUserStatus(id) {
     showToast('Нельзя заблокировать последнего администратора'); return;
   }
   u.status = u.status==='Активен' ? 'Заблокирован' : 'Активен';
-  // Block from login if blocked
-  if (USERS[u.email]) {
-    USERS[u.email]._blocked = u.status==='Заблокирован';
-  }
+  if (USERS[u.email]) USERS[u.email]._blocked = u.status==='Заблокирован';
+  saveUsers(); saveSystemUsers();
   renderUsersTable();
   showToast(`Пользователь ${u.status==='Активен'?'разблокирован':'заблокирован'} ✓`);
 }
@@ -3753,6 +3808,7 @@ function doResetPass(email, btn) {
   const pass = document.getElementById('rp-pass')?.value;
   if (!pass || pass.length < 4) { showToast('Пароль минимум 4 символа'); return; }
   if (USERS[email]) USERS[email].pass = pass;
+  saveUsers();
   btn.closest('.modal-overlay').remove();
   showToast('Пароль обновлён ✓');
 }
@@ -4567,6 +4623,45 @@ function v(id) { return document.getElementById(id)?.value||''; }
 function openModal(id) { const el=document.getElementById(id); if(el) el.classList.add('open'); }
 function closeModal(id) { const el=document.getElementById(id); if(el) el.classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{ if(e.target===el) el.classList.remove('open'); }));
+
+// ════════════════════════════════════════════
+// TOOLS PAGE
+// ════════════════════════════════════════════
+function switchToolTab(tab, el) {
+  document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#page-tools [id^="tool-"]').forEach(t=>t.style.display='none');
+  const panel = document.getElementById('tool-'+tab);
+  if (panel) panel.style.display='';
+  if (tab==='processes') renderProcesses();
+}
+
+function downloadProjectTemplate() {
+  const doLoad = () => {
+    const wb = XLSX.utils.book_new();
+    const rows = [
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, 'Этап', 'Задача', 'Ответственный', 'Статус', 'Результат', 'Начало', 'Дедлайн'],
+      [null, null, null, null, null, null, null, null],
+      [null, 'Операционный аудит', 'Определение каналов коммуникации', 'Имя / Имя', 'Не в работе', '', '2026-04-01', '2026-04-03'],
+      [null, null, 'Настройка формата ежедневной отчётности', 'Имя', 'Не в работе', '', '2026-04-01', '2026-04-03'],
+      [null, null, 'Организация еженедельных созвонов', 'Имя', 'Не в работе', '', '2026-04-01', '2026-04-05'],
+      [null, 'Построение оргструктуры', 'Анализ текущей структуры', 'Имя', 'Не в работе', '', '2026-04-06', '2026-04-10'],
+      [null, null, 'Определение зон ответственности', 'Имя', 'Не в работе', '', '2026-04-06', '2026-04-10'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:4},{wch:32},{wch:48},{wch:22},{wch:16},{wch:30},{wch:14},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Задачи по запуску');
+    XLSX.writeFile(wb, 'Шаблон_Дорожная_карта.xlsx');
+    showToast('Шаблон скачан ✓');
+  };
+  if (typeof XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = doLoad; document.head.appendChild(s);
+  } else { doLoad(); }
+}
 
 function showToast(msg) {
   const t=document.createElement('div');
