@@ -600,14 +600,16 @@ tbody tr:last-child{border-bottom:none}
           <div id="wb-title-input" contenteditable="true" style="font-family:var(--font-h);font-size:20px;color:var(--bv);min-width:120px;outline:none;border-bottom:1px solid transparent" onfocus="this.style.borderBottomColor='var(--bv)'" onblur="saveWbTitle(this.textContent);this.style.borderBottomColor='transparent'"></div>
           <div style="flex:1"></div>
           <!-- Tools -->
-          <div style="display:flex;gap:4px;background:var(--gray1);border-radius:10px;padding:4px" id="wb-tool-bar">
-            <button id="wbt-select" onclick="setWbTool('select')" title="Выбор (V)"    style="background:var(--white);border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">↖</button>
-            <button id="wbt-sticky" onclick="setWbTool('sticky')" title="Стикер"       style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">🗒</button>
-            <button id="wbt-text"   onclick="setWbTool('text')"   title="Текст"        style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">T</button>
-            <button id="wbt-rect"   onclick="setWbTool('rect')"   title="Прямоугольник" style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">▭</button>
-            <button id="wbt-circle" onclick="setWbTool('circle')" title="Круг"         style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">○</button>
-            <button id="wbt-arrow"  onclick="setWbTool('arrow')"  title="Стрелка"      style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">→</button>
-            <button id="wbt-pen"    onclick="setWbTool('pen')"    title="Карандаш"     style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">✏</button>
+          <div style="display:flex;gap:2px;background:var(--gray1);border-radius:10px;padding:4px" id="wb-tool-bar">
+            <button id="wbt-select" onclick="setWbTool('select')" title="Стрелка — выбор и редактирование (V)" style="background:var(--white);border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">↖</button>
+            <button id="wbt-hand"   onclick="setWbTool('hand')"   title="Рука — перемещение холста (H)"       style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✋</button>
+            <div style="width:1px;background:var(--gray2);margin:4px 2px"></div>
+            <button id="wbt-sticky" onclick="setWbTool('sticky')" title="Стикер"        style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">🗒</button>
+            <button id="wbt-text"   onclick="setWbTool('text')"   title="Текст"         style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">T</button>
+            <button id="wbt-rect"   onclick="setWbTool('rect')"   title="Прямоугольник" style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">▭</button>
+            <button id="wbt-circle" onclick="setWbTool('circle')" title="Круг"          style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">○</button>
+            <button id="wbt-arrow"  onclick="setWbTool('arrow')"  title="Стрелка-соединитель" style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">→</button>
+            <button id="wbt-pen"    onclick="setWbTool('pen')"    title="Карандаш"      style="background:transparent;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">✏</button>
           </div>
           <!-- Colors: brand palette from guidebook -->
           <div style="display:flex;gap:5px;align-items:center" id="wb-colors">
@@ -5190,8 +5192,32 @@ function setWbTool(tool) {
   const btn = document.getElementById('wbt-'+tool);
   if (btn) btn.style.background='var(--white)';
   const stage = document.getElementById('wb-stage');
-  if (stage) stage.style.cursor = tool==='select'?'default':tool==='pen'?'crosshair':'crosshair';
+  if (!stage) return;
+  const cursors = { select:'default', hand:'grab', pen:'crosshair', arrow:'crosshair' };
+  stage.style.cursor = cursors[tool] || 'crosshair';
 }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  const onBoard = document.getElementById('wb-canvas-view')?.style.display === 'flex';
+  if (!onBoard) return;
+  if (e.code==='KeyV') setWbTool('select');
+  if (e.code==='KeyH') setWbTool('hand');
+  if (e.code==='Space' && !wbSpaceDown) {
+    wbSpaceDown = true;
+    document.getElementById('wb-stage').style.cursor = 'grab';
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.code==='Space') {
+    wbSpaceDown = false;
+    const onBoard = document.getElementById('wb-canvas-view')?.style.display === 'flex';
+    if (onBoard && !wbPanning) {
+      const cursors = { select:'default', hand:'grab', pen:'crosshair', arrow:'crosshair' };
+      document.getElementById('wb-stage').style.cursor = cursors[wbTool] || 'crosshair';
+    }
+  }
+});
 
 function setWbColor(c) {
   wbColor = c;
@@ -5231,7 +5257,8 @@ function stageCoords(e) {
 }
 
 function wbMouseDown(e) {
-  if (e.button===1 || (e.button===0 && wbSpaceDown)) {
+  // Middle button or Space held or hand tool = pan
+  if (e.button===1 || (e.button===0 && wbSpaceDown) || (e.button===0 && wbTool==='hand')) {
     wbPanning=true; wbPanStart={x:e.clientX-wbPanX, y:e.clientY-wbPanY};
     document.getElementById('wb-stage').style.cursor='grabbing'; return;
   }
@@ -5240,7 +5267,7 @@ function wbMouseDown(e) {
   const b = whiteboards.find(x=>x.id===activeWbId); if (!b) return;
 
   if (wbTool==='select') {
-    // deselect
+    // Click on empty space = deselect
     wbSelectedId=null; renderWbElements(); return;
   }
   if (wbTool==='pen') {
@@ -5286,7 +5313,12 @@ function wbMouseMove(e) {
 }
 
 function wbMouseUp(e) {
-  if (wbPanning) { wbPanning=false; document.getElementById('wb-stage').style.cursor='default'; wbPanStart=null; return; }
+  if (wbPanning) {
+    wbPanning=false;
+    const cursors = { select:'default', hand:'grab', pen:'crosshair', arrow:'crosshair' };
+    document.getElementById('wb-stage').style.cursor = wbSpaceDown ? 'grab' : (cursors[wbTool]||'crosshair');
+    wbPanStart=null; return;
+  }
   if (wbDragging) {
     const dx=(e.clientX-wbDragging.startX)/wbZoom;
     const dy=(e.clientY-wbDragging.startY)/wbZoom;
@@ -5341,8 +5373,8 @@ function wbWheel(e) {
   }
 }
 
-document.addEventListener('keydown',e=>{ if(e.code==='Space'&&document.getElementById('wb-canvas-view')?.style.display==='flex'){wbSpaceDown=true;document.getElementById('wb-stage').style.cursor='grab';} });
-document.addEventListener('keyup',e=>{ if(e.code==='Space'){wbSpaceDown=false;if(!wbPanning)document.getElementById('wb-stage').style.cursor='default';} });
+// keyboard delete
+document.addEventListener('keydown',e=>{ if(e.key==='Delete'&&wbSelectedId&&document.getElementById('wb-canvas-view')?.style.display==='flex') deleteSelectedWbEl(); });
 
 function renderWbElements() {
   const b=whiteboards.find(x=>x.id===activeWbId); if (!b) return;
