@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BYTIME CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bur:#54052B;--bur2:#3d0420;--em:#024638;
+  --bronze:#B39262;--paper:#F6F3EE;--ink:#1a1a1a;
+  --gray:#e2e2e2;--gray-mid:#999;--gray-dark:#555;--white:#fff;
+}
+body{font-family:'Onest',sans-serif;background:#ede9e3;color:var(--ink);display:flex;min-height:100vh;font-size:14px}
+
+/* SIDEBAR */
+.sidebar{width:232px;min-height:100vh;background:var(--bur);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100}
+.sb-logo{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-wordmark{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+.crm-pill{background:var(--bronze);color:#fff;font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;font-family:'Onest',sans-serif}
+.sb-desc{font-size:10px;color:rgba(255,255,255,.4);letter-spacing:1.2px;text-transform:uppercase;margin-top:3px}
+.sb-nav{flex:1;padding:12px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;color:rgba(255,255,255,.55);cursor:pointer;transition:.2s;font-size:13px;font-weight:500;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--bronze)}
+.nav-item svg{width:17px;height:17px;flex-shrink:0}
+.nav-badge{margin-left:auto;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;background:rgba(255,255,255,.2);color:#fff}
+.nav-badge.urgent{background:#922b21}
+.sync-row{display:flex;align-items:center;gap:6px;padding:8px 20px 14px;font-size:10px;color:rgba(255,255,255,.35)}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-dot.ok{background:#1e8449}.sync-dot.err{background:#e74c3c}.sync-dot.wait{background:var(--bronze);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sb-footer{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:rgba(255,255,255,.25)}
+
+/* MAIN */
+.main{margin-left:232px;flex:1;display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray);padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-family:'Bebas Neue',sans-serif;font-size:21px;color:var(--bur);letter-spacing:.5px}
+.content{padding:24px 28px;flex:1}
+.page{display:none}.page.active{display:block}
+
+/* SETUP SCREEN */
+.setup-screen{position:fixed;inset:0;background:var(--paper);z-index:500;display:flex;align-items:center;justify-content:center}
+.setup-card{background:var(--white);border-radius:14px;padding:36px;width:480px;box-shadow:0 8px 40px rgba(0,0,0,.12);border:1px solid var(--gray)}
+.setup-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--bur);letter-spacing:1px;margin-bottom:4px}
+.setup-sub{font-size:12px;color:var(--gray-mid);margin-bottom:24px}
+.setup-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-dark);margin-bottom:5px;display:block}
+.setup-input{width:100%;padding:10px 12px;border:1px solid var(--gray);border-radius:7px;font-size:13px;font-family:'Onest',sans-serif;outline:none;margin-bottom:14px;transition:.2s}
+.setup-input:focus{border-color:var(--bur)}
+.setup-hint{font-size:11px;color:var(--gray-mid);margin-bottom:20px;line-height:1.6}
+.setup-hint code{background:var(--paper);padding:1px 5px;border-radius:3px;font-size:10px}
+.setup-err{font-size:12px;color:#922b21;margin-top:8px;display:none}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.2s;font-family:'Onest',sans-serif}
+.btn-primary{background:var(--bur);color:#fff}.btn-primary:hover{background:var(--bur2)}
+.btn-secondary{background:var(--paper);color:var(--ink);border:1px solid var(--gray)}.btn-secondary:hover{background:var(--gray)}
+.btn-danger{background:#922b21;color:#fff}.btn-danger:hover{background:#7b1f18}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--white);border-radius:10px;padding:18px 20px;border:1px solid var(--gray)}
+.stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gray-mid);font-weight:700;margin-bottom:6px}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;color:var(--bur)}
+.stat-sub{font-size:11px;color:var(--gray-mid);margin-top:3px}
+.stat-card.g .stat-val{color:var(--em)}.stat-card.b .stat-val{color:var(--bronze)}.stat-card.d .stat-val{color:var(--ink)}
+
+/* CHARTS */
+.charts-row{display:grid;gap:14px;margin-bottom:20px}
+.charts-row.c2{grid-template-columns:2fr 1fr}.charts-row.c2b{grid-template-columns:1fr 1fr}
+.chart-card{background:var(--white);border-radius:10px;padding:20px;border:1px solid var(--gray)}
+.chart-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;margin-bottom:14px}
+.chart-card canvas{max-height:200px}
+.funnel-rows{display:flex;flex-direction:column;gap:7px}
+.f-row{display:flex;align-items:center;gap:8px}
+.f-name{width:88px;font-size:11px;font-weight:600;color:var(--gray-dark);text-align:right}
+.f-bar-wrap{flex:1;background:var(--paper);border-radius:4px;height:26px;overflow:hidden}
+.f-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:11px;font-weight:700;transition:width .5s ease;min-width:4px}
+.f-cnt{width:22px;font-size:13px;font-weight:700}.f-conv{width:38px;font-size:10px;color:var(--gray-mid);text-align:right}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;max-width:300px}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--gray-mid);pointer-events:none}
+.search-inp{width:100%;padding:8px 10px 8px 32px;border:1px solid var(--gray);border-radius:6px;font-size:13px;font-family:'Onest',sans-serif;background:var(--white);outline:none}
+.search-inp:focus{border-color:var(--bur)}
+select.sel{padding:7px 10px;border:1px solid var(--gray);border-radius:6px;font-size:13px;font-family:'Onest',sans-serif;background:var(--white);cursor:pointer;outline:none}
+
+/* TABLE */
+.tbl-wrap{background:var(--white);border-radius:10px;border:1px solid var(--gray);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--paper);padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-mid);border-bottom:1px solid var(--gray);white-space:nowrap}
+tbody tr{border-bottom:1px solid #f0ede8;cursor:pointer;transition:.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--paper)}
+tbody td{padding:11px 14px;font-size:13px}
+.tbl-name{font-weight:700;color:var(--bur)}
+.stage-pill{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;color:#fff}
+.src-tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;background:var(--paper);color:var(--gray-dark);font-weight:600}
+
+/* KANBAN */
+.kanban-wrap{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;padding-bottom:16px;overflow-x:auto}
+.k-col{display:flex;flex-direction:column;min-width:0}
+.k-head{padding:9px 12px;border-radius:8px 8px 0 0;color:#fff;display:flex;align-items:center;justify-content:space-between}
+.k-head-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px}
+.k-count{background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;font-size:11px;font-weight:700}
+.k-cards{flex:1;min-height:180px;background:rgba(0,0,0,.03);border-radius:0 0 8px 8px;padding:7px;display:flex;flex-direction:column;gap:7px;border:2px dashed transparent;transition:.2s}
+.k-cards.drag-over{border-color:var(--bur);background:#f5e8ed}
+.k-card{background:var(--white);border-radius:7px;padding:11px;box-shadow:0 1px 4px rgba(0,0,0,.07);cursor:pointer;transition:.2s;border-left:3px solid transparent}
+.k-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.12);transform:translateY(-1px)}
+.k-card.dragging{opacity:.45;transform:rotate(1.5deg)}
+.k-card-name{font-weight:700;font-size:12px;margin-bottom:2px}
+.k-card-co{font-size:10px;color:var(--gray-mid);margin-bottom:8px}
+.k-card-meta{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--gray-mid)}
+.k-mgr{background:var(--paper);padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700}
+.k-empty{text-align:center;padding:20px;font-size:11px;color:var(--gray-mid)}
+
+/* TASKS */
+.task-item{background:var(--white);border-radius:8px;padding:13px 16px;border:1px solid var(--gray);display:flex;align-items:flex-start;gap:11px;transition:.15s;margin-bottom:7px}
+.task-item:hover{background:var(--paper)}
+.t-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--gray);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s;margin-top:1px}
+.t-check.done{background:var(--em);border-color:var(--em)}
+.t-info{flex:1}
+.t-text{font-size:13px;font-weight:500}
+.t-text.done-text{text-decoration:line-through;color:var(--gray-mid)}
+.t-meta{font-size:11px;color:var(--gray-mid);margin-top:3px}
+.t-dl{font-size:11px;font-weight:600}
+.t-dl.overdue{color:#e74c3c}.t-dl.today{color:var(--bronze)}.t-dl.future{color:var(--em)}
+.lt-fresh{color:var(--em);font-size:11px}.lt-stale{color:var(--bronze);font-size:11px}
+.lt-old{color:#e74c3c;font-size:11px}.lt-none{color:var(--gray-mid);font-size:11px}
+.t-dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+.t-dot.overdue{background:#e74c3c}.t-dot.has{background:var(--bronze)}.t-dot.none{background:var(--gray)}
+
+/* MODAL */
+.mo-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:flex-start;justify-content:flex-end;backdrop-filter:blur(2px)}
+.mo-overlay.open{display:flex}
+.modal{width:560px;height:100vh;background:var(--white);overflow-y:auto;box-shadow:-4px 0 32px rgba(0,0,0,.18);display:flex;flex-direction:column;animation:slideIn .25s ease}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.mo-head{background:var(--bur);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mo-head h2{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:.5px}
+.mo-close{width:30px;height:30px;border-radius:5px;background:rgba(255,255,255,.15);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:.2s}
+.mo-close:hover{background:rgba(255,255,255,.25)}
+.mo-body{padding:22px;flex:1}
+.mo-section{margin-bottom:22px}
+.mo-sec-title{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;color:var(--gray-mid);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--gray)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.fg{display:flex;flex-direction:column;gap:4px}.fg.full{grid-column:1/-1}
+.fl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-dark)}
+.fi{padding:8px 10px;border:1px solid var(--gray);border-radius:6px;font-size:13px;font-family:'Onest',sans-serif;outline:none;transition:.2s;background:var(--white);color:var(--ink);width:100%}
+.fi:focus{border-color:var(--bur)}
+textarea.fi{resize:vertical;min-height:72px}
+.stage-sel{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.s-btn{padding:5px 12px;border-radius:20px;border:2px solid transparent;font-size:11px;font-weight:700;cursor:pointer;color:#fff;transition:.2s;font-family:'Onest',sans-serif;opacity:.45}
+.s-btn.sel{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.refusal-wrap{display:none;margin-top:8px}.refusal-wrap.show{display:block}
+.hist-item{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #f5f3f0}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:7px;height:7px;border-radius:50%;background:var(--bur);margin-top:5px;flex-shrink:0}
+.hist-text{font-size:12px}.hist-date{font-size:10px;color:var(--gray-mid);margin-top:1px}
+.mt-item{display:flex;align-items:flex-start;gap:9px;padding:7px;border-radius:6px;margin-bottom:5px;border:1px solid var(--gray)}
+.add-task-row{display:flex;gap:7px;margin-bottom:10px}
+.add-task-row input[type=text]{flex:1;padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none}
+.add-task-row input[type=text]:focus{border-color:var(--bur)}
+.add-task-row input[type=date]{padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none}
+.mo-footer{padding:14px 22px;border-top:1px solid var(--gray);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--paper)}
+
+.empty{text-align:center;padding:50px 20px;color:var(--gray-mid)}
+.empty svg{width:44px;height:44px;margin-bottom:10px;opacity:.25}
+.empty p{font-size:13px}
+.toast{position:fixed;bottom:22px;right:22px;color:#fff;padding:11px 18px;border-radius:7px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:9999;display:none;animation:fuUp .3s ease}
+@keyframes fuUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.up-item{padding:8px 0;border-bottom:1px solid #f0ede8;display:flex;justify-content:space-between;align-items:center}
+.up-item:last-child{border-bottom:none}
+.up-task{font-size:12px;font-weight:600}
+.up-client{font-size:10px;color:var(--gray-mid);cursor:pointer;transition:.2s}
+.up-client:hover{color:var(--bur)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--gray);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="setup-screen" id="auth-screen">
+  <div class="setup-card">
+    <div class="setup-logo">BYTIME <span style="font-family:'Onest',sans-serif;font-size:13px;font-weight:700;background:var(--bronze);color:#fff;padding:2px 8px;border-radius:3px;vertical-align:middle">CRM</span></div>
+    <div class="setup-sub">Агентство бизнес-решений · Вход в систему</div>
+    <label class="setup-label">Email</label>
+    <input class="setup-input" id="auth-email" type="email" placeholder="your@email.com" autocomplete="email">
+    <label class="setup-label">Пароль</label>
+    <input class="setup-input" id="auth-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn btn-primary btn-full" onclick="doLogin()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+      Войти
+    </button>
+    <div class="setup-err" id="auth-err"></div>
+    <div style="margin-top:16px;border-top:1px solid var(--gray);padding-top:12px">
+      <div id="conn-toggle" onclick="document.getElementById('conn-section').style.display=document.getElementById('conn-section').style.display==='none'?'block':'none'" style="font-size:11px;color:var(--gray-mid);cursor:pointer;text-align:center">⚙ Настройки подключения</div>
+      <div id="conn-section" style="display:none;margin-top:10px">
+        <label class="setup-label">Supabase URL</label>
+        <input class="setup-input" id="sb-url" type="text" placeholder="https://xxxx.supabase.co" style="margin-bottom:8px">
+        <label class="setup-label">Anon Key</label>
+        <input class="setup-input" id="sb-key" type="text" placeholder="eyJ..." style="margin-bottom:8px">
+        <button class="btn btn-secondary btn-full" onclick="saveConn()" style="font-size:12px">Сохранить подключение</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-wordmark">BYTIME <span class="crm-pill">CRM</span></div>
+    <div class="sb-desc">Агентство бизнес-решений</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-item active" onclick="nav('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Дашборд
+    </div>
+    <div class="nav-item" onclick="nav('clients')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Клиенты
+      <span class="nav-badge" id="nb-clients">0</span>
+    </div>
+    <div class="nav-item" onclick="nav('kanban')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+      Воронка
+    </div>
+    <div class="nav-item" onclick="nav('tasks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Задачи
+      <span class="nav-badge urgent" id="nb-tasks" style="display:none"></span>
+    </div>
+  </nav>
+  <div class="nav-item" id="nav-admin" onclick="nav('admin')" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="19" cy="6" r="2" fill="currentColor" stroke="none"/></svg>
+      Пользователи
+    </div>
+  <div class="sync-row" style="flex-direction:column;align-items:flex-start;gap:3px">
+    <div style="display:flex;align-items:center;gap:6px;width:100%">
+      <div class="sync-dot ok" id="sync-dot"></div>
+      <span id="sync-label">Подключено</span>
+    </div>
+    <div id="current-user-row" style="font-size:10px;color:rgba(255,255,255,.4);padding-left:13px"></div>
+  </div>
+  <div class="sb-footer" style="display:flex;justify-content:space-between;align-items:center">
+    <span>BYTIME CRM · v2.0</span>
+    <span style="cursor:pointer;opacity:.5;font-size:12px" onclick="doLogout()" title="Выйти">Выйти</span>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-title" id="topbar-title">Дашборд</div>
+    <button class="btn btn-primary" onclick="openModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Новый клиент
+    </button>
+  </header>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat-card"><div class="stat-label">Всего клиентов</div><div class="stat-val" id="s-total">0</div><div class="stat-sub">в базе</div></div>
+        <div class="stat-card" style="border-top:3px solid #7b1f4e"><div class="stat-label">Всего лидов</div><div class="stat-val" id="s-leads" style="color:#7b1f4e">0</div><div class="stat-sub">на первом этапе</div></div>
+        <div class="stat-card g"><div class="stat-label">Активных сделок</div><div class="stat-val" id="s-active">0</div><div class="stat-sub">встреча + договор</div></div>
+        <div class="stat-card b"><div class="stat-label">Среднее время сделки</div><div class="stat-val" id="s-avg">—</div><div class="stat-sub">дней от лида до финала</div></div>
+        <div class="stat-card d"><div class="stat-label">Общая конверсия</div><div class="stat-val" id="s-conv">0%</div><div class="stat-sub">завершённые / все лиды</div></div>
+      </div>
+      <div class="charts-row c2">
+        <div class="chart-card"><div class="chart-title">Воронка продаж</div><div class="funnel-rows" id="funnel-rows"></div></div>
+        <div class="chart-card"><div class="chart-title">Источники клиентов</div><canvas id="ch-sources"></canvas><div id="ch-sources-empty" class="empty" style="padding:20px 0;display:none"><p>Нет данных</p></div></div>
+      </div>
+      <div class="charts-row c2b">
+        <div class="chart-card"><div class="chart-title">Сделки по менеджерам</div><canvas id="ch-mgr"></canvas><div id="ch-mgr-empty" class="empty" style="padding:20px 0;display:none"><p>Нет данных</p></div></div>
+        <div class="chart-card"><div class="chart-title">Ближайшие задачи</div><div id="upcoming-list"></div></div>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="page-clients" class="page">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-inp" id="srch" type="text" placeholder="Поиск по имени, компании..." oninput="renderClients()">
+        </div>
+        <select class="sel" id="fl-stage" onchange="renderClients()">
+          <option value="">Все этапы</option>
+          <option value="lead">Новый контакт</option><option value="meeting">Пока не актуально</option>
+          <option value="contract">Переговоры</option><option value="realization">Договор</option>
+          <option value="done_real">Реализация</option><option value="done">Завершён</option>
+          <option value="refused">Отказ</option>
+        </select>
+        <select class="sel" id="fl-source" onchange="renderClients()">
+          <option value="">Все источники</option>
+          <option>Сайт</option><option>Рекомендация</option><option>Холодный звонок</option>
+          <option>Соцсети</option><option>Выставка/мероприятие</option><option>Другое</option>
+        </select>
+        <select class="sel" id="fl-mgr" onchange="renderClients()"><option value="">Все менеджеры</option></select>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Клиент</th><th>Компания</th><th>Телефон</th><th>Этап</th><th>Источник</th><th>Менеджер</th><th>Последнее касание</th><th>Задачи</th></tr></thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+        <div id="tbl-empty" class="empty" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <p>Нет клиентов. Нажмите «Новый клиент».</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- KANBAN -->
+    <div id="page-kanban" class="page"><div class="kanban-wrap" id="kanban-board"></div></div>
+
+    <!-- TASKS -->
+    <div id="page-tasks" class="page">
+      <div class="toolbar">
+        <select class="sel" id="fl-task-st" onchange="renderTasks()">
+          <option value="pending">Активные</option><option value="all">Все</option><option value="done">Выполненные</option>
+        </select>
+        <select class="sel" id="fl-task-mgr" onchange="renderTasks()"><option value="">Все менеджеры</option></select>
+      </div>
+      <div id="tasks-list"></div>
+      <div id="tasks-empty" class="empty" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        <p>Задач нет</p>
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="page-admin" class="page">
+      <div style="max-width:640px">
+        <div style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.5px;color:var(--ink)">Управление пользователями</div>
+            <div style="font-size:12px;color:var(--gray-mid);margin-top:2px">Добавляйте и удаляйте доступ к CRM</div>
+          </div>
+        </div>
+        <!-- Add user form -->
+        <div style="background:var(--white);border-radius:10px;border:1px solid var(--gray);padding:20px;margin-bottom:16px">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;margin-bottom:14px;color:var(--ink)">Добавить пользователя</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div class="fg"><label class="fl">Имя</label><input class="fi" id="u-name" type="text" placeholder="Имя менеджера"></div>
+            <div class="fg"><label class="fl">Email</label><input class="fi" id="u-email" type="email" placeholder="email@bytime.agency"></div>
+            <div class="fg"><label class="fl">Пароль</label><input class="fi" id="u-pass" type="text" placeholder="Минимум 6 символов"></div>
+            <div class="fg"><label class="fl">Роль</label>
+              <select class="fi" id="u-role">
+                <option value="manager">Менеджер</option>
+                <option value="admin">Администратор</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addUser()">+ Добавить пользователя</button>
+          <div id="u-err" style="font-size:12px;color:#922b21;margin-top:8px;display:none"></div>
+        </div>
+        <!-- Users list -->
+        <div style="background:var(--white);border-radius:10px;border:1px solid var(--gray);overflow:hidden">
+          <div style="padding:14px 18px;background:var(--paper);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-mid);border-bottom:1px solid var(--gray)">Текущие пользователи</div>
+          <div id="users-list"><div style="padding:20px;text-align:center;font-size:13px;color:var(--gray-mid)">Загрузка...</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="mo-overlay" id="mo-overlay" onclick="handleOvClick(event)">
+  <div class="modal">
+    <div class="mo-head">
+      <h2 id="mo-title">Новый клиент</h2>
+      <button class="mo-close" onclick="closeModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="mo-body">
+      <div class="mo-section">
+        <div class="mo-sec-title">Этап воронки</div>
+        <div class="stage-sel" id="stage-sel"></div>
+        <div class="refusal-wrap" id="refusal-wrap">
+          <div class="fg"><label class="fl">Причина отказа</label>
+            <select class="fi" id="f-ref">
+              <option value="">— выберите причину —</option>
+              <option>Высокая цена</option><option>Выбрали конкурента</option>
+              <option>Нет бюджета</option><option>Не актуально сейчас</option>
+              <option>Нет контакта</option><option>Другое</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="mo-section">
+        <div class="mo-sec-title">Контактная информация</div>
+        <div class="form-grid">
+          <div class="fg"><label class="fl">Имя *</label><input class="fi" id="f-name" type="text" placeholder="Иван Иванов"></div>
+          <div class="fg"><label class="fl">Компания</label><input class="fi" id="f-co" type="text" placeholder="ООО «Название»"></div>
+          <div class="fg"><label class="fl">Телефон</label><input class="fi" id="f-ph" type="tel" placeholder="+7 (999) 000-00-00"></div>
+          <div class="fg"><label class="fl">Email</label><input class="fi" id="f-em" type="email" placeholder="email@company.ru"></div>
+          <div class="fg"><label class="fl">Источник</label>
+            <select class="fi" id="f-src"><option value="">— выберите —</option>
+              <option>Сайт</option><option>Рекомендация</option><option>Холодный звонок</option>
+              <option>Соцсети</option><option>Выставка/мероприятие</option><option>Другое</option>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Ответственный менеджер</label><input class="fi" id="f-mgr" type="text" placeholder="Имя менеджера"></div>
+          <div class="fg"><label class="fl">Дата первого контакта</label><input class="fi" id="f-cr" type="date"></div>
+          <div class="fg"><label class="fl">Дата последнего касания</label><input class="fi" id="f-lt" type="date"></div>
+          <div class="fg full"><label class="fl">Заметки</label><textarea class="fi" id="f-notes" placeholder="Краткие заметки по клиенту..."></textarea></div>
+        </div>
+      </div>
+      <div class="mo-section" id="mo-tasks-sec" style="display:none">
+        <div class="mo-sec-title">Задачи и напоминания</div>
+        <div class="add-task-row">
+          <input type="text" id="nt-text" placeholder="Новая задача...">
+          <input type="date" id="nt-dl">
+          <input type="time" id="nt-tm" style="padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none;">
+          <button class="btn btn-primary btn-sm" onclick="addTask()">+ Добавить</button>
+        </div>
+        <div id="mo-tasks-list"></div>
+      </div>
+      <div class="mo-section" id="mo-hist-sec" style="display:none">
+        <div class="mo-sec-title">История изменений</div>
+        <div id="mo-hist-list"></div>
+      </div>
+    </div>
+    <div class="mo-footer">
+      <button class="btn btn-danger btn-sm" id="btn-del" onclick="deleteClient()" style="display:none">Удалить клиента</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" onclick="saveClient()">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- REFUSAL MODAL -->
+<div id="ref-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:380px;box-shadow:0 8px 40px rgba(0,0,0,.2)">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#922b21;margin-bottom:6px;letter-spacing:.5px">Причина отказа</div>
+    <div style="font-size:12px;color:#999;margin-bottom:16px">Укажите причину перед переносом в «Отказ»</div>
+    <select id="ref-reason" style="width:100%;padding:10px 12px;border:1px solid #e2e2e2;border-radius:7px;font-size:13px;font-family:'Onest',sans-serif;outline:none;margin-bottom:16px">
+      <option value="">— выберите причину —</option>
+      <option>Высокая цена</option>
+      <option>Выбрали конкурента</option>
+      <option>Нет бюджета</option>
+      <option>Не актуально сейчас</option>
+      <option>Нет контакта</option>
+      <option>Другое</option>
+    </select>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="cancelRefusal()" style="padding:8px 16px;border-radius:6px;border:1px solid #e2e2e2;background:#F6F3EE;font-size:13px;font-weight:600;cursor:pointer;font-family:'Onest',sans-serif">Отмена</button>
+      <button onclick="confirmRefusal()" style="padding:8px 16px;border-radius:6px;border:none;background:#922b21;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Onest',sans-serif">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const STAGES=[
+  {id:'lead',label:'Новый контакт',color:'#7b1f4e'},{id:'meeting',label:'Пока не актуально',color:'#6d4c7a'},
+  {id:'contract',label:'Переговоры',color:'#8a6432'},{id:'realization',label:'Договор',color:'#024638'},
+  {id:'done_real',label:'Реализация',color:'#1a5276'},{id:'done',label:'Завершён',color:'#1e8449'},
+  {id:'refused',label:'Отказ',color:'#922b21'},
+];
+const SRC_COLORS=['#54052B','#024638','#B39262','#1a5276','#1e8449','#922b21'];
+
+let DB=null, clients=[], curId=null, curPage='dashboard', chSrc=null, chMgr=null, dragId=null;
+const LS_URL='bt_sb_url', LS_KEY='bt_sb_key';
+let currentUser=null, currentProfile=null;
+
+// ===== AUTH =====
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-pass').value;
+  const errEl=document.getElementById('auth-err');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.textContent='Заполните email и пароль';errEl.style.display='block';return;}
+  if(!DB){errEl.textContent='Нет подключения к базе';errEl.style.display='block';return;}
+  try {
+    const {data,error}=await DB.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    currentUser=data.user;
+    await loadProfile();
+    await bootApp();
+  } catch(e){
+    errEl.textContent=e.message==='Invalid login credentials'?'Неверный email или пароль':e.message;
+    errEl.style.display='block';
+  }
+}
+
+async function doLogout(){
+  if(!confirm('Выйти из системы?')) return;
+  await DB.auth.signOut();
+  currentUser=null; currentProfile=null;
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+async function loadProfile(){
+  if(!currentUser) return;
+  const {data}=await DB.from('profiles').select('*').eq('id',currentUser.id).single();
+  currentProfile=data;
+  const isAdmin=currentProfile?.role==='admin';
+  document.getElementById('nav-admin').style.display=isAdmin?'flex':'none';
+  document.getElementById('current-user-row').textContent=(currentProfile?.name||currentUser.email);
+}
+
+async function connectSupabase() {
+  const url=document.getElementById('sb-url')?.value?.trim();
+  const key=document.getElementById('sb-key')?.value?.trim();
+  if(!url||!key) return;
+  try {
+    const {createClient}=supabase;
+    DB=createClient(url,key);
+    const {error}=await DB.from('clients').select('id').limit(1);
+    if(error) throw error;
+    localStorage.setItem(LS_URL,url);
+    localStorage.setItem(LS_KEY,key);
+  } catch(e){ DB=null; }
+}
+
+async function bootApp() {
+  document.getElementById('auth-screen').style.display='none';
+  setSyncStatus('wait','Загрузка...');
+  await loadClients();
+  subscribeRealtime();
+  setSyncStatus('ok','Подключено');
+  updateBadges();
+  renderPage(curPage);
+}
+
+function resetConn() {
+  localStorage.removeItem(LS_URL);localStorage.removeItem(LS_KEY);
+  document.getElementById('auth-screen').style.display='flex';
+}
+
+// ===== DB OPERATIONS =====
+async function loadClients() {
+  const {data,error}=await DB.from('clients').select('*');
+  if(error){setSyncStatus('err','Ошибка загрузки');return;}
+  clients=data.map(r=>r.data);
+}
+
+async function persist(client) {
+  setSyncStatus('wait','Сохранение...');
+  const {error}=await DB.from('clients').upsert({id:client.id,data:client,updated_at:new Date().toISOString()});
+  if(error){setSyncStatus('err','Ошибка записи');toast('Ошибка сохранения','err');}
+  else setSyncStatus('ok','Сохранено');
+}
+
+async function destroy(id) {
+  const {error}=await DB.from('clients').delete().eq('id',id);
+  if(error) setSyncStatus('err','Ошибка удаления');
+  else setSyncStatus('ok','Удалено');
+}
+
+function subscribeRealtime() {
+  DB.channel('clients-changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'clients'},payload=>{
+      const d=payload.new?.data;
+      if(payload.eventType==='DELETE'){
+        clients=clients.filter(c=>c.id!==payload.old.id);
+      } else if(payload.eventType==='INSERT'){
+        if(!clients.find(c=>c.id===d.id)) clients.unshift(d);
+      } else if(payload.eventType==='UPDATE'){
+        const i=clients.findIndex(c=>c.id===d.id);
+        if(i>=0) clients[i]=d; else clients.unshift(d);
+      }
+      updateBadges(); renderPage(curPage);
+    })
+    .subscribe();
+}
+
+// ===== SYNC STATUS =====
+function setSyncStatus(s,label) {
+  const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-label');
+  dot.className='sync-dot '+s; lbl.textContent=label;
+}
+
+// ===== HELPERS =====
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function daysDiff(s){if(!s)return null;const d=new Date(s),n=new Date();n.setHours(0,0,0,0);d.setHours(0,0,0,0);return Math.floor((n-d)/86400000);}
+function fmtDate(iso){if(!iso)return'';return new Date(iso).toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function dlInfo(dl){const d=daysDiff(dl);if(d===null)return{cls:'',label:dl};if(d<0)return{cls:'future',label:`${Math.abs(d)} дн. ⏳`};if(d===0)return{cls:'today',label:'Сегодня ⚡'};return{cls:'overdue',label:`Просрочено ${d} дн. ⚠`};}
+function touchInfo(lt){const d=daysDiff(lt);if(d===null)return{cls:'lt-none',label:'—'};if(d===0)return{cls:'lt-fresh',label:'Сегодня'};if(d<=3)return{cls:'lt-fresh',label:`${d} дн. назад`};if(d<=10)return{cls:'lt-stale',label:`${d} дн. назад`};return{cls:'lt-old',label:`${d} дн. назад ⚠`};}
+function stageColor(id){return STAGES.find(s=>s.id===id)?.color||'#999';}
+function stageLabel(id){return STAGES.find(s=>s.id===id)?.label||id;}
+function getManagers(){return[...new Set(clients.map(c=>c.manager).filter(Boolean))];}
+
+// ===== NAV =====
+function nav(page){
+  curPage=page;
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`[onclick="nav('${page}')"]`).classList.add('active');
+  document.getElementById(`page-${page}`).classList.add('active');
+  const titles={dashboard:'Дашборд',clients:'Клиенты',kanban:'Воронка продаж',tasks:'Задачи',admin:'Пользователи'};
+  document.getElementById('topbar-title').textContent=titles[page];
+  renderPage(page);
+}
+function renderPage(p){
+  if(p==='dashboard') renderDashboard();
+  else if(p==='clients') renderClients();
+  else if(p==='kanban') renderKanban();
+  else if(p==='tasks') renderTasks();
+  else if(p==='admin') renderUsers();
+}
+
+// ===== MODAL =====
+function openModal(id=null){
+  curId=id;
+  document.getElementById('mo-overlay').classList.add('open');
+  document.getElementById('stage-sel').innerHTML=STAGES.map(s=>
+    `<button class="s-btn" style="background:${s.color}" data-stage="${s.id}" onclick="selStage('${s.id}')">${s.label}</button>`
+  ).join('');
+  if(id){
+    const c=clients.find(x=>x.id===id);
+    document.getElementById('mo-title').textContent=c.name;
+    document.getElementById('btn-del').style.display='block';
+    document.getElementById('mo-tasks-sec').style.display='block';
+    document.getElementById('mo-hist-sec').style.display='block';
+    fillForm(c);renderMoTasks(c);renderMoHist(c);
+  } else {
+    document.getElementById('mo-title').textContent='Новый клиент';
+    document.getElementById('btn-del').style.display='none';
+    document.getElementById('mo-tasks-sec').style.display='none';
+    document.getElementById('mo-hist-sec').style.display='none';
+    resetForm();selStage('lead');
+  }
+  document.querySelector('.modal').scrollTop=0;
+}
+function closeModal(){document.getElementById('mo-overlay').classList.remove('open');curId=null;}
+function handleOvClick(e){if(e.target===document.getElementById('mo-overlay'))closeModal();}
+function selStage(sid){
+  document.querySelectorAll('.s-btn').forEach(b=>b.classList.toggle('sel',b.dataset.stage===sid));
+  document.getElementById('refusal-wrap').classList.toggle('show',sid==='refused');
+}
+function getCurStage(){return document.querySelector('.s-btn.sel')?.dataset.stage||'lead';}
+function fillForm(c){
+  document.getElementById('f-name').value=c.name||'';document.getElementById('f-co').value=c.company||'';
+  document.getElementById('f-ph').value=c.phone||'';document.getElementById('f-em').value=c.email||'';
+  document.getElementById('f-src').value=c.source||'';document.getElementById('f-mgr').value=c.manager||'';
+  document.getElementById('f-cr').value=c.createdAt||'';document.getElementById('f-lt').value=c.lastTouchDate||'';
+  document.getElementById('f-notes').value=c.notes||'';document.getElementById('f-ref').value=c.refusalReason||'';
+  selStage(c.stage||'lead');
+}
+function resetForm(){
+  ['f-name','f-co','f-ph','f-em','f-mgr','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-src').value='';document.getElementById('f-ref').value='';
+  document.getElementById('f-cr').value=todayStr();document.getElementById('f-lt').value=todayStr();
+}
+
+async function saveClient(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){toast('Введите имя клиента','err');return;}
+  const stage=getCurStage();
+  if(curId){
+    const c=clients.find(x=>x.id===curId);
+    const oldStage=c.stage;
+    Object.assign(c,{name,company:document.getElementById('f-co').value.trim(),
+      phone:document.getElementById('f-ph').value.trim(),email:document.getElementById('f-em').value.trim(),
+      source:document.getElementById('f-src').value,manager:document.getElementById('f-mgr').value.trim(),
+      createdAt:document.getElementById('f-cr').value,lastTouchDate:document.getElementById('f-lt').value,
+      notes:document.getElementById('f-notes').value.trim(),stage,refusalReason:document.getElementById('f-ref').value});
+    if(oldStage!==stage){c.history=c.history||[];c.history.unshift({id:uid(),date:new Date().toISOString(),type:'stage',text:`Этап изменён: ${stageLabel(oldStage)} → ${stageLabel(stage)}`});}
+    await persist(c);toast('Сохранено');
+  } else {
+    const nc={id:uid(),name,company:document.getElementById('f-co').value.trim(),
+      phone:document.getElementById('f-ph').value.trim(),email:document.getElementById('f-em').value.trim(),
+      source:document.getElementById('f-src').value,manager:document.getElementById('f-mgr').value.trim(),
+      createdAt:document.getElementById('f-cr').value||todayStr(),lastTouchDate:document.getElementById('f-lt').value||todayStr(),
+      notes:document.getElementById('f-notes').value.trim(),stage,refusalReason:document.getElementById('f-ref').value,
+      tasks:[],history:[{id:uid(),date:new Date().toISOString(),type:'created',text:'Клиент добавлен в базу'}]};
+    clients.unshift(nc);await persist(nc);toast('Клиент добавлен');
+  }
+  closeModal();updateBadges();renderPage(curPage);
+}
+
+async function deleteClient(){
+  if(!confirm('Удалить клиента?'))return;
+  clients=clients.filter(x=>x.id!==curId);
+  await destroy(curId);closeModal();toast('Удалено');updateBadges();renderPage(curPage);
+}
+
+// ===== TASKS =====
+async function addTask(){
+  const text=document.getElementById('nt-text').value.trim();
+  if(!text||!curId)return;
+  const dl=document.getElementById('nt-dl').value;
+  const tm=document.getElementById('nt-tm').value;
+  const c=clients.find(x=>x.id===curId);
+  c.tasks=c.tasks||[];
+  c.tasks.push({id:uid(),text,deadline:dl,time:tm,status:'pending',createdAt:todayStr()});
+  c.history=c.history||[];
+  const timeStr=dl?(dl+(tm?' в '+tm:'')):'';
+  c.history.unshift({id:uid(),date:new Date().toISOString(),type:'task',text:`Задача: "${text}"${timeStr?' · '+timeStr:''}`});
+  document.getElementById('nt-text').value='';document.getElementById('nt-dl').value='';document.getElementById('nt-tm').value='';
+  await persist(c);renderMoTasks(c);updateBadges();
+  if(curPage==='tasks')renderTasks();if(curPage==='dashboard')renderDashboard();
+
+}
+
+async function toggleTask(cid,tid){
+  const c=clients.find(x=>x.id===cid);const t=c.tasks.find(x=>x.id===tid);
+  t.status=t.status==='done'?'pending':'done';
+  if(t.status==='done'){c.history=c.history||[];c.history.unshift({id:uid(),date:new Date().toISOString(),type:'task_done',text:`Задача выполнена: "${t.text}"`});}
+  await persist(c);
+  if(curId===cid){renderMoTasks(c);renderMoHist(c);}
+  updateBadges();if(curPage==='tasks')renderTasks();if(curPage==='dashboard')renderDashboard();
+}
+
+
+function gcalUrl(t,clientName,company){
+  const details='Клиент: '+clientName+(company?' ('+company+')':'');
+  let url='https://calendar.google.com/calendar/render?action=TEMPLATE'
+    +'&text='+encodeURIComponent(t.text)
+    +'&details='+encodeURIComponent(details);
+  if(t.deadline){
+    const dl=t.deadline.replace(/-/g,'');
+    let start,end;
+    if(t.time){
+      const parts=t.time.split(':');const h=parts[0],m=parts[1];
+      let hEnd=parseInt(h)+1;if(hEnd>23)hEnd=23;
+      start=dl+'T'+h+m+'00';end=dl+'T'+String(hEnd).padStart(2,'0')+m+'00';
+    } else { start=dl;end=dl; }
+    url+='&dates='+start+'/'+end;
+  }
+  return url;
+}
+
+function renderMoTasks(c){
+  const list=document.getElementById('mo-tasks-list');const tasks=c.tasks||[];
+  if(!tasks.length){list.innerHTML='<p style="font-size:11px;color:#999;padding:4px 0">Задач нет</p>';return;}
+  list.innerHTML=[...tasks.filter(t=>t.status==='pending'),...tasks.filter(t=>t.status==='done')].map(t=>{
+    const isDone=t.status==='done';const di=t.deadline?dlInfo(t.deadline):null;
+    const gurl=gcalUrl(t,c.name,c.company);
+    return`<div class="mt-item"><div class="t-check ${isDone?'done':''}" onclick="toggleTask('${c.id}','${t.id}')">
+      ${isDone?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>':''}
+    </div><div style="flex:1"><div class="t-text ${isDone?'done-text':''}" style="font-size:12px">${t.text}</div>
+    ${t.deadline?`<div class="t-dl ${isDone?'':di.cls}" style="font-size:10px">${di?di.label:t.deadline}${t.time?' в '+t.time:''}</div>`:''}</div>
+    ${!isDone?`<a href="${gurl}" target="_blank" title="Добавить в Google Calendar" style="flex-shrink:0;display:flex;align-items:center;padding:3px 7px;background:#f0f7f0;border-radius:4px;color:#024638;font-size:10px;font-weight:700;text-decoration:none;gap:3px;border:1px solid #c8e6c9;transition:.2s" onmouseover="this.style.background='#c8e6c9'" onmouseout="this.style.background='#f0f7f0'">📅 Календарь</a>`:''}
+    </div>`;
+  }).join('');
+}
+function renderMoHist(c){
+  const list=document.getElementById('mo-hist-list');const hist=(c.history||[]).slice(0,20);
+  if(!hist.length){list.innerHTML='<p style="font-size:11px;color:#999">История пуста</p>';return;}
+  list.innerHTML=hist.map(h=>`<div class="hist-item"><div class="hist-dot"></div><div><div class="hist-text">${h.text}</div><div class="hist-date">${fmtDate(h.date)}</div></div></div>`).join('');
+}
+
+// ===== CLIENTS =====
+function renderClients(){
+  const srch=(document.getElementById('srch')?.value||'').toLowerCase();
+  const flSt=document.getElementById('fl-stage')?.value||'';
+  const flSrc=document.getElementById('fl-source')?.value||'';
+  const flMgr=document.getElementById('fl-mgr')?.value||'';
+  const mgrs=getManagers();
+  const mEl=document.getElementById('fl-mgr');
+  if(mEl){const cur=mEl.value;mEl.innerHTML='<option value="">Все менеджеры</option>'+mgrs.map(m=>`<option ${m===cur?'selected':''} value="${m}">${m}</option>`).join('');}
+  let f=clients.filter(c=>{
+    if(srch&&!c.name.toLowerCase().includes(srch)&&!(c.company||'').toLowerCase().includes(srch))return false;
+    if(flSt&&c.stage!==flSt)return false;if(flSrc&&c.source!==flSrc)return false;if(flMgr&&c.manager!==flMgr)return false;
+    return true;
+  });
+  const tbody=document.getElementById('tbl-body'),empty=document.getElementById('tbl-empty');
+  if(!f.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=f.map(c=>{
+    const pending=(c.tasks||[]).filter(t=>t.status==='pending');
+    const overdue=pending.filter(t=>t.deadline&&daysDiff(t.deadline)>0);
+    const dotCls=overdue.length?'overdue':pending.length?'has':'none';
+    const dotTip=overdue.length?`${overdue.length} просрочено`:pending.length?`${pending.length} задач`:'нет задач';
+    const ti=touchInfo(c.lastTouchDate);
+    return`<tr onclick="openModal('${c.id}')">
+      <td><span class="tbl-name">${c.name}</span></td><td>${c.company||'—'}</td><td>${c.phone||'—'}</td>
+      <td><span class="stage-pill" style="background:${stageColor(c.stage)}">${stageLabel(c.stage)}</span></td>
+      <td><span class="src-tag">${c.source||'—'}</span></td><td>${c.manager||'—'}</td>
+      <td><span class="${ti.cls}">${ti.label}</span></td>
+      <td><span class="t-dot ${dotCls}" title="${dotTip}"></span> <span style="font-size:11px;color:#777">${dotTip}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== KANBAN =====
+function renderKanban(){
+  document.getElementById('kanban-board').innerHTML=STAGES.map(s=>{
+    const sc=clients.filter(c=>c.stage===s.id);
+    return`<div class="k-col"><div class="k-head" style="background:${s.color}">
+      <span class="k-head-title">${s.label}</span><span class="k-count">${sc.length}</span></div>
+      <div class="k-cards" id="kc-${s.id}"
+        ondragover="event.preventDefault();document.querySelectorAll('.k-cards').forEach(el=>el.classList.remove('drag-over'));this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')" ondrop="dropCard(event,'${s.id}')">
+        ${sc.length?sc.map(c=>kanbanCard(c)).join(''):`<div class="k-empty">Нет клиентов</div>`}
+      </div></div>`;
+  }).join('');
+}
+function kanbanCard(c){
+  const ti=touchInfo(c.lastTouchDate);
+  const pt=(c.tasks||[]).filter(t=>t.status==='pending').length;
+  const ov=(c.tasks||[]).filter(t=>t.status==='pending'&&t.deadline&&daysDiff(t.deadline)>0).length;
+  return`<div class="k-card" style="border-left-color:${stageColor(c.stage)}" draggable="true"
+    ondragstart="dragId='${c.id}';event.target.classList.add('dragging')"
+    ondragend="event.target.classList.remove('dragging')" onclick="openModal('${c.id}')">
+    <div class="k-card-name">${c.name}</div><div class="k-card-co">${c.company||'Физлицо'}</div>
+    <div class="k-card-meta"><span class="k-mgr">${c.manager||'—'}</span>
+      <span class="${ti.cls.replace('lt-','t-dl ')}" style="font-size:9px">${ti.label}</span>
+      ${ov?`<span style="color:#e74c3c;font-weight:700;font-size:10px">⚠${ov}</span>`:pt?`<span style="color:var(--bronze);font-size:10px">📌${pt}</span>`:''}
+    </div></div>`;
+}
+let _pendingRefusalId=null,_pendingRefusalOldStage=null;
+
+async function dropCard(e,sid){
+  e.preventDefault();document.querySelectorAll('.k-cards').forEach(el=>el.classList.remove('drag-over'));
+  if(!dragId)return;
+  const c=clients.find(x=>x.id===dragId);
+  if(c&&c.stage!==sid){
+    if(sid==='refused'){
+      _pendingRefusalId=dragId;_pendingRefusalOldStage=c.stage;
+      dragId=null;
+      document.getElementById('ref-reason').value='';
+      document.getElementById('ref-overlay').style.display='flex';
+      return;
+    }
+    const old=stageLabel(c.stage);c.stage=sid;
+    c.history=c.history||[];c.history.unshift({id:uid(),date:new Date().toISOString(),type:'stage',text:`Этап изменён: ${old} → ${stageLabel(sid)}`});
+    await persist(c);renderKanban();updateBadges();
+  }
+  dragId=null;
+}
+
+function cancelRefusal(){
+  document.getElementById('ref-overlay').style.display='none';
+  _pendingRefusalId=null;_pendingRefusalOldStage=null;
+  renderKanban();
+}
+
+async function confirmRefusal(){
+  const reason=document.getElementById('ref-reason').value;
+  if(!reason){document.getElementById('ref-reason').style.border='1px solid #922b21';return;}
+  document.getElementById('ref-overlay').style.display='none';
+  const c=clients.find(x=>x.id===_pendingRefusalId);
+  if(!c)return;
+  const old=stageLabel(_pendingRefusalOldStage);
+  c.stage='refused';c.refusalReason=reason;
+  c.history=c.history||[];
+  c.history.unshift({id:uid(),date:new Date().toISOString(),type:'stage',text:`Этап изменён: ${old} → Отказ · Причина: ${reason}`});
+  await persist(c);renderKanban();updateBadges();
+  _pendingRefusalId=null;_pendingRefusalOldStage=null;
+}
+
+// ===== TASKS PAGE =====
+function renderTasks(){
+  const st=document.getElementById('fl-task-st')?.value||'pending';
+  const mgr=document.getElementById('fl-task-mgr')?.value||'';
+  const mgrs=getManagers();const mEl=document.getElementById('fl-task-mgr');
+  if(mEl){const cur=mEl.value;mEl.innerHTML='<option value="">Все менеджеры</option>'+mgrs.map(m=>`<option ${m===cur?'selected':''} value="${m}">${m}</option>`).join('');}
+  let all=[];
+  clients.forEach(c=>{if(mgr&&c.manager!==mgr)return;(c.tasks||[]).forEach(t=>{
+    if(st==='pending'&&t.status==='done')return;if(st==='done'&&t.status!=='done')return;
+    all.push({...t,cid:c.id,cname:c.name});
+  });});
+  all.sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+  const list=document.getElementById('tasks-list'),empty=document.getElementById('tasks-empty');
+  if(!all.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=all.map(t=>{
+    const isDone=t.status==='done';const di=t.deadline?dlInfo(t.deadline):null;
+    return`<div class="task-item"><div class="t-check ${isDone?'done':''}" onclick="toggleTask('${t.cid}','${t.id}')">
+      ${isDone?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>':''}
+    </div><div class="t-info"><div class="t-text ${isDone?'done-text':''}">${t.text}</div>
+    <div class="t-meta"><span style="cursor:pointer;color:var(--bur);font-weight:600" onclick="openModal('${t.cid}')">${t.cname}</span>
+    ${t.deadline?` · <span class="t-dl ${isDone?'':di.cls}">${di?di.label:t.deadline}${t.time?' в '+t.time:''}</span>`:''}</div></div></div>`;
+  }).join('');
+}
+
+// ===== DASHBOARD =====
+function renderDashboard(){
+  const total=clients.length;
+  const active=clients.filter(c=>['contract','realization'].includes(c.stage)).length;
+  const done=clients.filter(c=>c.stage==='done');
+  const conv=total?Math.round(done.length/total*100):0;
+  const times=done.filter(c=>c.createdAt&&c.lastTouchDate).map(c=>{const d=Math.floor((new Date(c.lastTouchDate)-new Date(c.createdAt))/86400000);return d>=0?d:null;}).filter(x=>x!==null);
+  const avg=times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length):'—';
+  const leads=clients.filter(c=>c.stage==='lead').length;
+  document.getElementById('s-total').textContent=total;document.getElementById('s-leads').textContent=leads;document.getElementById('s-active').textContent=active;
+  document.getElementById('s-avg').textContent=avg;document.getElementById('s-conv').textContent=conv+'%';
+  const maxC=Math.max(1,...STAGES.map(s=>clients.filter(c=>c.stage===s.id).length));
+  document.getElementById('funnel-rows').innerHTML=STAGES.map((s,i)=>{
+    const cnt=clients.filter(c=>c.stage===s.id).length;
+    const prev=i>0?clients.filter(c=>c.stage===STAGES[i-1].id).length:cnt;
+    const cv=i>0&&prev>0?Math.round(cnt/prev*100)+'%':'';
+    const w=Math.max(Math.round(cnt/maxC*100),2);
+    return`<div class="f-row"><div class="f-name">${s.label}</div>
+      <div class="f-bar-wrap"><div class="f-bar" style="background:${s.color};width:${w}%">${cnt>0?cnt:''}</div></div>
+      <div class="f-cnt">${cnt}</div><div class="f-conv">${cv}</div></div>`;
+  }).join('');
+  const srcData={};clients.forEach(c=>{if(c.source)srcData[c.source]=(srcData[c.source]||0)+1;});
+  drawPie('ch-sources','ch-sources-empty',Object.keys(srcData),Object.values(srcData));
+  const mgrData={};clients.forEach(c=>{if(c.manager)mgrData[c.manager]=(mgrData[c.manager]||0)+1;});
+  drawBar('ch-mgr','ch-mgr-empty',Object.keys(mgrData),Object.values(mgrData));
+  let up=[];clients.forEach(c=>(c.tasks||[]).filter(t=>t.status==='pending').forEach(t=>up.push({...t,cn:c.name,cid:c.id})));
+  up.sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));up=up.slice(0,6);
+  document.getElementById('upcoming-list').innerHTML=up.length?up.map(t=>{
+    const di=t.deadline?dlInfo(t.deadline):null;
+    return`<div class="up-item"><div><div class="up-task">${t.text}</div><div class="up-client" onclick="openModal('${t.cid}')">${t.cn}</div></div>
+    ${t.deadline?`<div class="t-dl ${di.cls}" style="font-size:10px;white-space:nowrap">${di.label}${t.time?' в '+t.time:''}</div>`:''}</div>`;
+  }).join(''):'<p style="font-size:12px;color:#999;margin-top:8px">Активных задач нет</p>';
+}
+function drawPie(cid,eid,labels,data){
+  const c=document.getElementById(cid),e=document.getElementById(eid);
+  if(!data.length||data.every(v=>v===0)){c.style.display='none';e.style.display='block';return;}
+  c.style.display='block';e.style.display='none';
+  if(chSrc){chSrc.destroy();chSrc=null;}
+  chSrc=new Chart(c,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:SRC_COLORS,borderWidth:0}]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'Onest',size:11},padding:8,boxWidth:10}}}}});
+}
+function drawBar(cid,eid,labels,data){
+  const c=document.getElementById(cid),e=document.getElementById(eid);
+  if(!data.length||data.every(v=>v===0)){c.style.display='none';e.style.display='block';return;}
+  c.style.display='block';e.style.display='none';
+  if(chMgr){chMgr.destroy();chMgr=null;}
+  chMgr=new Chart(c,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'#54052B',borderRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,ticks:{stepSize:1,font:{family:'Onest'}},grid:{color:'#f0ede8'}},
+              x:{ticks:{font:{family:'Onest',size:11}},grid:{display:false}}}}});
+}
+function updateBadges(){
+  document.getElementById('nb-clients').textContent=clients.length;
+  let ov=0;clients.forEach(c=>(c.tasks||[]).filter(t=>t.status==='pending').forEach(t=>{if(t.deadline&&daysDiff(t.deadline)>0)ov++;}));
+  const tb=document.getElementById('nb-tasks');tb.style.display=ov?'block':'none';tb.textContent=ov;
+}
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.background=type==='err'?'#922b21':'#024638';
+  el.style.display='block';setTimeout(()=>el.style.display='none',2800);
+}
+
+// ===== SAVE CONNECTION =====
+async function saveConn(){
+  const url=document.getElementById('sb-url').value.trim();
+  const key=document.getElementById('sb-key').value.trim();
+  if(!url||!key){alert('Заполните оба поля');return;}
+  localStorage.setItem(LS_URL,url);localStorage.setItem(LS_KEY,key);
+  document.getElementById('sb-url').value=url;
+  document.getElementById('sb-key').value=key;
+  const{createClient}=supabase;
+  DB=createClient(url,key);
+  document.getElementById('conn-section').style.display='none';
+  toast('Подключение сохранено');
+}
+
+// ===== ADMIN FUNCTIONS =====
+async function renderUsers(){
+  const list=document.getElementById('users-list');
+  list.innerHTML='<div style="padding:20px;text-align:center;font-size:13px;color:var(--gray-mid)">Загрузка...</div>';
+  const {data,error}=await DB.from('profiles').select('*').order('created_at');
+  if(error||!data){list.innerHTML='<div style="padding:20px;color:#922b21;font-size:12px">Ошибка загрузки</div>';return;}
+  if(!data.length){list.innerHTML='<div style="padding:20px;text-align:center;font-size:13px;color:var(--gray-mid)">Пользователей нет</div>';return;}
+  list.innerHTML=data.map(u=>`
+    <div style="display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid #f0ede8;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--bur);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${(u.name||u.email||'?')[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:13px">${u.name||'—'}</div>
+        <div style="font-size:11px;color:var(--gray-mid)">${u.email||''} · ${u.role==='admin'?'Администратор':'Менеджер'}</div>
+      </div>
+      ${u.id!==currentUser?.id?`<button onclick="removeUser('${u.id}')" style="padding:4px 10px;border-radius:5px;border:1px solid #f5c6c6;background:#fff5f5;color:#922b21;font-size:11px;font-weight:600;cursor:pointer">Удалить</button>`:'<span style="font-size:10px;color:var(--gray-mid)">вы</span>'}
+    </div>`).join('');
+}
+
+async function addUser(){
+  const name=document.getElementById('u-name').value.trim();
+  const email=document.getElementById('u-email').value.trim();
+  const pass=document.getElementById('u-pass').value.trim();
+  const role=document.getElementById('u-role').value;
+  const errEl=document.getElementById('u-err');
+  errEl.style.display='none';
+  if(!name||!email||!pass){errEl.textContent='Заполните все поля';errEl.style.display='block';return;}
+  if(pass.length<6){errEl.textContent='Пароль минимум 6 символов';errEl.style.display='block';return;}
+  try {
+    const {data,error}=await DB.auth.signUp({email,password:pass});
+    if(error) throw error;
+    const uid=data.user?.id;
+    if(uid){
+      await DB.from('profiles').upsert({id:uid,name,email,role,created_at:new Date().toISOString()});
+    }
+    document.getElementById('u-name').value='';document.getElementById('u-email').value='';document.getElementById('u-pass').value='';
+    toast('Пользователь добавлен');renderUsers();
+  } catch(e){errEl.textContent='Ошибка: '+e.message;errEl.style.display='block';}
+}
+
+async function removeUser(uid){
+  if(!confirm('Удалить пользователя?')) return;
+  await DB.from('profiles').delete().eq('id',uid);
+  toast('Пользователь удалён');renderUsers();
+}
+
+// ===== AUTO-CONNECT =====
+(async()=>{
+  // Pre-fill credentials
+  const AUTO_URL = 'https://jvmagwvupjcmpydzvnin.supabase.co';
+  const AUTO_KEY = 'sb_publishable_oqH0PBg3rAd9mpAkt5ECMw_HLXu2MmH';
+  localStorage.setItem(LS_URL, AUTO_URL);
+  localStorage.setItem(LS_KEY, AUTO_KEY);
+  const urlEl = document.getElementById('sb-url');
+  const keyEl = document.getElementById('sb-key');
+  if(urlEl) urlEl.value = AUTO_URL;
+  if(keyEl) keyEl.value = AUTO_KEY;
+
+  const url=localStorage.getItem(LS_URL),key=localStorage.getItem(LS_KEY);
+  if(!url||!key){document.getElementById('auth-screen').style.display='flex';return;}
+  const{createClient}=supabase;
+  DB=createClient(url,key);
+  // Check existing session
+  const {data:{session}}=await DB.auth.getSession();
+  if(session){
+    currentUser=session.user;
+    await loadProfile();
+    await bootApp();
+  } else {
+    document.getElementById('auth-screen').style.display='flex';
+  }
+  // Listen for auth changes
+  DB.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_OUT'){
+      document.getElementById('auth-screen').style.display='flex';
+    }
+  });
+})();
+</script>
+</body>
+</html>
