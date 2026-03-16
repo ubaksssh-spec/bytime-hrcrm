@@ -6097,7 +6097,7 @@ sb.auth.onAuthStateChange((event, session) => {
   };
 
   // Failsafe — показать форму входа через 3 секунды если ничего не произошло
-  const failsafe = setTimeout(showLogin, 3000);
+  const failsafe = setTimeout(showLogin, 1000);
 
   try {
     const {data: {session}, error} = await sb.auth.getSession();
