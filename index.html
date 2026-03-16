@@ -578,22 +578,28 @@ tbody tr:last-child{border-bottom:none}
     <div id="page-hrm" class="page" style="padding:0;height:100vh;overflow:hidden">
       <iframe id="hrm-frame" src="" style="width:100%;height:100%;border:none;display:block" allow="*"></iframe>
     </div>
-    <div id="page-projects" class="page">
-      <!-- Client list view -->
-      <div id="proj-list-view">
-        <div class="page-header">
-          <div><div class="page-title">Комплексные проекты</div><div class="page-subtitle">Дорожные карты клиентов</div></div>
-          <div class="header-actions">
-            <button class="btn btn-ghost" onclick="downloadProjectTemplate()">📥 Шаблон Excel</button>
-            <label class="btn btn-ghost" style="cursor:pointer">
-              📎 Загрузить из Excel
-              <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClientFromExcel(this)">
-            </label>
-            <button class="btn btn-bv" onclick="openAddClientModal()">+ Новый клиент</button>
+    <div id="page-projects" class="page" style="padding:0">
+      <!-- Two-column layout: main content + right tools panel -->
+      <div style="display:grid;grid-template-columns:1fr 320px;height:100%;min-height:100vh">
+
+        <!-- LEFT: main content -->
+        <div style="padding:32px 28px;overflow-y:auto;border-right:1px solid var(--gray1)">
+
+          <!-- Client list view -->
+          <div id="proj-list-view">
+            <div class="page-header" style="padding:0;margin-bottom:24px">
+              <div><div class="page-title">Комплексные проекты</div><div class="page-subtitle">Дорожные карты клиентов</div></div>
+              <div class="header-actions">
+                <button class="btn btn-ghost" onclick="downloadProjectTemplate()">📥 Шаблон Excel</button>
+                <label class="btn btn-ghost" style="cursor:pointer">
+                  📎 Загрузить из Excel
+                  <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importClientFromExcel(this)">
+                </label>
+                <button class="btn btn-bv" onclick="openAddClientModal()">+ Новый клиент</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px" id="clients-grid"></div>
           </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px" id="clients-grid"></div>
-      </div>
       <!-- Client project view -->
       <div id="proj-client-view" style="display:none">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
@@ -634,8 +640,35 @@ tbody tr:last-child{border-bottom:none}
 
         <!-- Tasks by etap -->
         <div id="proj-tasks-content"></div>
-      </div>
-    </div>
+        </div><!-- end proj-client-view -->
+
+        </div><!-- end LEFT column -->
+
+        <!-- RIGHT: Tools panel -->
+        <div style="background:var(--white);overflow-y:auto;display:flex;flex-direction:column">
+          <!-- Tab bar -->
+          <div style="border-bottom:1px solid var(--gray1);padding:0 20px;display:flex;align-items:center;gap:0;flex-shrink:0">
+            <div id="proj-tool-tab-processes" onclick="switchProjTool('processes',this)"
+              style="padding:14px 16px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid var(--bv);color:var(--bv);white-space:nowrap">
+              Бизнес-процессы
+            </div>
+          </div>
+
+          <!-- Tool: Processes -->
+          <div id="proj-tool-panel-processes" style="padding:20px;flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap">
+              <div class="search-box" style="flex:1;min-width:0">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="proj-proc-search" placeholder="Поиск..." oninput="renderProjProcesses()" style="min-width:0">
+              </div>
+              <button class="btn btn-sm btn-bv" onclick="openProcModal()">+</button>
+            </div>
+            <div id="proj-proc-list"></div>
+          </div>
+        </div><!-- end RIGHT column -->
+
+      </div><!-- end grid -->
+    </div><!-- end page-projects -->
 
     <!-- USERS -->
     <div id="page-users" class="page">
@@ -1599,7 +1632,7 @@ function nav(el) {
   if (page==='org') renderOrg();
   if (page==='processes') renderProcesses();
   if (page==='tools')     { renderProcesses(); }
-  if (page==='projects') renderProjectsList();
+  if (page==='projects') { renderProjectsList(); renderProjProcesses(); }
   if (page==='users') renderUsersTable();
 }
 
@@ -1624,7 +1657,7 @@ function initAll() {
   renderFinance();
   renderMetrics();
   renderProcesses();
-  renderProjectsList();
+  renderProjectsList(); renderProjProcesses();
   renderUsersTable();
   setTimeout(syncExternalTasksToPersonal, 1500);
 }
@@ -4728,7 +4761,31 @@ document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('cli
 // ════════════════════════════════════════════
 // TOOLS PAGE
 // ════════════════════════════════════════════
-function switchToolTab(tab, el) {
+function switchProjTool(tool, el) {
+  document.querySelectorAll('[id^="proj-tool-tab-"]').forEach(t=>{
+    t.style.borderBottom='2px solid transparent'; t.style.color='var(--gray4)';
+  });
+  el.style.borderBottom='2px solid var(--bv)'; el.style.color='var(--bv)';
+  document.querySelectorAll('[id^="proj-tool-panel-"]').forEach(p=>p.style.display='none');
+  const panel=document.getElementById('proj-tool-panel-'+tool);
+  if(panel) panel.style.display='';
+  if(tool==='processes') renderProjProcesses();
+}
+
+function renderProjProcesses() {
+  const el = document.getElementById('proj-proc-list');
+  if (!el) return;
+  const q = (document.getElementById('proj-proc-search')?.value||'').toLowerCase();
+  const items = processes.filter(p=>!q||p.name.toLowerCase().includes(q)||p.dept.toLowerCase().includes(q));
+  if (!items.length) {
+    el.innerHTML = '<div style="color:var(--gray4);font-size:13px;text-align:center;padding:30px 0">Нет процессов.<br>Создайте в разделе «Инструменты»</div>'; return;
+  }
+  el.innerHTML = items.map(p=>`
+    <div onclick="openProcCanvas(${p.id})" style="padding:11px 14px;border-radius:9px;border:1.5px solid var(--gray1);margin-bottom:8px;cursor:pointer;transition:all .15s;background:var(--white)" onmouseover="this.style.borderColor='var(--bv)';this.style.background='rgba(84,5,43,.03)'" onmouseout="this.style.borderColor='var(--gray1)';this.style.background='var(--white)'">
+      <div style="font-weight:600;font-size:13.5px;color:var(--ink)">${p.name}</div>
+      <div style="font-size:12px;color:var(--gray4);margin-top:3px">${p.dept||'—'}</div>
+    </div>`).join('');
+}
   document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('#page-tools [id^="tool-"]').forEach(t=>t.style.display='none');
