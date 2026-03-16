@@ -2460,6 +2460,7 @@ async function openTaskView(taskId) {
     if(t.notes) { tvNotesText.textContent = t.notes; tvNotesBlock.style.display=''; }
     else { tvNotesBlock.style.display='none'; }
   }
+  const tvTimeDisplay = document.getElementById('tv-time-display');
   if(tvTimeDisplay) {
     if(t.time) { tvTimeDisplay.textContent = '🕐 ' + t.time; tvTimeDisplay.style.display=''; }
     else { tvTimeDisplay.style.display='none'; }
@@ -3269,6 +3270,7 @@ async function renderCalendar() {
 
 // ============ ВИДЫ КАЛЕНДАРЯ ============
 let calView = 'month'; // 'month' | 'week'
+let calWeekOffset = 0; // days offset from today for week view
 
 function setCalView(view) {
   calView = view;
