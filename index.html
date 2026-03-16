@@ -663,10 +663,13 @@ tr:hover td{background:#FBF9F7}
           <button onclick="calNext()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:16px;color:var(--text-primary)">›</button>
           <button onclick="calGoToday()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;color:var(--text-primary);margin-left:4px">Сегодня</button>
           <div style="display:flex;border:1px solid #e5e5e5;border-radius:6px;overflow:hidden;margin-left:auto">
-            <button style="padding:6px 16px;font-size:13px;cursor:pointer;border:none;background:var(--burgundy,#5C0A2A);color:#fff">Месяц</button>
+            <button id="cal-btn-month" onclick="setCalView('month')" style="padding:6px 16px;font-size:13px;cursor:pointer;border:none;background:var(--burgundy);color:#fff">Месяц</button>
+            <button id="cal-btn-week" onclick="setCalView('week')" style="padding:6px 16px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--text-primary)">Неделя</button>
           </div>
           <button class="btn btn-primary" onclick="openNewTaskForDate()" style="margin-left:8px">+ Событие</button>
         </div>
+        <!-- Week view -->
+        <div id="cal-week-view" style="display:none"></div>
         <div class="cal-grid">
           <div class="cal-head">
             <div class="cal-head-cell">Пн</div><div class="cal-head-cell">Вт</div><div class="cal-head-cell">Ср</div><div class="cal-head-cell">Чт</div><div class="cal-head-cell">Пт</div><div class="cal-head-cell" style="color:#e53935">Сб</div><div class="cal-head-cell" style="color:#e53935">Вс</div>
@@ -686,11 +689,20 @@ tr:hover td{background:#FBF9F7}
       <div class="page" id="page-analytics">
         <div class="page-header" style="margin-bottom:20px">
           <div class="page-title" style="margin-bottom:0">Аналитика</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="font-size:12px;color:var(--text-muted)">Вакансия:</div>
-            <select class="form-control" id="analytics-filter-project" onchange="loadAnalytics()" style="width:280px;font-size:13px">
-              <option value="">Все вакансии</option>
-            </select>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12px;color:var(--text-muted)">HR:</div>
+              <select class="form-control" id="analytics-filter-hr" onchange="loadAnalytics()" style="width:180px;font-size:13px">
+                <option value="">Все HR</option>
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="font-size:12px;color:var(--text-muted)">Вакансия:</div>
+              <select class="form-control" id="analytics-filter-project" onchange="loadAnalytics()" style="width:260px;font-size:13px">
+                <option value="">Все вакансии</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary" style="font-size:12px" onclick="resetAnalyticsFilters()">Сбросить</button>
           </div>
         </div>
         <div id="analytics-content"><div class="loading">Загрузка...</div></div>
@@ -905,9 +917,20 @@ tr:hover td{background:#FBF9F7}
 
       <!-- КЛИЕНТЫ (только для Admin) -->
       <div class="page" id="page-clients">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
           <div class="page-title" style="margin-bottom:0">Клиенты</div>
           <button class="btn btn-primary" onclick="openClientModal()">+ Клиент</button>
+        </div>
+        <!-- Фильтры клиентов -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+          <input class="form-control" id="cl-search" placeholder="🔍 Поиск по названию..." oninput="applyClientFilters()" style="width:220px;font-size:13px" />
+          <div style="display:flex;gap:4px;background:var(--cream);border-radius:8px;padding:4px">
+            <button id="clf-all" class="btn btn-primary" style="font-size:12px;padding:4px 12px" onclick="setClientFilter('all')">Все</button>
+            <button id="clf-new" class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="setClientFilter('new')">Есть новые</button>
+            <button id="clf-active" class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="setClientFilter('active')">В работе</button>
+            <button id="clf-done" class="btn btn-secondary" style="font-size:12px;padding:4px 12px" onclick="setClientFilter('done')">Закрытые</button>
+            <button id="clf-docs" class="btn btn-secondary" style="font-size:12px;padding:4px 12px;color:#C62828" onclick="setClientFilter('docs')">⚠️ Без документов</button>
+          </div>
         </div>
         <div id="clients-grid" class="clients-grid"><div class="loading">Загрузка...</div></div>
       </div>
@@ -2836,30 +2859,48 @@ async function loadHired() {
   tbody.innerHTML = data.map(c=>`<tr><td>${c.name}</td><td>${c.vacancies?.title||'—'}</td><td>${c.city||'—'}</td><td>${c.gender||'—'}</td><td>${c.age||'—'}</td><td>${fmtDate(c.created_at)}</td></tr>`).join('');
 }
 
+function resetAnalyticsFilters() {
+  const hr = document.getElementById('analytics-filter-hr');
+  const vac = document.getElementById('analytics-filter-project');
+  if(hr) hr.value = '';
+  if(vac) vac.value = '';
+  loadAnalytics();
+}
+
 async function loadAnalytics() {
-  // Load all vacancies to get project list
   const {data:allVacs} = await sb.from('vacancies').select('*').order('title');
   const {data:allCands} = await sb.from('candidates').select('status,source,vacancy_id');
 
-  // Populate vacancy filter
+  // Populate HR filter
+  const hrSel = document.getElementById('analytics-filter-hr');
+  if(hrSel) {
+    const hrVal = hrSel.value;
+    const hrs = [...new Set((allVacs||[]).map(v=>v.recruiter).filter(Boolean))].sort();
+    hrSel.innerHTML = '<option value="">Все HR</option>' + hrs.map(r=>`<option value="${r}" ${r===hrVal?'selected':''}>${r}</option>`).join('');
+  }
+
+  const hrFilter = hrSel?.value || '';
+
+  // Populate vacancy filter — filtered by HR if set
   const psel = document.getElementById('analytics-filter-project');
   if(psel) {
     const currentVal = psel.value;
-    psel.innerHTML = '<option value="">Все вакансии</option>' + (allVacs||[]).map(v=>{
+    const vacsForFilter = hrFilter ? (allVacs||[]).filter(v=>v.recruiter===hrFilter) : (allVacs||[]);
+    psel.innerHTML = '<option value="">Все вакансии</option>' + vacsForFilter.map(v=>{
       const rec = v.recruiter ? ' · ' + v.recruiter : '';
-      return `<option value="${v.id}">${v.title}${rec}</option>`;
+      return `<option value="${v.id}" ${v.id===currentVal?'selected':''} >${v.title}${rec}</option>`;
     }).join('');
-    if(currentVal) psel.value = currentVal;
   }
 
   const vacancyFilter = psel?.value || '';
 
-  // Filter by selected vacancy
-  const vacs = vacancyFilter ? (allVacs||[]).filter(v => v.id === vacancyFilter) : (allVacs||[]);
+  // Apply filters
+  let vacs = allVacs || [];
+  if(hrFilter) vacs = vacs.filter(v => v.recruiter === hrFilter);
+  if(vacancyFilter) vacs = vacs.filter(v => v.id === vacancyFilter);
+
   const vacIds = new Set(vacs.map(v=>v.id));
-  const cands = vacancyFilter
-    ? (allCands||[]).filter(c => c.vacancy_id && vacIds.has(c.vacancy_id))
-    : (allCands||[]);
+  const cands = (allCands||[]).filter(c => c.vacancy_id && vacIds.has(c.vacancy_id));
 
   const total = cands.length || 1;
 
@@ -3199,7 +3240,7 @@ async function renderCalendar() {
     dayTasks.slice(0, 3).forEach(t => {
       const dot = document.createElement('div');
       const taskId = t.id;
-      dot.style.cssText = `margin-top:2px;padding:2px 5px;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'};border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;position:relative;z-index:2;`;
+      dot.style.cssText = `margin-top:2px;padding:2px 5px;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'};border-radius:3px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;position:relative;z-index:10;pointer-events:all;`;
       dot.textContent = (t.time ? t.time + ' ' : '') + t.title;
       dot.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); openTaskView(taskId); });
       cell.appendChild(dot);
@@ -3225,6 +3266,87 @@ async function renderCalendar() {
     span.textContent = d; cell.appendChild(span); body.appendChild(cell);
   }
 }
+
+// ============ ВИДЫ КАЛЕНДАРЯ ============
+let calView = 'month'; // 'month' | 'week'
+
+function setCalView(view) {
+  calView = view;
+  const btnMonth = document.getElementById('cal-btn-month');
+  const btnWeek = document.getElementById('cal-btn-week');
+  const grid = document.querySelector('.cal-grid');
+  const weekView = document.getElementById('cal-week-view');
+  if(view === 'week') {
+    if(btnMonth) { btnMonth.style.background='transparent'; btnMonth.style.color='var(--text-primary)'; }
+    if(btnWeek) { btnWeek.style.background='var(--burgundy)'; btnWeek.style.color='#fff'; }
+    if(grid) grid.style.display='none';
+    if(weekView) weekView.style.display='';
+    renderWeekView();
+  } else {
+    if(btnMonth) { btnMonth.style.background='var(--burgundy)'; btnMonth.style.color='#fff'; }
+    if(btnWeek) { btnWeek.style.background='transparent'; btnWeek.style.color='var(--text-primary)'; }
+    if(grid) grid.style.display='';
+    if(weekView) weekView.style.display='none';
+    renderCalendar();
+  }
+}
+
+async function renderWeekView() {
+  const weekEl = document.getElementById('cal-week-view');
+  const label = document.getElementById('cal-month-label');
+  if(!weekEl) return;
+
+  // Get Monday of current week based on calYear/calMonth + navigate by week offset
+  const today = new Date();
+  // Use current displayed date — find Monday of that week
+  const ref = new Date(calYear, calMonth, calWeekOffset !== undefined ? calWeekOffset : today.getDate());
+  const dow = ref.getDay();
+  const monday = new Date(ref);
+  monday.setDate(ref.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  const days = Array.from({length:7}, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+
+  const DAYS_RU = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  const MONTHS_SHORT = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+  label.textContent = `${monday.getDate()} ${MONTHS_SHORT[monday.getMonth()]} — ${days[6].getDate()} ${MONTHS_SHORT[days[6].getMonth()]} ${days[6].getFullYear()}`;
+
+  // Load tasks for this week
+  const weekStart = days[0].toISOString().split('T')[0];
+  const weekEnd   = days[6].toISOString().split('T')[0];
+  const {data:weekTasks} = await sb.from('tasks').select('*').gte('due_date', weekStart).lte('due_date', weekEnd);
+  const tasks = (weekTasks||[]).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+
+  weekEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      ${days.map((d,i) => {
+        const dateStr = d.toISOString().split('T')[0];
+        const isToday = dateStr === today.toISOString().split('T')[0];
+        const isWeekend = i >= 5;
+        const dayTasks = tasks.filter(t=>t.due_date===dateStr);
+        return `<div style="border-right:${i<6?'1px solid var(--border)':'none'};min-height:400px">
+          <div style="padding:10px 12px;border-bottom:1px solid var(--border);background:${isToday?'var(--burgundy)':isWeekend?'#FFF5F5':'var(--cream)'}">
+            <div style="font-size:11px;font-weight:700;color:${isToday?'#fff':isWeekend?'#e53935':'var(--text-muted)'};text-transform:uppercase">${DAYS_RU[i]}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${isToday?'#fff':isWeekend?'#e53935':'var(--text-primary)'}">${d.getDate()}</div>
+          </div>
+          <div style="padding:6px" onclick="openNewTaskForDate('${dateStr}')">
+            ${dayTasks.map(t => {
+              const taskId = t.id;
+              return `<div onclick="event.stopPropagation();openTaskView('${taskId}')" style="padding:4px 8px;margin-bottom:4px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;background:${t.status==='done'?'#E8F5E9':'var(--burgundy)'};color:${t.status==='done'?'#2E7D32':'#fff'}">
+                ${t.time?t.time+' ':''}${t.title}
+              </div>`;
+            }).join('')}
+            ${dayTasks.length===0?`<div style="padding:8px 4px;font-size:11px;color:var(--border);text-align:center">+</div>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+// ============ КОНЕЦ ВИДОВ КАЛЕНДАРЯ ============
 
 function calPrev() { calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } renderCalendar(); }
 function calNext() { calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } renderCalendar(); }
@@ -3547,7 +3669,7 @@ async function loadAdmin() {
       <td>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:34px;height:34px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${rec.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
-          <span style="font-weight:600">${rec}</span>
+          <span style="font-weight:600;cursor:pointer;color:var(--burgundy)" onclick="openHrCard('${rec}')">${rec}</span>
         </div>
       </td>
       <td><span style="font-weight:600;color:var(--burgundy)">${recVacs}</span></td>
@@ -3564,7 +3686,7 @@ async function loadAdmin() {
         </div>
       </td>
       <td>
-        <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="showRecruiterDetail('${rec}')">Подробнее</button>
+        <button class="btn btn-secondary" style="font-size:12px;padding:4px 10px" onclick="openHrCard('${rec}')">Подробнее</button>
       </td>
     </tr>`;
   }).join('');
@@ -4085,21 +4207,46 @@ async function openRequestModal() {
 }
 
 // ============ КЛИЕНТЫ ============
-async function loadClients(mini=false) {
-  const {data:clients} = await sb.from('clients').select('*, requests(status)').order('internal_name');
-  const el = document.getElementById(mini ? 'admin-clients-mini' : 'clients-grid');
+let _allClientsData = [];
+let _clientFilter = 'all';
+
+function setClientFilter(f) {
+  _clientFilter = f;
+  ['all','new','active','done','docs'].forEach(id => {
+    const btn = document.getElementById('clf-'+id);
+    if(!btn) return;
+    btn.className = id===f ? 'btn btn-primary' : 'btn btn-secondary';
+    if(id==='docs') btn.style.color = id===f ? '#fff' : '#C62828';
+  });
+  applyClientFilters();
+}
+
+function applyClientFilters() {
+  const q = (document.getElementById('cl-search')?.value||'').toLowerCase();
+  let filtered = _allClientsData;
+  if(q) filtered = filtered.filter(c =>
+    (c.internal_name||'').toLowerCase().includes(q) ||
+    (c.legal_name||'').toLowerCase().includes(q)
+  );
+  if(_clientFilter === 'new')    filtered = filtered.filter(c => c._vacNew > 0);
+  if(_clientFilter === 'active') filtered = filtered.filter(c => c._vacActive > 0);
+  if(_clientFilter === 'done')   filtered = filtered.filter(c => c._vacDone > 0);
+  if(_clientFilter === 'docs')   filtered = filtered.filter(c => c._hasUnsignedDocs);
+  renderClientsGrid(filtered);
+}
+
+function renderClientsGrid(clients) {
+  const el = document.getElementById('clients-grid');
   if(!el) return;
-  if(!clients||!clients.length){ el.innerHTML='<div class="empty" style="grid-column:1/-1">Нет клиентов</div>'; return; }
+  if(!clients.length){ el.innerHTML='<div class="empty" style="grid-column:1/-1">Нет клиентов по фильтру</div>'; return; }
   el.innerHTML = clients.map(c => {
-    const reqs = c.requests||[];
-    const counts = {
-      new: reqs.filter(r=>r.status==='new'||!r.status).length,
-      in_progress: reqs.filter(r=>r.status==='in_progress').length,
-      done: reqs.filter(r=>r.status==='done').length,
-    };
+    const docsWarning = c._hasUnsignedDocs ? '<span style="background:#FFEBEE;color:#C62828;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;margin-left:6px">⚠️ Без документов</span>' : '';
     return `<div class="client-card" onclick="openClientModal('${c.id}')">
       <div class="client-card-head">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:#fff">${c.internal_name}</div>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:#fff">${c.internal_name}</span>
+          ${docsWarning}
+        </div>
         <div style="font-size:12px;color:rgba(255,255,255,0.5);margin-top:2px">${c.legal_name||''}</div>
       </div>
       <div class="client-card-body">
@@ -4107,13 +4254,45 @@ async function loadClients(mini=false) {
         ${c.lpr_phone?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Тел: <span style="color:var(--text-primary)">${c.lpr_phone}</span></div>`:''}
         ${c.responsible?`<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">HR: <span style="color:var(--green);font-weight:500">${c.responsible}</span></div>`:''}
         <div class="vac-status-row">
-          <span class="vac-pill" style="background:#E8EAF6;color:#3949AB">${counts.new} новых</span>
-          <span class="vac-pill" style="background:#FFF3E0;color:#E65100">${counts.in_progress} в работе</span>
-          <span class="vac-pill" style="background:#E8F5E9;color:#2E7D32">${counts.done} закрыто</span>
+          <span class="vac-pill" style="background:#E8EAF6;color:#3949AB">${c._vacNew} новых</span>
+          <span class="vac-pill" style="background:#FFF3E0;color:#E65100">${c._vacActive} в работе</span>
+          <span class="vac-pill" style="background:#E8F5E9;color:#2E7D32">${c._vacDone} закрыто</span>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+async function loadClients(mini=false) {
+  if(mini) {
+    const {data:clients} = await sb.from('clients').select('*').order('internal_name');
+    const el = document.getElementById('admin-clients-mini');
+    if(!el || !clients) return;
+    el.innerHTML = clients.map(c => `<div class="client-card" onclick="openClientModal('${c.id}')">
+      <div class="client-card-head"><div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff">${c.internal_name}</div></div>
+      <div class="client-card-body"><div style="font-size:12px;color:var(--text-muted)">ЛПР: ${c.lpr_name||'—'}</div></div></div>`).join('');
+    return;
+  }
+  const [{data:clients},{data:vacs}] = await Promise.all([
+    sb.from('clients').select('*').order('internal_name'),
+    sb.from('vacancies').select('id,project,status,doc_contract,doc_act')
+  ]);
+  const el = document.getElementById('clients-grid');
+  if(!el) return;
+  if(!clients||!clients.length){ el.innerHTML='<div class="empty" style="grid-column:1/-1">Нет клиентов</div>'; return; }
+
+  const ACTIVE_STATUSES = ['na_starte','v_rabote','na_etape','zamena'];
+  const DONE_STATUSES = ['zaversheno'];
+
+  _allClientsData = clients.map(c => {
+    const clientVacs = (vacs||[]).filter(v => v.project === c.internal_name);
+    const _vacNew    = clientVacs.filter(v => v.status === 'na_starte').length;
+    const _vacActive = clientVacs.filter(v => ACTIVE_STATUSES.includes(v.status)).length;
+    const _vacDone   = clientVacs.filter(v => DONE_STATUSES.includes(v.status)).length;
+    const _hasUnsignedDocs = clientVacs.some(v => !v.doc_contract || !v.doc_act);
+    return {...c, _vacNew, _vacActive, _vacDone, _hasUnsignedDocs};
+  });
+  applyClientFilters();
 }
 
 async function openClientModal(id) {
@@ -4396,7 +4575,8 @@ function toggleProfileEdit(force) {
   document.getElementById('profile-save-btn').style.display = _profileEditMode ? '' : 'none';
   document.getElementById('profile-cancel-btn').style.display = _profileEditMode ? '' : 'none';
   document.getElementById('profile-close-btn').style.display = _profileEditMode ? 'none' : '';
-  document.querySelector('[onclick="toggleProfileEdit()"]').textContent = _profileEditMode ? '' : '✏️ Редактировать';
+  const eb = document.querySelector('[onclick="toggleProfileEdit()"]');
+  if(eb) eb.textContent = _profileEditMode ? '' : '✏️ Редактировать';
 }
 
 async function saveProfileData() {
@@ -5991,6 +6171,108 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // ============ КОНЕЦ СТРУКТУРЫ ОТДЕЛА ============
 
+// ============ КАРТОЧКА HR ============
+let _hrCardData = { name:'', vacs:[], cands:[] };
+
+const HR_STAGES = [
+  {key:'new',        label:'Новый',             color:'#9E9E9E'},
+  {key:'called',     label:'Позвонили',         color:'#42A5F5'},
+  {key:'interview',  label:'Собеседование',     color:'#B8935A'},
+  {key:'presented',  label:'Предложен клиенту', color:'#7E57C2'},
+  {key:'client_rejected', label:'Клиент отклонил', color:'#EF5350'},
+  {key:'probation',  label:'Испытательный срок',color:'#FF7043'},
+  {key:'hired',      label:'Трудоустроен',      color:'#00897B'},
+  {key:'rejected',   label:'Отказ',             color:'#BDBDBD'},
+];
+
+async function openHrCard(name) {
+  _hrCardData.name = name;
+  document.getElementById('hc-name').textContent = name;
+  document.getElementById('hc-avatar').textContent = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const [{data:vacs},{data:cands}] = await Promise.all([
+    sb.from('vacancies').select('id,title,status').eq('recruiter', name).order('title'),
+    sb.from('candidates').select('id,status,vacancy_id')
+  ]);
+  _hrCardData.vacs = vacs || [];
+  _hrCardData.cands = cands || [];
+  const active = _hrCardData.vacs.filter(v=>!['zaversheno','vozvrat'].includes(v.status)).length;
+  document.getElementById('hc-meta').textContent = `${_hrCardData.vacs.length} вакансий · ${active} активных`;
+  const sel = document.getElementById('hc-vac-filter');
+  sel.innerHTML = '<option value="">Все вакансии</option>' +
+    _hrCardData.vacs.map(v=>`<option value="${v.id}">${v.title}</option>`).join('');
+  openModal('hr-card-modal');
+  renderHrConversions();
+}
+
+function renderHrConversions() {
+  const vacFilter = document.getElementById('hc-vac-filter')?.value || '';
+  const vacs = vacFilter ? _hrCardData.vacs.filter(v=>v.id===vacFilter) : _hrCardData.vacs;
+  const vacIds = new Set(vacs.map(v=>v.id));
+  const cands = _hrCardData.cands.filter(c=>vacIds.has(c.vacancy_id));
+  const total = cands.length;
+  const counts = {};
+  HR_STAGES.forEach(s => counts[s.key] = cands.filter(c=>c.status===s.key).length);
+  const hired = counts.hired || 0;
+  const conv = total > 0 ? Math.round(hired/total*100) : 0;
+
+  // Summary
+  document.getElementById('hc-stats-row').innerHTML = [
+    {label:'Всего кандидатов', val:total, color:'var(--burgundy)'},
+    {label:'В работе', val:cands.filter(c=>!['hired','rejected'].includes(c.status)).length, color:'#1565C0'},
+    {label:'Собеседований', val:counts.interview||0, color:'var(--gold)'},
+    {label:'Трудоустроено', val:hired, color:'var(--green)'},
+    {label:'Конверсия (общая)', val:conv+'%', color:conv>20?'var(--green)':'var(--burgundy)'},
+  ].map(s=>`<div class="stat-card" style="text-align:center;padding:12px 8px">
+    <div class="stat-label">${s.label}</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:${s.color}">${s.val}</div>
+  </div>`).join('');
+
+  // Funnel
+  const maxCount = Math.max(1, ...HR_STAGES.map(s=>counts[s.key]||0));
+  document.getElementById('hc-funnel').innerHTML = HR_STAGES.map(s => {
+    const n = counts[s.key]||0;
+    const pct = Math.round(n/maxCount*100);
+    const pctOfTotal = total>0 ? Math.round(n/total*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+      <div style="width:150px;font-size:12px;color:var(--text-secondary);text-align:right;flex-shrink:0">${s.label}</div>
+      <div style="flex:1;background:var(--cream-dark);border-radius:4px;height:20px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${s.color};border-radius:4px;display:flex;align-items:center;padding-left:6px">
+          ${n>0?`<span style="font-size:11px;font-weight:700;color:#fff">${n}</span>`:''}
+        </div>
+      </div>
+      <div style="width:38px;font-size:11px;color:var(--text-muted);text-align:right">${pctOfTotal}%</div>
+    </div>`;
+  }).join('');
+
+  // Conversion matrix
+  const stages = HR_STAGES.filter(s=>s.key!=='rejected');
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>
+      <th style="padding:5px 8px;background:var(--cream);border:1px solid var(--border);text-align:left;min-width:130px">Из → В</th>
+      ${stages.map(s=>`<th style="padding:5px 6px;background:var(--cream);border:1px solid var(--border);text-align:center;white-space:nowrap">${s.label}</th>`).join('')}
+    </tr></thead><tbody>`;
+  stages.forEach((from, fi) => {
+    const fromN = counts[from.key]||0;
+    html += `<tr><td style="padding:5px 8px;border:1px solid var(--border);background:var(--cream-dark);font-weight:600;white-space:nowrap">${from.label} <span style="color:var(--burgundy)">(${fromN})</span></td>`;
+    stages.forEach((to, ti) => {
+      const toN = counts[to.key]||0;
+      if(fi === ti) { html += `<td style="padding:5px 6px;border:1px solid var(--border);text-align:center;background:#f5f5f5;color:#ccc">—</td>`; return; }
+      if(ti > fi) {
+        const c = fromN>0 ? Math.round(toN/fromN*100) : 0;
+        const bg = c>=50?'#E8F5E9':c>=20?'#FFF3E0':'#FFEBEE';
+        const col = c>=50?'#2E7D32':c>=20?'#E65100':'#C62828';
+        html += `<td style="padding:5px 6px;border:1px solid var(--border);text-align:center;background:${bg};color:${col};font-weight:700">${c}%</td>`;
+      } else {
+        html += `<td style="padding:5px 6px;border:1px solid var(--border);text-align:center;color:var(--cream-dark)">·</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('hc-conversions').innerHTML = html;
+}
+// ============ КОНЕЦ КАРТОЧКИ HR ============
+
 
 
 // ============ EMAILJS ============
@@ -6273,6 +6555,43 @@ sb.auth.onAuthStateChange((event, session) => {
     <input class="form-control" id="pick-cand-search" placeholder="Поиск по имени, телефону..." oninput="filterPickCandidates(this.value)" style="margin-bottom:12px" />
     <div style="max-height:55vh;overflow-y:auto;border:1px solid var(--border);border-radius:8px" id="pick-cand-list">
       <div class="loading">Загрузка...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Карточка HR -->
+<div class="modal-overlay" id="hr-card-modal">
+  <div class="modal" style="width:720px;max-height:90vh">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div id="hc-avatar" style="width:52px;height:52px;border-radius:50%;background:var(--burgundy);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--burgundy)" id="hc-name"></div>
+        <div style="font-size:12px;color:var(--text-muted)" id="hc-meta"></div>
+      </div>
+      <button style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)" onclick="closeModal('hr-card-modal')">✕</button>
+    </div>
+
+    <!-- Фильтр по вакансии -->
+    <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:12px;color:var(--text-muted);font-weight:600">Вакансия:</div>
+      <select class="form-control" id="hc-vac-filter" onchange="renderHrConversions()" style="width:280px;font-size:13px">
+        <option value="">Все вакансии</option>
+      </select>
+    </div>
+
+    <!-- Сводные цифры -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px" id="hc-stats-row"></div>
+
+    <!-- Воронка конверсий -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">Воронка подбора</div>
+      <div id="hc-funnel"></div>
+    </div>
+
+    <!-- Таблица конверсий этап→этап -->
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Конверсии между этапами</div>
+      <div id="hc-conversions" style="overflow-x:auto"></div>
     </div>
   </div>
 </div>
