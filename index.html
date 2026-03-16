@@ -6089,9 +6089,13 @@ sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Показываем форму входа сразу — скроем если найдём сессию
-document.getElementById('auth-loading').style.display = 'none';
-document.getElementById('login-form-wrap').style.display = '';
+// Показываем форму входа сразу после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+  const authLoading = document.getElementById('auth-loading');
+  const loginForm = document.getElementById('login-form-wrap');
+  if(authLoading) authLoading.style.display = 'none';
+  if(loginForm) loginForm.style.display = '';
+});
 
 // Проверяем авторизацию при загрузке
 (async function checkAuth() {
