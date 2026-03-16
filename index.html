@@ -609,16 +609,17 @@ tbody tr:last-child{border-bottom:none}
             <button id="wbt-arrow"  onclick="setWbTool('arrow')"  title="Стрелка"      style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">→</button>
             <button id="wbt-pen"    onclick="setWbTool('pen')"    title="Карандаш"     style="background:transparent;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center">✏</button>
           </div>
-          <!-- Colors -->
-          <div style="display:flex;gap:4px;align-items:center" id="wb-colors">
-            <button onclick="setWbColor('#FFEB3B')" style="width:22px;height:22px;border-radius:50%;background:#FFEB3B;border:2px solid transparent;cursor:pointer" title="Жёлтый"></button>
-            <button onclick="setWbColor('#4CAF50')" style="width:22px;height:22px;border-radius:50%;background:#4CAF50;border:2px solid transparent;cursor:pointer" title="Зелёный"></button>
-            <button onclick="setWbColor('#2196F3')" style="width:22px;height:22px;border-radius:50%;background:#2196F3;border:2px solid transparent;cursor:pointer" title="Синий"></button>
-            <button onclick="setWbColor('#F44336')" style="width:22px;height:22px;border-radius:50%;background:#F44336;border:2px solid transparent;cursor:pointer" title="Красный"></button>
-            <button onclick="setWbColor('#9C27B0')" style="width:22px;height:22px;border-radius:50%;background:#9C27B0;border:2px solid transparent;cursor:pointer" title="Фиолетовый"></button>
-            <button onclick="setWbColor('#FF9800')" style="width:22px;height:22px;border-radius:50%;background:#FF9800;border:2px solid transparent;cursor:pointer" title="Оранжевый"></button>
-            <button onclick="setWbColor('#FFFFFF')" style="width:22px;height:22px;border-radius:50%;background:#FFFFFF;border:2px solid #ccc;cursor:pointer" title="Белый"></button>
-            <button onclick="setWbColor('#212121')" style="width:22px;height:22px;border-radius:50%;background:#212121;border:2px solid transparent;cursor:pointer" title="Чёрный"></button>
+          <!-- Colors: brand palette from guidebook -->
+          <div style="display:flex;gap:5px;align-items:center" id="wb-colors">
+            <button id="wbc-54052B" onclick="setWbColor('#54052B')" title="Бархат"  style="width:22px;height:22px;border-radius:50%;background:#54052B;border:3px solid #54052B;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <button id="wbc-024638" onclick="setWbColor('#024638')" title="Изумруд" style="width:22px;height:22px;border-radius:50%;background:#024638;border:3px solid #024638;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <button id="wbc-B39262" onclick="setWbColor('#B39262')" title="Бронза"  style="width:22px;height:22px;border-radius:50%;background:#B39262;border:3px solid #B39262;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <button id="wbc-F6F3EE" onclick="setWbColor('#F6F3EE')" title="Бумага"  style="width:22px;height:22px;border-radius:50%;background:#F6F3EE;border:3px solid #ccc;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <button id="wbc-000000" onclick="setWbColor('#000000')" title="Чернила" style="width:22px;height:22px;border-radius:50%;background:#000000;border:3px solid #000000;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <div style="width:1px;height:20px;background:var(--gray2);margin:0 2px"></div>
+            <button id="wbc-FFEB3B" onclick="setWbColor('#FFEB3B')" title="Жёлтый"  style="width:22px;height:22px;border-radius:50%;background:#FFEB3B;border:3px solid #FFEB3B;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <button id="wbc-E8F5E9" onclick="setWbColor('#E8F5E9')" title="Мятный"  style="width:22px;height:22px;border-radius:50%;background:#E8F5E9;border:3px solid #ccc;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
+            <button id="wbc-EDE7F6" onclick="setWbColor('#EDE7F6')" title="Лавандовый" style="width:22px;height:22px;border-radius:50%;background:#EDE7F6;border:3px solid #ccc;cursor:pointer;transition:transform .1s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform=''"></button>
           </div>
           <button class="btn btn-sm btn-ghost" onclick="wbUndo()" title="Отменить">↩</button>
           <button class="btn btn-sm btn-ghost" onclick="wbRedo()" title="Повторить">↪</button>
@@ -5194,8 +5195,17 @@ function setWbTool(tool) {
 
 function setWbColor(c) {
   wbColor = c;
-  document.querySelectorAll('#wb-colors button').forEach(b=>b.style.border='2px solid transparent');
-  event.target.style.border='2px solid var(--bv)';
+  // Reset all swatches border
+  document.querySelectorAll('#wb-colors button').forEach(b => {
+    const orig = b.title === 'Бумага' || b.title === 'Мятный' || b.title === 'Лавандовый' ? '#ccc' : b.style.background;
+    b.style.outline = 'none';
+  });
+  // Highlight active by matching id
+  const btnId = 'wbc-' + c.replace('#','');
+  const btn = document.getElementById(btnId);
+  if (btn) btn.style.outline = '2.5px solid var(--bv)';
+  else if (event?.target) event.target.style.outline = '2.5px solid var(--bv)';
+  // Apply to selected element
   if (wbSelectedId) {
     const b = whiteboards.find(x=>x.id===activeWbId);
     const el = b?.elements.find(x=>x.id===wbSelectedId);
@@ -5467,9 +5477,20 @@ function wbRedo() {
 
 function copyWbShareLink() { copyWbShareLinkById(activeWbId); }
 function copyWbShareLinkById(id) {
-  const url=window.location.origin+window.location.pathname+'?wbread='+id;
-  navigator.clipboard?.writeText(url).catch(()=>{});
-  showToast('Ссылка скопирована — открывает доску в режиме чтения ✓');
+  const url = window.location.origin + window.location.pathname + '?wbread=' + id;
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url)
+      .then(()=>showToast('Ссылка скопирована ✓'))
+      .catch(()=>{ prompt('Скопируйте ссылку для доступа (только чтение):', url); });
+  } else {
+    // Fallback for non-HTTPS / iframe
+    const ta = document.createElement('textarea');
+    ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('Ссылка скопирована ✓'); }
+    catch(e) { prompt('Скопируйте ссылку для доступа (только чтение):', url); }
+    document.body.removeChild(ta);
+  }
 }
 
 // Read-only mode: if URL has ?wbread=id, show board read-only
