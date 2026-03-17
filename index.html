@@ -1355,10 +1355,14 @@ const ALL_PAGES = [
 
 // Default page access per role (true = visible)
 const ROLE_DEFAULTS = {
+  // Фото 1: всё включено
   admin:      {dashboard:1,finance:1,metrics:1,org:1,users:1,crm:1,tasks:1,hrm:1,projects:1,processes:1,kb:1,passwords:1,chat:1,tools:1},
-  hr:         {dashboard:1,finance:0,metrics:1,org:1,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:1,kb:1,passwords:0,chat:1,tools:1},
-  ops:        {dashboard:1,finance:1,metrics:1,org:1,users:0,crm:1,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:0,chat:1,tools:1},
-  contractor: {dashboard:1,finance:0,metrics:0,org:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:0,kb:1,passwords:0,chat:1,tools:0},
+  // Фото 2: Метрики, Задачник, HRM, База знаний, Чат
+  hr:         {dashboard:0,finance:0,metrics:1,org:0,users:0,crm:0,tasks:1,hrm:1,projects:0,processes:0,kb:1,passwords:0,chat:1,tools:0},
+  // Фото 3: Рабочий стол, Задачник, Операционка, Бизнес-процессы, База знаний, Пароли, Чат, Инструменты
+  ops:        {dashboard:1,finance:0,metrics:0,org:0,users:0,crm:0,tasks:1,hrm:0,projects:1,processes:1,kb:1,passwords:1,chat:1,tools:1},
+  // Фото 4: только Задачник и Чат
+  contractor: {dashboard:0,finance:0,metrics:0,org:0,users:0,crm:0,tasks:1,hrm:0,projects:0,processes:0,kb:0,passwords:0,chat:1,tools:0},
 };
 
 const USERS_DEFAULTS = {
@@ -1733,6 +1737,7 @@ function bootSession(email, user, savedPage) {
     const now=new Date();
     su.lastLogin=now.toLocaleDateString('ru-RU')+' '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
     currentUser.pages = su.pages || ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
+    logActivity(su.id, 'Вход в систему');
   } else {
     currentUser.pages = ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
   }
@@ -1764,12 +1769,12 @@ function bootSession(email, user, savedPage) {
 }
 
 function applyPagePermissions() {
-  const pages = currentUser?.pages || {};
   document.querySelectorAll('.sb-item[data-page]').forEach(el => {
     const page = el.dataset.page;
     if (!page) return;
-    el.style.display = pages[page] ? '' : 'none';
+    el.style.display = pageAllowed(page) ? '' : 'none';
   });
+  // Hide empty sidebar sections
   document.querySelectorAll('.sb-section').forEach(sec => {
     let next = sec.nextElementSibling;
     let hasVisible = false;
@@ -1800,6 +1805,16 @@ function nav(el) {
   el.classList.add('active');
   const page = el.dataset.page;
   if (!page) return;
+  // Access check
+  if (!pageAllowed(page)) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const pageEl = document.getElementById('page-'+page);
+    if (pageEl) {
+      pageEl.classList.add('active');
+      pageEl.innerHTML = `<div class="access-denied"><div class="icon">🔒</div><h2>Нет доступа</h2><p>У вас нет доступа к этому разделу. Обратитесь к администратору.</p></div>`;
+    }
+    return;
+  }
   if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) { navExternal(page); return; }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const pageEl = document.getElementById('page-'+page);
@@ -1807,6 +1822,12 @@ function nav(el) {
   pageEl.classList.add('active');
   currentPage = page;
   localStorage.setItem('bt_last_page', page);
+  // Log navigation
+  if (currentUser) {
+    const su = systemUsers.find(u=>u.email===currentUser.email);
+    const pageNames = {dashboard:'Рабочий стол',finance:'Финансы',metrics:'Метрики',org:'Команда',crm:'CRM',tasks:'Задачник',hrm:'HRM',projects:'Операционка',kb:'База знаний',passwords:'Пароли',chat:'Чат',tools:'Инструменты',users:'Пользователи'};
+    if (su && pageNames[page]) logActivity(su.id, 'Открыл раздел', pageNames[page]);
+  }
   if (page==='tasks') { renderBoardTabs(); renderBoard(); }
   if (page==='finance') renderFinance();
   if (page==='metrics') renderMetrics();
@@ -1822,8 +1843,27 @@ function nav(el) {
 
 function hasAccess(roles) { return roles.includes(currentUser.role); }
 
+function pageAllowed(page) {
+  if (!currentUser) return false;
+  const pages = currentUser.pages || ROLE_DEFAULTS[currentUser.role] || {};
+  // users page only for admin
+  if (page === 'users') return currentUser.role === 'admin';
+  return pages[page] === 1;
+}
+
+function applySidebarAccess() {
+  document.querySelectorAll('.sb-item[data-page]').forEach(el => {
+    const page = el.dataset.page;
+    if (page && !pageAllowed(page)) {
+      el.style.display = 'none';
+    } else {
+      el.style.display = '';
+    }
+  });
+}
+
 function accessDenied(el) {
-  el.innerHTML = `<div class="access-denied"><div class="icon">🔒</div><h2>Нет доступа</h2><p>Этот раздел доступен только для роли Администратор</p></div>`;
+  el.innerHTML = `<div class="access-denied"><div class="icon">🔒</div><h2>Нет доступа</h2><p>У вас нет доступа к этому разделу. Обратитесь к администратору.</p></div>`;
 }
 
 // ════════════════════════════════════════════
@@ -2322,7 +2362,6 @@ function openEmpDetail(id) {
         <div class="color-gray" style="margin-top:2px">${e.pos||'—'}</div>
         <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
           <span class="badge badge-${e.status==='Активен'?'green':e.status==='В отпуске'?'yellow':'red'}">${e.status}</span>
-          <span class="badge badge-gray">${e.dept||'—'}</span>
           <span class="badge badge-gray">${e.sysrole}</span>
         </div>
       </div>
@@ -3316,6 +3355,7 @@ function saveFinOp() {
     date: document.getElementById('ff-date').value,
   });
   closeModal('fin-modal'); renderFinance();
+  if(currentUser){const su=systemUsers.find(u=>u.email===currentUser.email);if(su)logActivity(su.id,'Добавил операцию',document.getElementById('ff-desc')?.value||'');}
 }
 
 // ════════════════════════════════════════════
@@ -4215,6 +4255,7 @@ function renderUsersTable() {
         <div class="flex gap-2" style="flex-wrap:wrap">
           <button class="btn btn-sm btn-ghost" onclick="openEmpDetail('${u.id}')">Карточка</button>
           <button class="btn btn-sm btn-ghost" onclick="openPermissionsPanel('${u.id}')">Доступы</button>
+          <button class="btn btn-sm btn-ghost" onclick="openUserActivity('${u.id}')">📋 Действия</button>
           <button class="btn btn-sm btn-ghost" onclick="openResetPassModal('${u.id}')">Пароль</button>
           <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="toggleUserStatus('${u.id}')">${u.status==='Активен'?'Блок.':'Разблок.'}</button>
           <button class="btn btn-sm btn-ghost" style="color:var(--danger)" onclick="deleteUser('${u.id}')">✕</button>
@@ -4222,6 +4263,75 @@ function renderUsersTable() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ─── USER ACTIVITY LOG ───────────────────────────────────
+// Automatically logs key actions per user to localStorage
+const ACT_KEY = 'bt_activity';
+
+function logActivity(userId, action, detail='') {
+  try {
+    const all = JSON.parse(localStorage.getItem(ACT_KEY)||'{}');
+    if (!all[userId]) all[userId] = [];
+    all[userId].unshift({
+      ts: Date.now(),
+      date: new Date().toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+      action, detail
+    });
+    // Keep last 200 entries per user
+    if (all[userId].length > 200) all[userId] = all[userId].slice(0, 200);
+    localStorage.setItem(ACT_KEY, JSON.stringify(all));
+  } catch(e) {}
+}
+
+function openUserActivity(userId) {
+  const u = systemUsers.find(x=>x.id===userId); if(!u) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(ACT_KEY)||'{}');
+    const logs = (all[userId]||[]);
+    const weekAgo = Date.now() - 7*24*60*60*1000;
+    const recent = logs.filter(l => l.ts >= weekAgo);
+
+    const rows = recent.length
+      ? recent.map(l=>`
+          <tr>
+            <td style="padding:9px 14px;font-size:12.5px;color:var(--gray4);white-space:nowrap">${l.date}</td>
+            <td style="padding:9px 14px;font-size:13px;font-weight:600;color:var(--ink)">${l.action}</td>
+            <td style="padding:9px 14px;font-size:12.5px;color:var(--gray4)">${l.detail||'—'}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="3" style="padding:32px;text-align:center;color:var(--gray3);font-size:13px">Нет активности за последние 7 дней</td></tr>`;
+
+    const modal = document.createElement('div');
+    modal.id = 'activity-modal-wrap';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML = `
+      <div style="background:var(--white);border-radius:14px;width:640px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+        <div style="padding:20px 24px 14px;border-bottom:1px solid var(--gray1);display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-family:var(--font-h);font-size:20px;color:var(--bv)">Действия: ${u.name}</div>
+            <div style="font-size:12px;color:var(--gray3);margin-top:2px">Последние 7 дней · ${recent.length} событий</div>
+          </div>
+          <button onclick="document.getElementById('activity-modal-wrap').remove()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--gray3);line-height:1">✕</button>
+        </div>
+        <div style="overflow-y:auto;flex:1">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:var(--gray1)">
+                <th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray4);white-space:nowrap">Время</th>
+                <th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray4)">Действие</th>
+                <th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray4)">Детали</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div style="padding:12px 24px;border-top:1px solid var(--gray1);text-align:right">
+          <button onclick="document.getElementById('activity-modal-wrap').remove()" class="btn btn-ghost btn-sm">Закрыть</button>
+        </div>
+      </div>`;
+    modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+    document.body.appendChild(modal);
+  } catch(e) { showToast('Ошибка загрузки'); }
 }
 
 function deleteUser(id) {
@@ -5129,6 +5239,7 @@ function saveClient() {
   const colors = ['var(--bv)','var(--em)','var(--bronze)','#7b4fa6','#2980b9'];
   clients.push({ id:'cl_'+Date.now(), name, manager:document.getElementById('cl-manager')?.value||'', status:document.getElementById('cl-status')?.value||'В работе', start:document.getElementById('cl-start')?.value||'', color:colors[clients.length%colors.length], tasks:[] });
   closeModal('add-client-modal'); renderProjectsList(); showToast('Клиент «'+name+'» добавлен ✓');
+  if(currentUser){const su=systemUsers.find(u=>u.email===currentUser.email);if(su)logActivity(su.id,'Добавил клиента',name);}
 }
 function openAddClientTaskModal() {
   ['ct-etap','ct-task','ct-resp','ct-result'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
@@ -5140,6 +5251,7 @@ function saveClientTask() {
   const task=document.getElementById('ct-task')?.value.trim(); if(!task) return;
   c.tasks.push({ etap:document.getElementById('ct-etap')?.value||'Без этапа', task, resp:document.getElementById('ct-resp')?.value||'', status:document.getElementById('ct-status')?.value||'Не в работе', result:document.getElementById('ct-result')?.value||'', start:document.getElementById('ct-start')?.value||'', deadline:document.getElementById('ct-deadline')?.value||'' });
   closeModal('add-client-task-modal'); renderClientView(); renderProjectsList(); showToast('Задача добавлена ✓');
+  if(currentUser){const su=systemUsers.find(u=>u.email===currentUser.email);if(su)logActivity(su.id,'Добавил задачу',task);}
 }
 function editClientTask(clientId, etap, etapIdx) {}
 
@@ -5885,16 +5997,15 @@ function deleteWhiteboard(id) {
 }
 
 function openWhiteboard(id) {
-  activeWbId = id;
-  const b = whiteboards.find(x=>x.id===id); if (!b) return;
-  wbZoom=1; wbPanX=0; wbPanY=0; wbHistory=[]; wbFuture=[]; wbSelectedId=null;
-  document.getElementById('tool-main-view').style.display='none';
-  const cv = document.getElementById('wb-canvas-view');
-  cv.style.display='flex';
-  document.getElementById('wb-title-input').textContent = b.name;
-  setWbTool('select');
-  renderWbElements();
-  renderWbArrows();
+  // Save current data into localStorage so new window can read it
+  const b = whiteboards.find(x=>x.id===id);
+  if (!b) return;
+  // Ensure board has new-format fields
+  if (!b.connectors) b.connectors = [];
+  if (!b.pens) b.pens = [];
+  saveWhiteboards();
+  // Open in new tab — whiteboard.html reads from same localStorage
+  window.open('whiteboard.html?wb=' + encodeURIComponent(id), '_blank');
 }
 
 function closeWhiteboard() {
