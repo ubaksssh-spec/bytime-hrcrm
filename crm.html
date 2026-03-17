@@ -657,7 +657,9 @@ html.iframe-mode-early .topbar{display:none!important}
         <div class="mo-sec-title">Задачи</div>
         <div class="add-task-row" style="flex-wrap:wrap;gap:6px">
           <input type="text" id="nt-text" placeholder="Новая задача..." style="flex:2;min-width:160px">
-          <input type="text" id="nt-assign" placeholder="Ответственный" style="flex:1;min-width:120px;padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none">
+          <select id="nt-assign" style="flex:1;min-width:120px;padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none;background:#fff;color:#1a0a0f">
+            <option value="">Ответственный</option>
+          </select>
           <input type="date" id="nt-dl">
           <input type="time" id="nt-tm" style="padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none;">
           <button class="btn btn-primary btn-sm" onclick="addTask()">+ Добавить</button>
@@ -878,6 +880,8 @@ function openModal(id=null){
   document.getElementById('stage-sel').innerHTML=STAGES.map(s=>
     `<button class="s-btn" style="background:${s.color}" data-stage="${s.id}" onclick="selStage('${s.id}')">${s.label}</button>`
   ).join('');
+  // Populate assign dropdown from profiles + existing managers
+  populateAssignSelect();
   if(id){
     const c=clients.find(x=>x.id===id);
     document.getElementById('mo-title').textContent=c.name;
@@ -945,6 +949,27 @@ async function deleteClient(){
   if(!confirm('Удалить клиента?'))return;
   clients=clients.filter(x=>x.id!==curId);
   await destroy(curId);closeModal();toast('Удалено');updateBadges();renderPage(curPage);
+}
+
+let _allProfiles = []; // cached profiles
+
+async function populateAssignSelect() {
+  const sel = document.getElementById('nt-assign');
+  if (!sel) return;
+  // Use cached or fetch
+  if (_allProfiles.length === 0) {
+    try {
+      const {data} = await DB.from('profiles').select('id,name,email').order('name');
+      if (data) _allProfiles = data;
+    } catch(e) {}
+  }
+  // Also include existing managers from clients as fallback
+  const names = _allProfiles.length
+    ? _allProfiles.map(p => p.name || p.email).filter(Boolean)
+    : getManagers();
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Ответственный —</option>' +
+    names.map(n => `<option value="${n}" ${n===cur?'selected':''}>${n}</option>`).join('');
 }
 
 // ===== TASKS =====
