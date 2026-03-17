@@ -392,11 +392,17 @@ html.iframe-mode-early .topbar{display:none!important}
 
     <!-- TASKS -->
     <div id="page-tasks" class="page">
-      <div class="toolbar">
-        <select class="sel" id="fl-task-st" onchange="renderTasks()">
-          <option value="pending">Активные</option><option value="all">Все</option><option value="done">Выполненные</option>
-        </select>
-        <select class="sel" id="fl-task-mgr" onchange="renderTasks()"><option value="">Все менеджеры</option></select>
+      <div class="toolbar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:8px">
+          <select class="sel" id="fl-task-st" onchange="renderTasks()">
+            <option value="pending">Активные</option><option value="all">Все</option><option value="done">Выполненные</option>
+          </select>
+          <select class="sel" id="fl-task-mgr" onchange="renderTasks()"><option value="">Все менеджеры</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="openAddTaskModal()" style="display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Задача
+        </button>
       </div>
       <div id="tasks-list"></div>
       <div id="tasks-empty" class="empty" style="display:none">
@@ -502,6 +508,48 @@ html.iframe-mode-early .topbar{display:none!important}
 </main>
 
 <!-- ADD DOC MODAL -->
+<!-- ADD TASK MODAL -->
+<div id="add-task-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:440px;box-shadow:0 8px 40px rgba(0,0,0,.18);font-family:'Onest',Arial,sans-serif">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid #e8e0e4;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#54052B">Новая задача</div>
+      <button onclick="closeAddTaskModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#b8a8b0">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Текст задачи *</label>
+        <input id="at-text" placeholder="Что нужно сделать?" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Клиент</label>
+          <select id="at-client" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;background:#fff">
+            <option value="">— не привязана —</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Дедлайн</label>
+          <input id="at-deadline" type="date" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Время</label>
+          <input id="at-time" type="time" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Менеджер</label>
+          <select id="at-manager" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;background:#fff">
+            <option value="">— выберите —</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="closeAddTaskModal()" style="padding:10px 18px;background:#f4f0f2;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:'Onest',Arial,sans-serif;color:#7a6070">Отмена</button>
+        <button onclick="saveNewTask()" style="padding:10px 24px;background:#54052B;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Onest',Arial,sans-serif">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="doc-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:14px;width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
     <div style="padding:20px 24px 14px;border-bottom:1px solid #e8e0e4;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
@@ -1254,6 +1302,62 @@ async function removeUser(uid){
     }
   });
 })();
+
+// ═══════════════════════════════════════
+// ADD TASK FROM TASKS PAGE
+// ═══════════════════════════════════════
+function openAddTaskModal() {
+  // Populate selects
+  const cs = document.getElementById('at-client');
+  cs.innerHTML = '<option value="">— не привязана —</option>' +
+    clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const ms = document.getElementById('at-manager');
+  ms.innerHTML = '<option value="">— выберите —</option>' +
+    getManagers().map(m=>`<option value="${m}">${m}</option>`).join('');
+  if(currentProfile?.name) ms.value = currentProfile.name;
+  document.getElementById('at-text').value = '';
+  document.getElementById('at-deadline').value = '';
+  document.getElementById('at-time').value = '';
+  const ov = document.getElementById('add-task-overlay');
+  ov.style.display = 'flex';
+  setTimeout(()=>document.getElementById('at-text').focus(), 50);
+}
+
+function closeAddTaskModal() {
+  document.getElementById('add-task-overlay').style.display = 'none';
+}
+
+function saveNewTask() {
+  const text = document.getElementById('at-text').value.trim();
+  if(!text) { document.getElementById('at-text').focus(); return; }
+  const clientId = document.getElementById('at-client').value;
+  const deadline = document.getElementById('at-deadline').value;
+  const time     = document.getElementById('at-time').value;
+  const manager  = document.getElementById('at-manager').value;
+
+  const task = {
+    id: 'task_'+Date.now(),
+    text, deadline, time,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  if(clientId) {
+    // Attach to client
+    const c = clients.find(x=>x.id===clientId);
+    if(c) { if(!c.tasks) c.tasks=[]; c.tasks.push(task); }
+  } else {
+    // Attach to first client or create standalone (attach to dummy)
+    // Store in a global standalone tasks array
+    if(!window._standaloneTasks) window._standaloneTasks = [];
+    window._standaloneTasks.push({...task, cid:'__standalone', cname: manager||'Без клиента'});
+  }
+
+  saveClients();
+  closeAddTaskModal();
+  renderTasks();
+  toast('Задача добавлена ✓');
+}
 
 // ═══════════════════════════════════════
 // ДОКУМЕНТООБОРОТ
