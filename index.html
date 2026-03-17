@@ -6478,40 +6478,6 @@ function copyWbShareLinkById(id) {
   document.body.appendChild(modal);
 }
 
-// Read-only mode: if URL has ?wbread=id, show board read-only
-(function checkWbReadMode(){
-  const params=new URLSearchParams(location.search);
-  const wbid=params.get('wbread');
-  if(!wbid) return;
-  window.addEventListener('DOMContentLoaded',()=>{
-    const b=whiteboards.find(x=>x.id===wbid);
-    if(!b){document.body.innerHTML='<div style="padding:40px;font-family:sans-serif;color:#666">Доска не найдена или нет доступа.</div>';return;}
-    document.getElementById('login-screen').style.display='none';
-    // Show read-only board
-    const div=document.createElement('div');
-    div.style.cssText='position:fixed;inset:0;background:#f0f0f0;z-index:9999;display:flex;flex-direction:column';
-    div.innerHTML=`<div style="background:#fff;border-bottom:1px solid #e0e0e0;padding:12px 24px;display:flex;align-items:center;gap:12px">
-      <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#54052B">BYTIME</span>
-      <span style="font-size:18px;font-weight:700;color:#1a0a0f">${b.name}</span>
-      <span style="margin-left:8px;background:#f0f0f0;border-radius:20px;padding:3px 12px;font-size:12px;color:#666">Режим чтения</span>
-    </div>
-    <div style="flex:1;overflow:hidden;position:relative">
-      <div id="wb-ro-els" style="position:absolute;top:0;left:0;transform-origin:0 0"></div>
-      <svg id="wb-ro-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible"></svg>
-    </div>`;
-    document.body.appendChild(div);
-    // Render read-only
-    document.getElementById('wb-ro-els').innerHTML=b.elements.map(el=>`
-      <div style="position:absolute;left:${el.x}px;top:${el.y}px;width:${el.w}px;min-height:${el.h}px;background:${el.color||'#FFEB3B'};border-radius:${el.type==='circle'?'50%':'8px'};padding:10px;font-family:'Onest',sans-serif;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.1)">${(el.text||'').replace(/\n/g,'<br>')}</div>`).join('');
-    const svg=document.getElementById('wb-ro-svg');
-    svg.innerHTML=(b.arrows||[]).map(a=>{
-      if(a.type==='pen'&&a.points?.length>1){const d=a.points.map((p,i)=>(i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');return `<path d="${d}" stroke="${a.color}" stroke-width="${a.width}" fill="none" stroke-linecap="round"/>`;}
-      if(a.type==='arrow'){const dx=a.x2-a.x1,dy=a.y2-a.y1,len=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/len,uy=dy/len,hs=12,ax=a.x2-ux*hs-uy*hs*0.4,ay=a.y2-uy*hs+ux*hs*0.4,bx=a.x2-ux*hs+uy*hs*0.4,by2=a.y2-uy*hs-ux*hs*0.4;return `<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${a.color}" stroke-width="${a.width}"/><polygon points="${a.x2},${a.y2} ${ax},${ay} ${bx},${by2}" fill="${a.color}"/>`;}
-      return '';
-    }).join('');
-  });
-})();
-
 // ════════════════════════════════════════════
 // PROJECT SHARE LINK
 // ════════════════════════════════════════════
