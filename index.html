@@ -2912,14 +2912,248 @@ function renderFinTab(tab) {
       <div class="stat-card bronze"><div class="stat-val">₽75 000</div><div class="stat-label">Физлицо</div><div class="text-xs color-gray mt-2">р/с ФЛ</div></div>
     </div>`;
   } else if (tab==='fot') {
-    const activeEmps = employees.filter(e=>e.status==='Активен');
-    const totalSalary = activeEmps.reduce((a,b)=>a+(b.salary||0),0);
-    el.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Сотрудник</th><th>Должность</th><th>Оклад</th><th>Переменная</th></tr></thead><tbody>
-      ${activeEmps.map(e=>`<tr><td><div class="flex items-center gap-2"><div class="avatar avatar-sm" style="background:${avatarColor(e.dept)}">${e.first[0]}${e.last[0]}</div>${e.first} ${e.last}</div></td><td>${e.pos}</td><td class="fw-7">₽${(e.salary||0).toLocaleString()}</td><td class="color-gray">${e.bonus||'—'}</td></tr>`).join('')}
-      <tr style="border-top:2px solid var(--bv);background:rgba(84,5,43,.04)"><td colspan="2" class="fw-7">Итого ФОТ</td><td class="fw-7" style="font-size:16px;color:var(--bv)">₽${totalSalary.toLocaleString()}</td><td></td></tr>
-    </tbody></table></div>`;
+    renderFotTable(el);
   }
 }
+
+// ── FOT DATA ─────────────────────────────────────────────────
+let fotData = (() => {
+  try { return JSON.parse(localStorage.getItem('bt_fot')||'null') || {}; } catch(e){ return {}; }
+})();
+function saveFotData() { try { localStorage.setItem('bt_fot', JSON.stringify(fotData)); } catch(e){} }
+
+function fotKey(month) { return month; } // "2026-03"
+
+function renderFotTable(container) {
+  // Month picker
+  const now = new Date();
+  const curMonth = fotData._activeMonth || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  fotData._activeMonth = curMonth;
+
+  // Parse month to get weeks
+  const [yr, mo] = curMonth.split('-').map(Number);
+  const monthName = new Date(yr, mo-1, 1).toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+  const weeks = getFotWeeks(yr, mo);
+
+  // Get rows for this month
+  const key = fotKey(curMonth);
+  if (!fotData[key]) fotData[key] = { rows: [], weeks };
+  const mData = fotData[key];
+  mData.weeks = weeks; // refresh
+
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="fotChangeMonth(-1)" style="background:none;border:1.5px solid var(--gray2);border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">‹</button>
+        <span style="font-size:16px;font-weight:700;color:var(--ink);min-width:160px;text-align:center">${monthName}</span>
+        <button onclick="fotChangeMonth(1)" style="background:none;border:1.5px solid var(--gray2);border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">›</button>
+      </div>
+      <button onclick="fotAddRow()" class="btn btn-bv btn-sm">+ Сотрудник</button>
+      <button onclick="downloadFotExcel()" class="btn btn-ghost btn-sm">↓ Excel</button>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table id="fot-table" style="border-collapse:collapse;min-width:100%;font-size:13px">
+        <thead>
+          <tr>
+            <th style="${fotThStyle('left','var(--bv)')}">ФОТ</th>
+            ${weeks.map((w,i)=>`
+              <th colspan="2" style="${fotThStyle('center','var(--bv)')}">
+                <div>${w.label}</div>
+              </th>`).join('')}
+            <th style="${fotThStyle('center','var(--em)')}">Итого</th>
+            <th style="${fotThStyle('center','transparent')}"></th>
+          </tr>
+          <tr style="background:rgba(84,5,43,.08)">
+            <th style="${fotSubThStyle('left')}">Имя / Число</th>
+            ${weeks.map(w=>`
+              <th style="${fotSubThStyle('center')}">Аванс</th>
+              <th style="${fotSubThStyle('center')}">Остаток+KPI</th>`).join('')}
+            <th style="${fotSubThStyle('center')}"></th>
+            <th style="padding:6px 8px;border:1px solid rgba(84,5,43,.15)"></th>
+          </tr>
+        </thead>
+        <tbody id="fot-body">
+          ${mData.rows.map((row,ri) => fotRowHtml(row, ri, weeks)).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="background:var(--bv);color:white;font-weight:700">
+            <td style="padding:10px 14px;border:1px solid rgba(255,255,255,.3)">ИТОГО</td>
+            ${weeks.map((w,wi)=>{
+              const advSum = mData.rows.reduce((a,r)=>a+fotParseNum(r.cells?.[wi]?.adv),0);
+              const remSum = mData.rows.reduce((a,r)=>a+fotParseNum(r.cells?.[wi]?.rem),0);
+              return `
+                <td style="padding:10px 14px;border:1px solid rgba(255,255,255,.3);text-align:center">${advSum>0?'₽'+fmtMoney(advSum):''}</td>
+                <td style="padding:10px 14px;border:1px solid rgba(255,255,255,.3);text-align:center">${remSum>0?'₽'+fmtMoney(remSum):''}</td>`;
+            }).join('')}
+            <td style="padding:10px 14px;border:1px solid rgba(255,255,255,.3);text-align:center;font-size:15px">
+              ₽${fmtMoney(mData.rows.reduce((a,r)=>a+fotRowTotal(r,weeks),0))}
+            </td>
+            <td style="border:1px solid rgba(255,255,255,.3)"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+}
+
+function fotThStyle(align, bg) {
+  return `padding:10px 14px;background:${bg};color:white;font-size:12px;font-weight:700;text-align:${align};border:1px solid rgba(255,255,255,.2);white-space:nowrap`;
+}
+function fotSubThStyle(align) {
+  return `padding:6px 10px;color:var(--bv);font-size:11px;font-weight:700;text-align:${align};border:1px solid rgba(84,5,43,.15);white-space:nowrap`;
+}
+
+function fotRowHtml(row, ri, weeks) {
+  const total = fotRowTotal(row, weeks);
+  return `<tr id="fot-row-${ri}" style="border-bottom:1px solid var(--gray1)">
+    <td style="padding:8px 10px;border:1px solid var(--gray1);min-width:160px">
+      <input value="${row.name||''}" placeholder="Имя сотрудника"
+        onchange="fotUpdateName(${ri},this.value)"
+        style="border:none;background:transparent;font-family:var(--font-b);font-size:13px;width:100%;outline:none;font-weight:600"
+        onfocus="this.style.background='var(--gray1)'" onblur="this.style.background='transparent'">
+    </td>
+    ${weeks.map((w,wi)=>{
+      const adv = row.cells?.[wi]?.adv||'';
+      const rem = row.cells?.[wi]?.rem||'';
+      return `
+        <td style="padding:4px 6px;border:1px solid var(--gray1);background:${adv?'rgba(2,70,56,.04)':''}">
+          <input value="${adv}" placeholder="—"
+            onchange="fotUpdateCell(${ri},${wi},'adv',this.value)"
+            style="border:none;background:transparent;font-family:var(--font-b);font-size:13px;width:80px;outline:none;text-align:center"
+            onfocus="this.style.outline='1.5px solid var(--em)'" onblur="this.style.outline='none'">
+        </td>
+        <td style="padding:4px 6px;border:1px solid var(--gray1);background:${rem?'rgba(84,5,43,.03)':''}">
+          <input value="${rem}" placeholder="—"
+            onchange="fotUpdateCell(${ri},${wi},'rem',this.value)"
+            style="border:none;background:transparent;font-family:var(--font-b);font-size:13px;width:80px;outline:none;text-align:center"
+            onfocus="this.style.outline='1.5px solid var(--bv)'" onblur="this.style.outline='none'">
+        </td>`;
+    }).join('')}
+    <td style="padding:8px 14px;border:1px solid var(--gray1);font-weight:700;color:var(--em);text-align:center;white-space:nowrap">
+      ${total>0?'₽'+fmtMoney(total):'—'}
+    </td>
+    <td style="padding:4px 8px;border:1px solid var(--gray1);text-align:center">
+      <button onclick="fotRemoveRow(${ri})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.4;font-size:16px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>
+    </td>
+  </tr>`;
+}
+
+function fotParseNum(v) {
+  if (!v) return 0;
+  return parseInt(String(v).replace(/\D/g,''),10)||0;
+}
+function fotRowTotal(row, weeks) {
+  return weeks.reduce((a,w,i)=>a+fotParseNum(row.cells?.[i]?.adv)+fotParseNum(row.cells?.[i]?.rem),0);
+}
+
+function getFotWeeks(yr, mo) {
+  const weeks = [];
+  const firstDay = new Date(yr, mo-1, 1);
+  const lastDay = new Date(yr, mo, 0).getDate();
+  let d = 1;
+  while (d <= lastDay) {
+    const start = d;
+    const end = Math.min(d+6, lastDay);
+    const label = `${start}–${end} ${new Date(yr,mo-1,1).toLocaleDateString('ru-RU',{month:'short'})}`;
+    weeks.push({start, end, label});
+    d = end + 1;
+  }
+  return weeks;
+}
+
+function fotChangeMonth(delta) {
+  const [yr,mo] = (fotData._activeMonth||'2026-03').split('-').map(Number);
+  const d = new Date(yr, mo-1+delta, 1);
+  fotData._activeMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  saveFotData();
+  renderFinTab('fot');
+}
+
+function fotAddRow() {
+  const key = fotKey(fotData._activeMonth);
+  if (!fotData[key]) fotData[key] = {rows:[]};
+  fotData[key].rows.push({name:'', cells:{}});
+  saveFotData();
+  renderFinTab('fot');
+}
+
+function fotRemoveRow(ri) {
+  const key = fotKey(fotData._activeMonth);
+  fotData[key].rows.splice(ri,1);
+  saveFotData();
+  renderFinTab('fot');
+}
+
+function fotUpdateName(ri, val) {
+  const key = fotKey(fotData._activeMonth);
+  fotData[key].rows[ri].name = val;
+  saveFotData();
+  // Refresh totals only
+  fotRefreshTotals();
+}
+
+function fotUpdateCell(ri, wi, field, val) {
+  const key = fotKey(fotData._activeMonth);
+  if (!fotData[key].rows[ri].cells) fotData[key].rows[ri].cells = {};
+  if (!fotData[key].rows[ri].cells[wi]) fotData[key].rows[ri].cells[wi] = {};
+  fotData[key].rows[ri].cells[wi][field] = val;
+  saveFotData();
+  fotRefreshTotals();
+}
+
+function fotRefreshTotals() {
+  const key = fotKey(fotData._activeMonth);
+  const mData = fotData[key]; if (!mData) return;
+  const weeks = mData.weeks||[];
+  // Update row totals
+  mData.rows.forEach((row,ri)=>{
+    const total = fotRowTotal(row, weeks);
+    const td = document.querySelector(`#fot-row-${ri} td:nth-last-child(2)`);
+    if (td) td.innerHTML = total>0?'₽'+fmtMoney(total):'—';
+  });
+  // Update column totals in tfoot
+  const tfootTds = document.querySelectorAll('#fot-table tfoot tr td');
+  let tdIdx = 1;
+  weeks.forEach((w,wi)=>{
+    const advSum = mData.rows.reduce((a,r)=>a+fotParseNum(r.cells?.[wi]?.adv),0);
+    const remSum = mData.rows.reduce((a,r)=>a+fotParseNum(r.cells?.[wi]?.rem),0);
+    if (tfootTds[tdIdx]) tfootTds[tdIdx].textContent = advSum>0?'₽'+fmtMoney(advSum):'';
+    if (tfootTds[tdIdx+1]) tfootTds[tdIdx+1].textContent = remSum>0?'₽'+fmtMoney(remSum):'';
+    tdIdx += 2;
+  });
+  const grandTotal = mData.rows.reduce((a,r)=>a+fotRowTotal(r,weeks),0);
+  if (tfootTds[tdIdx]) tfootTds[tdIdx].textContent = '₽'+fmtMoney(grandTotal);
+}
+
+function downloadFotExcel() {
+  const key = fotKey(fotData._activeMonth);
+  const mData = fotData[key]; if (!mData) return;
+  const weeks = mData.weeks||[];
+  const doExport = () => {
+    const wb = XLSX.utils.book_new();
+    const header1 = ['ФОТ', ...weeks.flatMap(w=>[w.label, '']), 'Итого'];
+    const header2 = ['Имя / Число', ...weeks.flatMap(()=>['Аванс','Остаток+KPI']), ''];
+    const rows = mData.rows.map(row=>[
+      row.name||'',
+      ...weeks.flatMap((w,i)=>[fotParseNum(row.cells?.[i]?.adv)||'', fotParseNum(row.cells?.[i]?.rem)||'']),
+      fotRowTotal(row, weeks)||''
+    ]);
+    const totalsRow = ['ИТОГО', ...weeks.flatMap((w,i)=>[
+      mData.rows.reduce((a,r)=>a+fotParseNum(r.cells?.[i]?.adv),0)||'',
+      mData.rows.reduce((a,r)=>a+fotParseNum(r.cells?.[i]?.rem),0)||''
+    ]), mData.rows.reduce((a,r)=>a+fotRowTotal(r,weeks),0)||''];
+    const ws = XLSX.utils.aoa_to_sheet([header1, header2, ...rows, totalsRow]);
+    XLSX.utils.book_append_sheet(wb, ws, 'ФОТ');
+    XLSX.writeFile(wb, `ФОТ_${fotData._activeMonth}.xlsx`);
+    showToast('Excel скачан ✓');
+  };
+  if (typeof XLSX==='undefined') {
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=doExport; document.head.appendChild(s);
+  } else { doExport(); }
+}
+
 function openFinModal() {
   // Populate DDS select
   const sel = document.getElementById('ff-dds');
