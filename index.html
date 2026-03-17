@@ -545,7 +545,7 @@ tbody tr:last-child{border-bottom:none}
           <div class="tab active" onclick="switchToolTab('processes',this)">Бизнес-процессы</div>
           <div class="tab" onclick="switchToolTab('notes',this)">Заметки</div>
           <div class="tab" onclick="switchToolTab('boards',this)">Доска</div>
-          <div class="tab" onclick="switchToolTab('documents',this)">Документы</div>
+          <div class="tab" onclick="switchToolTab('kp',this)">📄 КП</div>
         </div>
         <!-- Tool: Processes (embedded) -->
         <div id="tool-processes">
@@ -595,47 +595,50 @@ tbody tr:last-child{border-bottom:none}
         </div>
 
         <!-- Tool: Documents (КП generator) -->
-        <div id="tool-documents" style="display:none">
-          <div style="display:grid;grid-template-columns:420px 1fr;gap:28px;align-items:flex-start;max-width:1400px">
+        <!-- Tool: КП Generator -->
+        <div id="tool-kp" style="display:none">
+          <div style="display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:flex-start;max-width:1300px">
 
             <!-- LEFT: Form -->
             <div style="background:var(--white);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--gray1);padding:24px;position:sticky;top:20px">
-              <div style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px">📄 Коммерческое предложение</div>
-              <div style="font-size:12.5px;color:var(--gray4);margin-bottom:20px">Заполните поля — КП обновится в реальном времени</div>
+              <div style="font-size:16px;font-weight:700;color:var(--bv);margin-bottom:4px">📄 Коммерческое предложение</div>
+              <div style="font-size:12.5px;color:var(--gray4);margin-bottom:20px">Заполните поля и скачайте готовое КП</div>
 
-              <!-- Client -->
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin-bottom:10px">Клиент</div>
-              <div class="form-row" style="margin-bottom:10px"><label>Название компании</label><input id="kp-client" placeholder="ООО «Ромашка»" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:10px"><label>Дата КП</label><input id="kp-date" type="date" oninput="renderKpPreview()"></div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin-bottom:8px">Клиент</div>
+              <div class="form-row" style="margin-bottom:8px"><label>Название компании</label><input id="kp-client" placeholder='ООО "Ромашка"' oninput="renderKpPreview()"></div>
+              <div class="form-row" style="margin-bottom:8px"><label>Дата КП</label><input id="kp-date" type="date" oninput="renderKpPreview()"></div>
 
-              <!-- Manager -->
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin:16px 0 10px">Менеджер</div>
-              <div class="form-row" style="margin-bottom:10px"><label>Имя менеджера</label><input id="kp-manager-name" placeholder="Ульяна Майорова" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:10px"><label>Телефон</label><input id="kp-manager-phone" placeholder="+7 999 999 99 99" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:10px"><label>Email</label><input id="kp-manager-email" placeholder="corp@bytime.agency" oninput="renderKpPreview()"></div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin:16px 0 8px">Менеджер</div>
+              <div class="form-row" style="margin-bottom:8px">
+                <label>Выбрать из команды</label>
+                <select id="kp-manager-select" onchange="kpFillManager(this.value)" style="padding:9px 12px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13.5px;outline:none;width:100%;cursor:pointer">
+                  <option value="">— выбрать —</option>
+                </select>
+              </div>
+              <div class="form-row" style="margin-bottom:8px"><label>Имя</label><input id="kp-manager-name" placeholder="Ульяна Майорова" oninput="renderKpPreview()"></div>
+              <div class="form-row" style="margin-bottom:8px"><label>Телефон</label><input id="kp-manager-phone" placeholder="+7 913 946 60 96" oninput="renderKpPreview()"></div>
+              <div class="form-row" style="margin-bottom:8px"><label>Email</label><input id="kp-manager-email" placeholder="corp@bytime.agency" oninput="renderKpPreview()"></div>
 
-              <!-- Stages -->
-              <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
                 <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4)">Этапы работ</div>
                 <button onclick="addKpStage()" class="btn btn-sm btn-ghost">+ Этап</button>
               </div>
               <div id="kp-stages-form"></div>
 
-              <!-- Actions -->
-              <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
-                <button onclick="downloadKpPptx()" style="flex:1;background:var(--bv);color:white;border:none;border-radius:9px;padding:11px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">↓ Скачать PPTX</button>
-                <button onclick="downloadKpPdf()" style="flex:1;background:var(--em);color:white;border:none;border-radius:9px;padding:11px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">↓ Скачать PDF</button>
+              <div style="display:flex;gap:10px;margin-top:20px">
+                <button onclick="downloadKpPptx()" style="flex:1;background:var(--bv);color:white;border:none;border-radius:9px;padding:12px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">↓ Скачать PPTX</button>
               </div>
             </div>
 
             <!-- RIGHT: Preview -->
             <div>
-              <div style="font-size:13px;font-weight:600;color:var(--gray4);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">Предпросмотр</div>
-              <div id="kp-preview" style="display:flex;flex-direction:column;gap:16px"></div>
+              <div style="font-size:12px;font-weight:700;color:var(--gray4);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">Предпросмотр</div>
+              <div id="kp-preview" style="display:flex;flex-direction:column;gap:14px"></div>
             </div>
           </div>
         </div>
-      </div>
+
+      </div><!-- end tool-main-view -->
 
       <!-- Whiteboard canvas view (fullscreen over tools) -->
       <div id="wb-canvas-view" style="display:none;position:fixed;inset:0;z-index:500;background:#f0f0f0;flex-direction:column">
@@ -5147,13 +5150,127 @@ function renderProjProcesses() {
 function switchToolTab(tab, el) {
   document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards,#tool-documents').forEach(t=>t.style.display='none');
+  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards,#tool-kp').forEach(t=>t.style.display='none');
   const panel = document.getElementById('tool-'+tab);
   if (panel) panel.style.display='';
   if (tab==='processes') renderProcesses();
   if (tab==='boards') renderBoardsList();
   if (tab==='notes') renderToolNotes();
-  if (tab==='documents') initKpTool();
+  if (tab==='kp') initKpTool();
+}
+
+// ════════════════════════════════════════════
+// TEMPLATES
+// ════════════════════════════════════════════
+const TEMPLATES = []; // filled as user sends templates
+let activeTmplId = null;
+
+function renderTemplates() {
+  const grid = document.getElementById('tmpl-grid'); if (!grid) return;
+  document.getElementById('tmpl-catalog').style.display = '';
+  document.getElementById('tmpl-form-view').style.display = 'none';
+  if (!TEMPLATES.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--gray4)">
+      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:6px">Шаблоны появятся здесь</div>
+      <div style="font-size:13px">Первый шаблон уже в работе</div>
+    </div>`; return;
+  }
+  grid.innerHTML = TEMPLATES.map(t=>`
+    <div style="background:var(--white);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--gray1);border-top:4px solid ${t.color||'var(--bv)'};padding:20px;display:flex;flex-direction:column;gap:12px;transition:all .18s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(84,5,43,.12)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+      <div style="font-size:28px">${t.icon}</div>
+      <div>
+        <div style="font-weight:700;font-size:15px;color:var(--ink)">${t.name}</div>
+        <div style="font-size:12.5px;color:var(--gray4);margin-top:4px">${t.desc}</div>
+      </div>
+      <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:${t.color||'var(--bv)'};background:${(t.color||'#54052B')+'18'};padding:3px 10px;border-radius:20px;width:fit-content">${t.type==='pptx'?'PPTX':t.type==='docx'?'DOCX':'PDF'}</span>
+      <button onclick="openTemplate('${t.id}')" style="width:100%;background:var(--bv);color:white;border:none;border-radius:9px;padding:10px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">Создать →</button>
+    </div>`).join('');
+}
+
+function openTemplate(id) {
+  const tmpl = TEMPLATES.find(t=>t.id===id); if (!tmpl) return;
+  activeTmplId = id;
+  document.getElementById('tmpl-catalog').style.display = 'none';
+  const fv = document.getElementById('tmpl-form-view');
+  fv.style.display = '';
+  const fieldHtml = tmpl.fields.map(f=>{
+    if (f.type==='section') return `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin:20px 0 6px;padding-top:12px;border-top:1px solid var(--gray1)">${f.label}</div>`;
+    const base = `id="tf-${f.id}" placeholder="${f.placeholder||''}"`;
+    const sty = `style="width:100%;padding:10px 13px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13.5px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'"`;
+    let inp = '';
+    if (f.type==='textarea') inp=`<textarea ${base} rows="${f.rows||3}" ${sty}>${f.default||''}</textarea>`;
+    else if (f.type==='select') inp=`<select ${base} ${sty}>${f.options.map(o=>`<option value="${o.value||o}">${o.label||o}</option>`).join('')}</select>`;
+    else inp=`<input type="${f.type||'text'}" ${base} ${sty}>`;
+    return `<div class="form-row" style="margin-bottom:12px"><label style="font-size:12px;font-weight:600;color:var(--gray4);text-transform:uppercase;letter-spacing:.4px">${f.label}${f.required?'*':''}</label>${inp}</div>`;
+  }).join('');
+
+  fv.innerHTML = `<div style="display:grid;grid-template-columns:420px 1fr;gap:28px;align-items:flex-start;max-width:1400px">
+    <div style="background:var(--white);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--gray1);padding:24px;position:sticky;top:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+        <button onclick="backToTemplates()" style="background:none;border:none;cursor:pointer;color:var(--gray4);font-size:20px;padding:0">←</button>
+        <div><div style="font-size:16px;font-weight:700;color:var(--ink)">${tmpl.icon} ${tmpl.name}</div><div style="font-size:12px;color:var(--gray4);margin-top:2px">${tmpl.desc}</div></div>
+      </div>
+      ${fieldHtml}
+      <button onclick="generateTemplate('${id}')" style="width:100%;background:var(--bv);color:white;border:none;border-radius:9px;padding:11px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b);margin-top:16px">✓ Создать</button>
+      <div id="tmpl-output-btns-${id}" style="display:none;gap:10px;margin-top:10px;flex-wrap:wrap">
+        <button onclick="downloadTmplPdf('${id}')" style="flex:1;background:var(--em);color:white;border:none;border-radius:9px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">↓ PDF</button>
+        <button onclick="editTmplFile('${id}')" style="flex:1;background:var(--bronze);color:white;border:none;border-radius:9px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">✏ Редактировать</button>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:600;color:var(--gray4);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">Предпросмотр</div>
+      <div id="tmpl-preview-${id}" style="background:var(--white);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--gray1);min-height:400px;display:flex;align-items:center;justify-content:center;color:var(--gray4);font-size:13px">Заполните анкету и нажмите «Создать»</div>
+    </div>
+  </div>`;
+  // Pre-fill current user fields
+  ['manager_name','Имя'].forEach(k=>{ const e=document.getElementById('tf-'+k); if(e&&!e.value) e.value=currentUser?.name||''; });
+  ['manager_email','Email'].forEach(k=>{ const e=document.getElementById('tf-'+k); if(e&&!e.value) e.value=currentUser?.email||''; });
+}
+
+function backToTemplates() {
+  document.getElementById('tmpl-catalog').style.display = '';
+  document.getElementById('tmpl-form-view').style.display = 'none';
+  activeTmplId = null;
+}
+
+function getTmplValues(id) {
+  const tmpl = TEMPLATES.find(t=>t.id===id); if (!tmpl) return {};
+  const vals = {};
+  tmpl.fields.filter(f=>f.id).forEach(f=>{ const el=document.getElementById('tf-'+f.id); if(el) vals[f.id]=el.value||''; });
+  return vals;
+}
+
+function generateTemplate(id) {
+  const tmpl = TEMPLATES.find(t=>t.id===id); if (!tmpl) return;
+  const vals = getTmplValues(id);
+  if (typeof tmpl.render==='function') {
+    const html = tmpl.render(vals);
+    const preview = document.getElementById('tmpl-preview-'+id);
+    if (preview) { preview.innerHTML=html; preview.style.alignItems='flex-start'; preview.style.padding='24px'; }
+  }
+  const btns = document.getElementById('tmpl-output-btns-'+id);
+  if (btns) btns.style.display='flex';
+  showToast('Документ создан ✓');
+}
+
+function downloadTmplPdf(id) {
+  const tmpl = TEMPLATES.find(t=>t.id===id);
+  const preview = document.getElementById('tmpl-preview-'+id);
+  if (!preview||!tmpl||preview.style.padding!=='24px') { showToast('Сначала нажмите «Создать»'); return; }
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${tmpl.name}</title>
+    <style>body{margin:0;padding:40px;font-family:'Onest',Arial,sans-serif;color:#1a0a0f}@media print{body{padding:20px}}</style>
+  </head><body>${preview.innerHTML}</body></html>`);
+  win.document.close();
+  setTimeout(()=>{ win.focus(); win.print(); win.close(); }, 500);
+}
+
+function editTmplFile(id) {
+  const tmpl = TEMPLATES.find(t=>t.id===id); if (!tmpl) return;
+  const vals = getTmplValues(id);
+  if (typeof tmpl.generateFile==='function') tmpl.generateFile(vals);
+  else showToast('Файл для редактирования появится после настройки шаблона');
 }
 
 // Per-user notes stored under bt_tool_notes_<email>
@@ -5789,11 +5906,37 @@ let kpStages = [
 function initKpTool() {
   const dateEl = document.getElementById('kp-date');
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  // Fill manager dropdown from systemUsers
+  const sel = document.getElementById('kp-manager-select');
+  if (sel) {
+    sel.innerHTML = '<option value="">— выбрать из команды —</option>' +
+      systemUsers.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+  }
+  // Auto-fill current user
   const nameEl = document.getElementById('kp-manager-name');
-  if (nameEl && !nameEl.value && currentUser?.name) nameEl.value = currentUser.name;
+  if (nameEl && !nameEl.value && currentUser) {
+    nameEl.value = currentUser.name;
+    const su = systemUsers.find(u=>u.email===currentUser.email);
+    if (su && sel) sel.value = su.id;
+    kpFillManager(su?.id||'', true);
+  }
   const emailEl = document.getElementById('kp-manager-email');
-  if (emailEl && !emailEl.value) emailEl.value = 'corp@bytime.agency';
+  if (emailEl && !emailEl.value) emailEl.value = currentUser?.email||'corp@bytime.agency';
   renderKpStagesForm();
+  renderKpPreview();
+}
+
+function kpFillManager(userId, skipOverwrite) {
+  if (!userId) return;
+  const u = systemUsers.find(x=>x.id===userId); if (!u) return;
+  const nameEl = document.getElementById('kp-manager-name');
+  const phoneEl = document.getElementById('kp-manager-phone');
+  const emailEl = document.getElementById('kp-manager-email');
+  if (nameEl && (!skipOverwrite || !nameEl.value)) nameEl.value = u.name;
+  if (emailEl && (!skipOverwrite || !emailEl.value)) emailEl.value = u.email;
+  // Try to get phone from empProfiles
+  const profile = empProfiles[userId];
+  if (phoneEl && profile?.phone && (!skipOverwrite || !phoneEl.value)) phoneEl.value = profile.phone;
   renderKpPreview();
 }
 
