@@ -1610,6 +1610,9 @@ let activeChatIsDm = false;
 let activeDmUser = null;
 
 // ─── WHITEBOARDS ───
+function fmtMoney(n) {
+  return Math.round(n).toLocaleString('ru-RU');
+}
 let whiteboards = (() => { try { return JSON.parse(localStorage.getItem('bt_wbs')||'[]'); } catch(e){return[];} })();
 let activeWbId = null;
 let wbTool = 'select';
@@ -1857,12 +1860,12 @@ function renderDashboard() {
 
   document.getElementById('dash-stats').innerHTML = `
     <div class="stat-card" style="border-top-color:var(--bv)">
-      <div class="stat-val">₽${(incomeOps/1000).toFixed(0)}к</div>
+      <div class="stat-val">₽${fmtMoney(incomeOps)}</div>
       <div class="stat-label">Выручка Операционка</div>
       <div class="stat-delta up">↑ Проект Операционка</div>
     </div>
     <div class="stat-card green" style="border-top-color:var(--em)">
-      <div class="stat-val">₽${(incomeHR/1000).toFixed(0)}к</div>
+      <div class="stat-val">₽${fmtMoney(incomeHR)}</div>
       <div class="stat-label">Выручка HR</div>
       <div class="stat-delta up">↑ Проект HR</div>
     </div>
@@ -1928,7 +1931,7 @@ function renderDashboard() {
     }, options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},padding:8}}},
       scales:{x:{grid:{display:false},ticks:{font:{size:11}}},
-              y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'к':v,font:{size:11}}}}}});
+              y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v>=1000?fmtMoney(v):v,font:{size:11}}}}}});
 
     const t2 = document.getElementById('chart-tasks');
     if (t2._chart) t2._chart.destroy();
@@ -1941,7 +1944,7 @@ function renderDashboard() {
     }, options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:true,position:'bottom',labels:{font:{size:11},padding:8}}},
       scales:{x:{grid:{display:false},ticks:{font:{size:11}}},
-              y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(0)+'к':v,font:{size:11}}}}}});
+              y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v>=1000?fmtMoney(v):v,font:{size:11}}}}}});
   }, 100);
 }
 
@@ -2799,9 +2802,9 @@ function renderFinance() {
   const expense = finOps.filter(o=>o.type==='expense').reduce((a,b)=>a+b.amount,0);
   const profit = income-expense;
   document.getElementById('fin-summary').innerHTML = `
-    <div class="stat-card"><div class="stat-val">₽${(income/1000).toFixed(0)}к</div><div class="stat-label">Поступления</div></div>
-    <div class="stat-card"><div class="stat-val" style="color:var(--danger)">₽${(expense/1000).toFixed(0)}к</div><div class="stat-label">Расходы</div></div>
-    <div class="stat-card green"><div class="stat-val">₽${(profit/1000).toFixed(0)}к</div><div class="stat-label">Прибыль</div></div>
+    <div class="stat-card"><div class="stat-val">₽${fmtMoney(income)}</div><div class="stat-label">Поступления</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--danger)">₽${fmtMoney(expense)}</div><div class="stat-label">Расходы</div></div>
+    <div class="stat-card green"><div class="stat-val">₽${fmtMoney(profit)}</div><div class="stat-label">Прибыль</div></div>
     <div class="stat-card bronze"><div class="stat-val">${Math.round(profit/income*100)}%</div><div class="stat-label">Маржа</div></div>
   `;
   renderFinTab(activeFinTab);
@@ -2905,8 +2908,8 @@ function renderFinTab(tab) {
   } else if (tab==='accounts') {
     el.innerHTML = `<div class="cols-3">
       <div class="stat-card"><div class="stat-val">₽2.4М</div><div class="stat-label">Сбербанк Бизнес</div><div class="text-xs color-gray mt-2">р/с ИП Андреева</div></div>
-      <div class="stat-card green"><div class="stat-val">₽380к</div><div class="stat-label">Тинькофф Бизнес</div><div class="text-xs color-gray mt-2">р/с ИП Курбан</div></div>
-      <div class="stat-card bronze"><div class="stat-val">₽75к</div><div class="stat-label">Физлицо</div><div class="text-xs color-gray mt-2">р/с ФЛ</div></div>
+      <div class="stat-card green"><div class="stat-val">₽380 000</div><div class="stat-label">Тинькофф Бизнес</div><div class="text-xs color-gray mt-2">р/с ИП Курбан</div></div>
+      <div class="stat-card bronze"><div class="stat-val">₽75 000</div><div class="stat-label">Физлицо</div><div class="text-xs color-gray mt-2">р/с ФЛ</div></div>
     </div>`;
   } else if (tab==='fot') {
     const activeEmps = employees.filter(e=>e.status==='Активен');
@@ -3041,8 +3044,8 @@ function renderMetricsTab(tab) {
           ${[
             {label:'Лид → Встреча',    val:conv1+'%',          sub:'из '+leads.fact+' лидов',    color:'var(--bronze)'},
             {label:'Встреча → Сделка', val:conv2+'%',          sub:'из '+meetings.fact+' встреч', color:'var(--em)'},
-            {label:'Средний чек',      val:'₽'+avgDeal+'к',    sub:deals.fact+' сделок',         color:'#2980b9'},
-            {label:'Выручка',          val:'₽'+revenue.fact+'к',sub:'план ₽'+revenue.plan+'к',   color:'var(--bv)'},
+            {label:'Средний чек',      val:'₽'+fmtMoney(avgDeal*1000),    sub:deals.fact+' сделок',         color:'#2980b9'},
+            {label:'Выручка',          val:'₽'+fmtMoney(revenue.fact*1000),sub:'план ₽'+fmtMoney(revenue.plan*1000),   color:'var(--bv)'},
           ].map(r=>`
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray1)">
               <div>
