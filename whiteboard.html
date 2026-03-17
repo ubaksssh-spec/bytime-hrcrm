@@ -175,7 +175,7 @@ body{background:#e8e4e6;font-family:var(--font);height:100vh;overflow:hidden;dis
   <div class="cx red" onclick="cxDel()">✕ Удалить</div>
 </div>
 
-<textarea id="txted" spellcheck="false"></textarea>
+
 
 <div id="style-panel">
   <div class="sp-sec">Заливка</div>
@@ -436,9 +436,9 @@ function renderShapes(){
       grp.appendChild(rh);
     }
     grp.addEventListener('mousedown',e=>shDown(e,el.id));
+    grp.addEventListener('dblclick',e=>{ e.stopPropagation(); startEdit(el.id); });
     grp.addEventListener('mouseenter',()=>{ clearTimeout(_hideArrTimer); showArrowBtns(el.id); });
     grp.addEventListener('mouseleave',()=>scheduleHideArrows());
-    grp.addEventListener('dblclick',e=>{e.stopPropagation();startEdit(el.id);});
     g.appendChild(grp);
   });
 }
@@ -628,15 +628,61 @@ function onMD(e){
   if(tool==='select'){if(!e.shiftKey)clearSel();marqOn=true;marqS=wp;isDown=true;}
 }
 
+let _lastClickId = null, _lastClickTime = 0;
+
 function shDown(e,id){
   if(e.button!==0) return;
   e.stopPropagation();
+
+  // Manual double-click detection (300ms threshold)
+  const now = Date.now();
+  const isDbl = (_lastClickId === id && now - _lastClickTime < 300);
+  _lastClickId = id;
+  _lastClickTime = now;
+
+  if(isDbl) {
+    startEdit(id);
+    return;
+  }
+
   if(tool==='connector'){const el=EL.find(x=>x.id===id);if(el){const sv=svgPt(e),wp=s2w(sv.x,sv.y);connDrag={fEl:id,fPt:nearDir(el,wp)};isDown=true;}return;}
   if(tool!=='select') return;
   if(e.shiftKey){if(selIds.has(id))selIds.delete(id);else selIds.add(id);}
   else if(!selIds.has(id))selOnly(id);
   const sv=svgPt(e),wp=s2w(sv.x,sv.y),el=EL.find(x=>x.id===id);
-  if(el){dragK='shape';dragOX=wp.x-el.x;dragOY=wp.y-el.y;isDown=true;marqOn=false;renderShapes();updateFtbar();}
+  if(el){dragK='shape';dragOX=wp.x-el.x;dragOY=wp.y-el.y;isDown=true;marqOn=false;updateSelHighlight(id);updateFtbar();}
+}
+
+function updateSelHighlight(selId) {
+  // Just update selection rings without full re-render
+  document.querySelectorAll('.wb-sel-ring').forEach(r=>r.remove());
+  selIds.forEach(id => {
+    const el = EL.find(x=>x.id===id); if(!el) return;
+    const grp = document.querySelector(`[data-id="${id}"]`); if(!grp) return;
+    const x=el.x,y=el.y,w=el.w||160,h=el.h||100;
+    const ns='http://www.w3.org/2000/svg';
+    const sr=document.createElementNS(ns,'rect');
+    sr.setAttribute('class','wb-sel-ring');
+    sr.setAttribute('x',x-4);sr.setAttribute('y',y-4);
+    sr.setAttribute('width',w+8);sr.setAttribute('height',h+8);
+    sr.setAttribute('fill','none');sr.setAttribute('stroke','#2563EB');
+    sr.setAttribute('stroke-width','2');sr.setAttribute('rx','5');
+    sr.setAttribute('pointer-events','none');
+    grp.appendChild(sr);
+    const rh=document.createElementNS(ns,'rect');
+    rh.setAttribute('class','wb-sel-ring');
+    rh.setAttribute('x',x+w-6);rh.setAttribute('y',y+h-6);
+    rh.setAttribute('width','12');rh.setAttribute('height','12');
+    rh.setAttribute('fill','#fff');rh.setAttribute('stroke','#2563EB');
+    rh.setAttribute('stroke-width','1.5');rh.setAttribute('rx','2');
+    rh.style.cursor='se-resize';
+    rh.addEventListener('mousedown',e2=>{
+      e2.stopPropagation();
+      const sv2=svgPt(e2),wp2=s2w(sv2.x,sv2.y);
+      rzId=el.id;rzW=el.w||160;rzH=el.h||100;rzSX=wp2.x;rzSY=wp2.y;isDown=true;
+    });
+    grp.appendChild(rh);
+  });
 }
 
 function onMM(e){
@@ -676,6 +722,7 @@ function onMM(e){
 }
 
 function onMU(e){
+  if(_editingId) return; // don't interfere with text editing
   const sv=svgPt(e),wp=s2w(sv.x,sv.y);
   document.getElementById('cprev').setAttribute('display','none');
   if(rzId){rzId=null;isDown=false;return;}
@@ -692,7 +739,8 @@ function onMU(e){
   document.getElementById('marq').setAttribute('display','none');
   if(tool==='hand')document.getElementById('canvas-wrap').style.cursor='grab';
   if(penCur){penCur=null;saveBoard();}
-  updateFtbar();
+  // Delay renderShapes so dblclick fires before DOM is recreated
+  setTimeout(()=>{ renderShapes(); updateFtbar(); }, 50);
 }
 
 function onDbl(e){
@@ -730,23 +778,70 @@ function onTM(e){e.preventDefault();if(e.touches.length===2){const a=e.touches[0
 function onTE(e){if(e.touches.length===0)onMU({clientX:0,clientY:0});}
 
 // ─── TEXT EDIT ────────────────────────────────────────────
-function startEdit(id){
-  const el=EL.find(x=>x.id===id);if(!el) return;
-  const ed=document.getElementById('txted');
-  const wr=document.getElementById('canvas-wrap').getBoundingClientRect();
-  const sp=w2s(el.x,el.y);
-  const fill=el.fill||DF[el.type]||'#F6F3EE';
-  const tc=isLight(fill)?(el.tc||'#1a0a0f'):'#fff';
-  ed.style.display='block';
-  ed.style.left=(wr.left+sp.x+52+8)+'px';ed.style.top=(wr.top+sp.y+48+8)+'px';
-  ed.style.width=Math.max(40,(el.w||160)*zoom-16)+'px';ed.style.height=Math.max(20,(el.h||100)*zoom-16)+'px';
-  ed.style.fontSize=((el.fs||13)*zoom)+'px';ed.style.fontWeight=el.bold?700:500;ed.style.fontStyle=el.italic?'italic':'normal';
-  ed.style.color=tc;ed.style.textAlign=el.type==='text'?'left':'center';ed.value=el.text||'';
-  ed.focus();ed.select();
-  ed.oninput=()=>{el.text=ed.value;renderShapes();};
-  ed.onblur=()=>{el.text=ed.value;ed.style.display='none';renderAll();};
-  ed.onkeydown=e=>{if(e.key==='Escape')ed.blur();};
+let _editingId = null;
+
+
+function startEdit(id) {
+  const el = EL.find(x=>x.id===id); if(!el) return;
+  _editingId = id;
+
+  // Remove existing
+  document.getElementById('_wbed')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '_wbed';
+  Object.assign(overlay.style, {
+    position:'fixed', top:'0', left:'0', width:'100vw', height:'100vh',
+    background:'rgba(0,0,0,.5)', zIndex:'2147483647',
+    display:'flex', alignItems:'center', justifyContent:'center'
+  });
+
+  const box = document.createElement('div');
+  Object.assign(box.style, {
+    background:'#fff', borderRadius:'14px', padding:'24px',
+    width:'380px', boxShadow:'0 12px 48px rgba(0,0,0,.3)',
+    fontFamily:'Onest,Arial,sans-serif'
+  });
+
+  box.innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:#54052B;margin-bottom:12px">Текст блока</div>
+    <textarea id="_wbed_ta" rows="4" style="width:100%;padding:10px;border:2px solid #54052B;border-radius:8px;font-size:14px;font-family:Onest,Arial,sans-serif;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;color:#1a0a0f">${el.text||''}</textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+      <button id="_wbed_cancel" style="padding:9px 18px;background:#f4f0f2;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-family:Onest,Arial,sans-serif;color:#7a6070">Отмена</button>
+      <button id="_wbed_ok" style="padding:9px 22px;background:#54052B;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:Onest,Arial,sans-serif">✓ Готово</button>
+    </div>
+    <div style="font-size:11px;color:#b8a8b0;margin-top:8px">Ctrl+Enter — сохранить</div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  const ta = document.getElementById('_wbed_ta');
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+
+  const save = () => {
+    el.text = ta.value;
+    overlay.remove();
+    _editingId = null;
+    renderAll();
+  };
+  const cancel = () => {
+    overlay.remove();
+    _editingId = null;
+  };
+
+  document.getElementById('_wbed_ok').onclick = save;
+  document.getElementById('_wbed_cancel').onclick = cancel;
+  overlay.onclick = e => { if(e.target === overlay) cancel(); };
+  ta.onkeydown = e => {
+    e.stopPropagation();
+    if(e.key==='Escape') cancel();
+    if(e.key==='Enter' && e.ctrlKey) save();
+  };
 }
+
+function closeEditor() { document.getElementById('_wbed')?.remove(); _editingId = null; }
 
 // ─── FLOAT TOOLBAR ───────────────────────────────────────
 function updateFtbar(){
@@ -757,8 +852,8 @@ function updateFtbar(){
   const wr=document.getElementById('canvas-wrap').getBoundingClientRect();
   const sp=w2s(el.x,el.y);
   ft.style.display='flex';
-  ft.style.left=(wr.left+52+sp.x)+'px';
-  ft.style.top=Math.max(50,wr.top+48+sp.y-44)+'px';
+  ft.style.left=(wr.left+sp.x)+'px';
+  ft.style.top=Math.max(50,wr.top+sp.y-44)+'px';
   document.getElementById('ft-b').classList.toggle('on',!!el.bold);
   document.getElementById('ft-i').classList.toggle('on',!!el.italic);
   const cf=el.fill||DF[el.type]||'#F6F3EE';
@@ -838,7 +933,7 @@ function fitAll(){
 // ─── KEYBOARD ────────────────────────────────────────────
 function setupKeys(){
   document.addEventListener('keydown',e=>{
-    if(document.getElementById('txted').style.display==='block')return;
+    if(_editingId) return;
     if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
     const k=e.key.toLowerCase(),cm=e.ctrlKey||e.metaKey;
     if(cm){if(k==='z'){e.preventDefault();e.shiftKey?redo():undo();}if(k==='y'){e.preventDefault();redo();}if(k==='d'){e.preventDefault();dupSel();}if(k==='s'){e.preventDefault();saveBoard();}if(k==='a'){e.preventDefault();EL.forEach(el=>selIds.add(el.id));renderShapes();updateFtbar();}}
@@ -895,13 +990,30 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.sty
 applyT();
 const _cw = document.getElementById('canvas-wrap');
 _cw.addEventListener('mousedown', onMD);
-_cw.addEventListener('dblclick', onDbl);
 _cw.addEventListener('contextmenu', onCtx);
 _cw.addEventListener('wheel', onWheel, {passive: false});
 // mousemove + mouseup on window so drag never loses tracking
 window.addEventListener('mousemove', onMM);
 window.addEventListener('mouseup',   onMU);
 init();
+
+// Dblclick AFTER init so viewBox is set correctly
+_cw.addEventListener('dblclick', e => {
+  e.stopPropagation();
+  const sv = svgPt(e), wp = s2w(sv.x, sv.y);
+  const hit = [...EL].reverse().find(el => {
+    return wp.x >= el.x && wp.x <= el.x+(el.w||160) &&
+           wp.y >= el.y && wp.y <= el.y+(el.h||100);
+  });
+  if(hit) {
+    startEdit(hit.id);
+  } else {
+    // Empty canvas → new sticky
+    const el2={id:'el_'+Date.now(),type:'sticky',x:wp.x-80,y:wp.y-65,w:160,h:130,text:'',fill:'#FFEB3B',stroke:'none',sw:2,rx:8,opacity:1,fs:13,bold:false,italic:false,tc:'#1a0a0f'};
+    pushH(); EL.push(el2); selOnly(el2.id); renderAll();
+    startEdit(el2.id);
+  }
+});
 </script>
 </body>
 </html>
