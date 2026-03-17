@@ -775,6 +775,7 @@ tbody tr:last-child{border-bottom:none}
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
           <button class="btn btn-ghost btn-sm" onclick="closeClientView()">← Назад</button>
           <div id="proj-client-title" style="font-family:var(--font-h);font-size:32px;color:var(--bv);flex:1"></div>
+          <button class="btn btn-sm btn-ghost" onclick="copyProjShareLink()" title="Скопировать ссылку на таблицу">🔗 Поделиться</button>
           <label class="btn btn-ghost btn-sm" style="cursor:pointer">
             📎 Загрузить файл (xlsx)
             <input type="file" accept=".xlsx,.xls" style="display:none" onchange="loadProjectFile(this)">
@@ -4825,7 +4826,7 @@ function addTaskToEtap(clientId, etapEnc) {
   const c = clients.find(x=>x.id===clientId); if(!c) return;
   const etap = decodeURIComponent(etapEnc);
   c.tasks.push({etap, task:'Новая задача', resp:'', status:'Не в работе', result:'', start:'', deadline:''});
-  saveWbs(); renderClientView();
+  renderClientView(); renderProjectsList();
 }
 
 function addNewEtap(clientId) {
@@ -4833,7 +4834,7 @@ function addNewEtap(clientId) {
   if (!name || !name.trim()) return;
   const c = clients.find(x=>x.id===clientId); if(!c) return;
   c.tasks.push({etap:name.trim(), task:'Новая задача', resp:'', status:'Не в работе', result:'', start:'', deadline:''});
-  saveWbs(); renderClientView();
+  renderClientView(); renderProjectsList();
 }
 
 function deleteProjTask(clientId, etapEnc, taskEnc) {
@@ -4844,7 +4845,7 @@ function deleteProjTask(clientId, etapEnc, taskEnc) {
   if (idx===-1) return;
   if (!confirm(`Удалить задачу «${task.slice(0,60)}»?`)) return;
   c.tasks.splice(idx,1);
-  saveWbs(); renderClientView(); renderProjectsList();
+  renderClientView(); renderProjectsList();
 }
 
 function updateProjTaskField(clientId, etapEnc, taskEnc, field, val) {
@@ -4854,8 +4855,6 @@ function updateProjTaskField(clientId, etapEnc, taskEnc, field, val) {
   const t = c.tasks.find(x=>x.etap===etap && x.task===task);
   if (!t) return;
   t[field] = val;
-  saveWbs();
-  // Refresh only KPI + progress bar, not full table re-render (to avoid losing focus)
   renderProjectsList();
 }
 
@@ -6354,8 +6353,117 @@ function copyWbShareLinkById(id) {
 })();
 
 // ════════════════════════════════════════════
-// КП GENERATOR (Документы)
+// PROJECT SHARE LINK
 // ════════════════════════════════════════════
+function copyProjShareLink() {
+  const url = window.location.origin + window.location.pathname + '?projread=' + encodeURIComponent(activeClientId);
+  navigator.clipboard.writeText(url).then(()=>showToast('Ссылка скопирована ✓')).catch(()=>{
+    prompt('Скопируйте ссылку:', url);
+  });
+}
+
+// Read-only project view: ?projread=clientId
+(function checkProjReadMode(){
+  const params = new URLSearchParams(location.search);
+  const cid = params.get('projread');
+  if (!cid) return;
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Hide login
+    const ls = document.getElementById('login-screen');
+    if (ls) ls.style.display = 'none';
+
+    const c = clients.find(x => x.id === decodeURIComponent(cid));
+    if (!c) {
+      document.body.innerHTML = '<div style="padding:60px;font-family:sans-serif;color:#666;text-align:center"><div style="font-size:48px;margin-bottom:16px">🔒</div><div style="font-size:18px">Проект не найден или нет доступа</div></div>';
+      return;
+    }
+
+    const etaps = [...new Set(c.tasks.map(t => t.etap))];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const statusColors = {Сделано:'#27ae60','В работе':'#54052B','Не в работе':'#aaa'};
+    const statusBg = {Сделано:'rgba(39,174,96,.1)','В работе':'rgba(84,5,43,.07)','Не в работе':'rgba(0,0,0,.04)'};
+    const done = c.tasks.filter(t=>t.status==='Сделано').length;
+    const total = c.tasks.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+
+    const etapBlocks = etaps.map(etap => {
+      const tasks = c.tasks.filter(t => t.etap === etap);
+      const eDone = tasks.filter(t=>t.status==='Сделано').length;
+      const allDone = eDone === tasks.length;
+      return `
+        <tr>
+          <td colspan="6" style="padding:0">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:${allDone?'rgba(39,174,96,.07)':'rgba(84,5,43,.04)'};border-top:2px solid #e8e0e4">
+              <span style="font-size:13.5px;font-weight:700;color:${allDone?'#27ae60':'#54052B'}">${etap}</span>
+              <span style="font-size:12px;color:#999">${eDone}/${tasks.length}</span>
+              <div style="height:4px;width:56px;background:#e0d8dc;border-radius:2px"><div style="width:${Math.round(eDone/tasks.length*100)}%;height:100%;background:${allDone?'#27ae60':'#54052B'};border-radius:2px"></div></div>
+              ${allDone?'<span style="font-size:11px;background:rgba(39,174,96,.15);color:#27ae60;padding:2px 8px;border-radius:20px;font-weight:600">✓ Завершён</span>':''}
+            </div>
+          </td>
+        </tr>
+        ${tasks.map((t,i) => {
+          const d = t.deadline ? new Date(t.deadline) : null; if(d) d.setHours(0,0,0,0);
+          const burning = d && t.status!=='Сделано' && (d-today)<=86400000;
+          const etapCell = i===0 ? `<td rowspan="${tasks.length}" style="padding:10px 14px;font-size:12.5px;font-weight:700;color:#54052B;vertical-align:top;border-right:2px solid #f0eaea;max-width:160px;line-height:1.45">${etap}</td>` : '';
+          return `<tr style="border-top:1px solid #f4f0f2;background:${i%2?'rgba(0,0,0,.015)':''}">
+            ${etapCell}
+            <td style="padding:10px 12px;font-size:13px;color:#1a0a0f;max-width:300px">${burning?'🔥 ':''}${t.task}</td>
+            <td style="padding:10px 12px;font-size:12.5px;color:#888;white-space:nowrap">${t.resp||'—'}</td>
+            <td style="padding:10px 12px">
+              <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;background:${statusBg[t.status]||'rgba(0,0,0,.04)'};color:${statusColors[t.status]||'#aaa'}">${t.status}</span>
+            </td>
+            <td style="padding:10px 12px;font-size:12.5px;color:${burning?'#c0392b':'#888'};font-weight:${burning?700:400};white-space:nowrap">${t.deadline||'—'}</td>
+            <td style="padding:10px 12px;font-size:12px;color:#888;max-width:200px">
+              ${t.result ? (t.result.startsWith('http') ? `<a href="${t.result}" target="_blank" style="color:#54052B;text-decoration:none;font-weight:600">🔗 Открыть</a>` : t.result) : '—'}
+            </td>
+          </tr>`;
+        }).join('')}`;
+    }).join('');
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;background:#f6f3ee;z-index:9999;overflow-y:auto;font-family:Onest,sans-serif';
+    wrap.innerHTML = `
+      <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#b39262;margin-bottom:4px">BYTIME · Операционка</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:#54052B;line-height:1">${c.name}</div>
+            <div style="font-size:13px;color:#999;margin-top:4px">Менеджер: ${c.manager||'—'} · Старт: ${c.start||'—'}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:32px;font-weight:900;color:${pct>=80?'#27ae60':pct>=50?'#e67e22':'#c0392b'}">${pct}%</div>
+            <div style="font-size:12px;color:#999">выполнено (${done}/${total})</div>
+            <div style="height:6px;width:120px;background:#e0d8dc;border-radius:3px;margin-top:6px;margin-left:auto"><div style="width:${pct}%;height:100%;background:${pct>=80?'#27ae60':pct>=50?'#e67e22':'#c0392b'};border-radius:3px"></div></div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div style="background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.08);overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#54052B">
+                <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px;min-width:150px">Этап</th>
+                <th style="padding:12px 12px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px">Задача</th>
+                <th style="padding:12px 12px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap">Ответственный</th>
+                <th style="padding:12px 12px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px">Статус</th>
+                <th style="padding:12px 12px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap">Дедлайн</th>
+                <th style="padding:12px 12px;text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px">Результат</th>
+              </tr>
+            </thead>
+            <tbody>${etapBlocks}</tbody>
+          </table>
+        </div>
+
+        <div style="text-align:center;margin-top:32px;font-size:11px;color:#ccc">
+          Сформировано BYTIME OS · ${new Date().toLocaleDateString('ru-RU')}
+        </div>
+      </div>`;
+    document.body.appendChild(wrap);
+  });
+})();
 let kpStages = [
   {title:'', duration:'', description:'', price:''},
   {title:'', duration:'', description:'', price:''},
