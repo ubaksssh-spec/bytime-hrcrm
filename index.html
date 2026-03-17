@@ -69,6 +69,7 @@ html,body{height:100%;background:var(--paper);font-family:var(--font-b);color:va
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes slideInRight{from{opacity:0;transform:translateX(100%)}to{opacity:1;transform:translateX(0)}}
 @keyframes wbProgress{from{width:100%}to{width:0}}
+@keyframes pulse-rec{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
 
 /* ─── PAGE HEADER ─── */
 .page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px}
@@ -570,6 +571,7 @@ tbody tr:last-child{border-bottom:none}
           <div class="tab" onclick="switchToolTab('notes',this)">Заметки</div>
           <div class="tab" onclick="switchToolTab('boards',this)">Доска</div>
           <div class="tab" onclick="switchToolTab('kp',this)">📄 КП</div>
+          <div class="tab" onclick="switchToolTab('meeting',this)">🎤 Встречи</div>
         </div>
         <!-- Tool: Processes (embedded) -->
         <div id="tool-processes">
@@ -660,6 +662,118 @@ tbody tr:last-child{border-bottom:none}
               <div id="kp-preview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px"></div>
             </div>
           </div>
+        </div>
+
+        <!-- Tool: Meeting Transcriber -->
+        <div id="tool-meeting" style="display:none;max-width:900px">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <div style="font-family:var(--font-h);font-size:22px;color:var(--bv)">ВСТРЕЧИ</div>
+              <div style="font-size:12.5px;color:var(--gray4);margin-top:2px">Фиксация, резюме и экспорт</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="mtNewMeeting()">+ Новая встреча</button>
+            </div>
+          </div>
+
+          <!-- Two-column layout: list left, form right -->
+          <div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+
+            <!-- Saved meetings list -->
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray3);margin-bottom:10px">Сохранённые</div>
+              <div style="display:flex;gap:6px;margin-bottom:10px">
+                <button id="mt-filter-shared" class="btn btn-ghost btn-sm" onclick="mtToggleSharedFilter()" style="font-size:11px;background:rgba(2,70,56,.1);color:var(--em)">👥 Скрыть общие</button>
+              </div>
+              <div id="mt-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            </div>
+
+            <!-- Meeting form -->
+            <div id="mt-form-wrap" style="background:var(--white);border-radius:12px;border:1px solid var(--gray1);padding:24px">
+              <!-- Meta -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+                <div>
+                  <label class="field-label">Название встречи</label>
+                  <input id="mt-title" class="field-input" placeholder="Например: Стратегия на Q2" style="width:100%">
+                </div>
+                <div>
+                  <label class="field-label">Дата</label>
+                  <input id="mt-date" type="date" class="field-input" style="width:100%">
+                </div>
+                <div>
+                  <label class="field-label">Клиент / Проект</label>
+                  <input id="mt-client" class="field-input" placeholder="ООО Ромашка" style="width:100%">
+                </div>
+                <div>
+                  <label class="field-label">Участники</label>
+                  <input id="mt-participants" class="field-input" placeholder="Ульяна, Яна, Дмитрий" style="width:100%">
+                </div>
+              </div>
+
+              <!-- Audio input block -->
+              <div style="margin-bottom:18px;background:var(--gray1);border-radius:10px;padding:16px">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin-bottom:12px">🎤 Аудио / Видео → AI-транскрипция</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                  <button class="btn btn-bv btn-sm" id="mt-rec-btn" onclick="mtStartRec()">⏺ Запись</button>
+                  <button class="btn btn-ghost btn-sm" id="mt-stop-btn" onclick="mtStopRec()" style="display:none">⏹ Стоп</button>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('mt-audio-input').click()">📁 Загрузить файл</button>
+                  <input id="mt-audio-input" type="file" accept="audio/*,video/*" style="display:none" onchange="mtHandleAudio(event)">
+                  <div id="mt-rec-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:#c0392b;font-weight:600">
+                    <span style="width:8px;height:8px;background:#c0392b;border-radius:50%;animation:pulse-rec 1s infinite;display:inline-block"></span>Идёт запись...
+                  </div>
+                </div>
+                <audio id="mt-audio-player" controls style="width:100%;display:none;margin-bottom:10px"></audio>
+                <div id="mt-transcribe-status" style="display:none;font-size:12.5px;color:var(--gray4);margin-bottom:8px">⏳ Транскрибирую аудио...</div>
+                <button id="mt-transcribe-btn" onclick="mtTranscribeAudio()" style="display:none" class="btn btn-bv btn-sm">✨ Транскрибировать и создать резюме</button>
+              </div>
+
+              <!-- Notes -->
+              <div style="margin-bottom:18px">
+                <label class="field-label">Заметки / тезисы встречи</label>
+                <textarea id="mt-notes" class="field-input" rows="7" placeholder="Что обсуждали, какие вопросы поднимались, промежуточные выводы..." style="width:100%;resize:vertical;line-height:1.6"></textarea>
+              </div>
+
+              <!-- Decisions & Tasks -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+                <div>
+                  <label class="field-label">Решения</label>
+                  <textarea id="mt-decisions" class="field-input" rows="4" placeholder="Каждое решение с новой строки..." style="width:100%;resize:vertical"></textarea>
+                </div>
+                <div>
+                  <label class="field-label">Задачи / следующие шаги</label>
+                  <textarea id="mt-tasks" class="field-input" rows="4" placeholder="Каждая задача с новой строки (можно с ответственным)..." style="width:100%;resize:vertical"></textarea>
+                </div>
+              </div>
+
+              <!-- AI Summary -->
+              <div id="mt-summary-wrap" style="display:none;background:var(--gray1);border-radius:10px;padding:18px;margin-bottom:20px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="font-size:12px;font-weight:700;color:var(--bv);text-transform:uppercase;letter-spacing:.4px">🤖 AI-резюме</div>
+                  <button class="btn btn-ghost btn-sm" onclick="mtCopySummary()" title="Скопировать">📋</button>
+                </div>
+                <div id="mt-summary-text" style="font-size:13px;color:var(--ink);line-height:1.7;white-space:pre-wrap"></div>
+              </div>
+
+              <!-- Loading -->
+              <div id="mt-ai-loading" style="display:none;text-align:center;padding:20px;color:var(--gray4);font-size:13px">
+                <div style="margin-bottom:8px">✨ Генерирую резюме...</div>
+                <div style="width:40px;height:3px;background:var(--bv);border-radius:2px;margin:0 auto;animation:progress-bar 1.5s ease-in-out infinite"></div>
+              </div>
+
+              <!-- Actions -->
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-bv" onclick="mtGenerateSummary()" id="mt-ai-btn">✨ AI-резюме из текста</button>
+                <button class="btn btn-ghost" onclick="mtSave()">💾 Сохранить</button>
+                <button id="mt-share-btn" class="btn btn-ghost btn-sm" style="display:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;border:1.5px solid currentColor">🔗 Поделиться</button>
+                <div style="flex:1"></div>
+                <button class="btn btn-ghost" onclick="mtExportPDF()" title="Экспорт PDF">↓ PDF</button>
+                <button class="btn btn-ghost" onclick="mtExportDOCX()" title="Экспорт DOCX">↓ DOCX</button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div><!-- end tool-main-view -->
@@ -5794,7 +5908,7 @@ function renderProjProcesses() {
 function switchToolTab(tab, el) {
   document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards,#tool-kp').forEach(t=>t.style.display='none');
+  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards,#tool-kp,#tool-meeting').forEach(t=>t.style.display='none');
   const panel = document.getElementById('tool-'+tab);
   if (panel) panel.style.display='';
   if (tab==='processes') renderProcesses();
@@ -7173,6 +7287,507 @@ window.addEventListener('DOMContentLoaded', () => {
     bootSession(saved.email, user);
   } catch(e) { localStorage.removeItem('bt_session'); }
 });
+
+// ═══════════════════════════════════════
+// ВСТРЕЧИ — Meeting notes, AI summary, Export
+// ═══════════════════════════════════════
+// ── Meeting storage: personal per-user + shared pool ──
+function mtMyKey() {
+  const email = currentUser?.email || 'default';
+  return 'bt_meetings_' + email.replace(/[^a-z0-9]/gi,'_');
+}
+const MT_SHARED_KEY = 'bt_meetings_shared';
+let mtMeetings = [];   // personal
+let mtShared   = [];   // shared (all users)
+let mtCurrentId = null;
+let mtShowShared = true; // filter toggle
+
+function mtLoad() {
+  try { mtMeetings = JSON.parse(localStorage.getItem(mtMyKey())||'[]'); } catch(e){ mtMeetings=[]; }
+  try { mtShared   = JSON.parse(localStorage.getItem(MT_SHARED_KEY)||'[]'); } catch(e){ mtShared=[]; }
+}
+function mtSaveAll() {
+  localStorage.setItem(mtMyKey(), JSON.stringify(mtMeetings));
+}
+function mtSaveShared() {
+  localStorage.setItem(MT_SHARED_KEY, JSON.stringify(mtShared));
+}
+
+// Find a meeting by id across personal + shared
+function mtFindById(id) {
+  return mtMeetings.find(x=>x.id===id) || mtShared.find(x=>x.id===id) || null;
+}
+
+function mtRender() {
+  mtLoad();
+  const list = document.getElementById('mt-list'); if(!list) return;
+
+  // Build visible list
+  const mine = mtMeetings.map(m=>({...m, _mine:true, _shared:false}));
+  const shared = mtShowShared ? mtShared.map(m=>({...m, _mine:false, _shared:true})) : [];
+  // Deduplicate: if a shared meeting was originally mine, show only in shared
+  const mineFiltered = mine.filter(m => !mtShared.find(s=>s.id===m.id));
+  const all = [...mineFiltered, ...shared].sort((a,b)=>new Date(b.savedAt||0)-new Date(a.savedAt||0));
+
+  if(!all.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--gray4);padding:12px 0">Встреч пока нет.<br>Нажмите «+ Новая встреча»</div>';
+    return;
+  }
+
+  list.innerHTML = all.map(m => {
+    const isActive = mtCurrentId===m.id;
+    const sharedBadge = m._shared
+      ? `<span style="font-size:10px;background:#e8f4f0;color:var(--em);border-radius:4px;padding:1px 6px;font-weight:700">Общая</span>`
+      : '';
+    const canShare = m._mine && !m._shared;
+    const canUnshare = mtShared.find(s=>s.id===m.id) && (m.owner===currentUser?.email || !m.owner);
+    return `
+    <div onclick="mtOpen('${m.id}')" style="cursor:pointer;padding:10px 14px;border-radius:9px;border:1.5px solid ${isActive?'var(--bv)':'var(--gray1)'};background:${isActive?'rgba(84,5,43,.04)':'var(--white)'};transition:.15s;margin-bottom:4px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <div style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${m.title||'Без названия'}</div>
+        ${sharedBadge}
+      </div>
+      <div style="font-size:11.5px;color:var(--gray4)">${m.date||''} ${m.client?'· '+m.client:''} ${m._shared&&m.ownerName?'· '+m.ownerName:''}</div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        ${canShare ? `<button onclick="event.stopPropagation();mtShare('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--em);font-size:11px;padding:0;font-weight:600">🔗 Поделиться</button>` : ''}
+        ${canUnshare ? `<button onclick="event.stopPropagation();mtUnshare('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--gray3);font-size:11px;padding:0">Убрать доступ</button>` : ''}
+        ${m._mine ? `<button onclick="event.stopPropagation();mtDelete('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--gray3);font-size:11px;padding:0" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--gray3)'">Удалить</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function mtNewMeeting() {
+  mtCurrentId = null;
+  ['mt-title','mt-client','mt-participants','mt-notes','mt-decisions','mt-tasks'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const dateEl = document.getElementById('mt-date'); if(dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  const sw = document.getElementById('mt-summary-wrap'); if(sw) sw.style.display='none';
+  const st = document.getElementById('mt-summary-text'); if(st) st.textContent='';
+  mtUpdateShareBtn();
+  mtRender();
+}
+
+function mtOpen(id) {
+  mtLoad();
+  const m = mtFindById(id); if(!m) return;
+  mtCurrentId = id;
+  document.getElementById('mt-title').value = m.title||'';
+  document.getElementById('mt-date').value = m.date||'';
+  document.getElementById('mt-client').value = m.client||'';
+  document.getElementById('mt-participants').value = m.participants||'';
+  document.getElementById('mt-notes').value = m.notes||'';
+  document.getElementById('mt-decisions').value = m.decisions||'';
+  document.getElementById('mt-tasks').value = m.tasks||'';
+  const sw = document.getElementById('mt-summary-wrap');
+  const st = document.getElementById('mt-summary-text');
+  if(m.summary){sw.style.display='block';st.textContent=m.summary;}else{sw.style.display='none';}
+  mtUpdateShareBtn();
+  mtRender();
+}
+
+function mtSave() {
+  mtLoad();
+  const data = {
+    id: mtCurrentId || 'mt_'+Date.now(),
+    title: document.getElementById('mt-title').value.trim() || 'Встреча '+new Date().toLocaleDateString('ru-RU'),
+    date: document.getElementById('mt-date').value,
+    client: document.getElementById('mt-client').value.trim(),
+    participants: document.getElementById('mt-participants').value.trim(),
+    notes: document.getElementById('mt-notes').value.trim(),
+    decisions: document.getElementById('mt-decisions').value.trim(),
+    tasks: document.getElementById('mt-tasks').value.trim(),
+    summary: document.getElementById('mt-summary-text').textContent.trim(),
+    savedAt: new Date().toISOString(),
+    owner: currentUser?.email,
+    ownerName: currentUser?.name || currentUser?.email,
+  };
+  if(mtCurrentId){
+    const idx=mtMeetings.findIndex(x=>x.id===mtCurrentId);
+    if(idx>=0) mtMeetings[idx]=data; else mtMeetings.push(data);
+    // Also update in shared if it was shared
+    const si=mtShared.findIndex(x=>x.id===mtCurrentId);
+    if(si>=0) { mtShared[si]=data; mtSaveShared(); }
+  } else {
+    mtCurrentId=data.id;
+    mtMeetings.push(data);
+  }
+  mtSaveAll(); mtRender(); mtUpdateShareBtn(); showToast('Встреча сохранена ✓');
+}
+
+function mtDelete(id) {
+  if(!confirm('Удалить встречу?')) return;
+  mtLoad();
+  mtMeetings = mtMeetings.filter(x=>x.id!==id);
+  mtShared = mtShared.filter(x=>x.id!==id); // also remove from shared if owner
+  mtSaveAll(); mtSaveShared();
+  if(mtCurrentId===id){mtCurrentId=null;mtNewMeeting();}else mtRender();
+}
+
+function mtShare(id) {
+  mtLoad();
+  const m = mtMeetings.find(x=>x.id===id); if(!m) return;
+  if(!mtShared.find(x=>x.id===id)) {
+    mtShared.push({...m, sharedAt: new Date().toISOString()});
+    mtSaveShared();
+  }
+  mtRender(); mtUpdateShareBtn(); showToast('Встреча доступна всем пользователям ✓');
+}
+
+function mtUnshare(id) {
+  mtLoad();
+  mtShared = mtShared.filter(x=>x.id!==id);
+  mtSaveShared();
+  mtRender(); mtUpdateShareBtn(); showToast('Доступ закрыт');
+}
+
+function mtToggleSharedFilter() {
+  mtShowShared = !mtShowShared;
+  const btn = document.getElementById('mt-filter-shared');
+  if(btn) {
+    btn.textContent = mtShowShared ? '👥 Скрыть общие' : '👤 Только мои';
+    btn.style.background = mtShowShared ? 'rgba(2,70,56,.1)' : '';
+    btn.style.color = mtShowShared ? 'var(--em)' : '';
+  }
+  mtRender();
+}
+
+function mtUpdateShareBtn() {
+  mtLoad();
+  const btn = document.getElementById('mt-share-btn');
+  if(!btn || !mtCurrentId) { if(btn) btn.style.display='none'; return; }
+  const isShared = !!mtShared.find(x=>x.id===mtCurrentId);
+  const isMine = !!mtMeetings.find(x=>x.id===mtCurrentId);
+  if(!isMine) { btn.style.display='none'; return; }
+  btn.style.display = 'inline-flex';
+  if(isShared) {
+    btn.textContent = '🔒 Закрыть доступ';
+    btn.style.background = 'rgba(192,57,43,.1)';
+    btn.style.color = '#c0392b';
+    btn.onclick = () => mtUnshare(mtCurrentId);
+  } else {
+    btn.textContent = '🔗 Поделиться';
+    btn.style.background = 'rgba(2,70,56,.1)';
+    btn.style.color = 'var(--em)';
+    btn.onclick = () => mtShare(mtCurrentId);
+  }
+}
+
+async function mtGenerateSummary() {
+  const notes=document.getElementById('mt-notes').value.trim();
+  const decisions=document.getElementById('mt-decisions').value.trim();
+  const tasks=document.getElementById('mt-tasks').value.trim();
+  const title=document.getElementById('mt-title').value.trim();
+  const client=document.getElementById('mt-client').value.trim();
+  const parts=document.getElementById('mt-participants').value.trim();
+  const date=document.getElementById('mt-date').value;
+  if(!notes&&!decisions&&!tasks){showToast('Заполните хотя бы одно поле');return;}
+  document.getElementById('mt-ai-loading').style.display='block';
+  document.getElementById('mt-summary-wrap').style.display='none';
+  document.getElementById('mt-ai-btn').disabled=true;
+  const prompt=`Ты — ассистент для деловых встреч агентства BYTIME. Составь краткое профессиональное резюме встречи на русском языке.
+
+Встреча: ${title||'—'}
+Дата: ${date||'—'}
+Клиент/Проект: ${client||'—'}
+Участники: ${parts||'—'}
+
+Заметки:
+${notes||'—'}
+
+Решения:
+${decisions||'—'}
+
+Задачи:
+${tasks||'—'}
+
+Формат:
+РЕЗЮМЕ ВСТРЕЧИ
+Кратко о встрече (1-2 предложения).
+
+КЛЮЧЕВЫЕ РЕШЕНИЯ:
+— ...
+
+СЛЕДУЮЩИЕ ШАГИ:
+— ...
+
+Деловой стиль, без воды, максимум 200 слов.`;
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    const text=data.content?.[0]?.text||'';
+    document.getElementById('mt-summary-text').textContent=text;
+    document.getElementById('mt-summary-wrap').style.display='block';
+    if(mtCurrentId){mtLoad();const m=mtMeetings.find(x=>x.id===mtCurrentId);if(m){m.summary=text;mtSaveAll();}const sm=mtShared.find(x=>x.id===mtCurrentId);if(sm){sm.summary=text;mtSaveShared();}}
+  } catch(e){showToast('Ошибка генерации');}
+  finally{document.getElementById('mt-ai-loading').style.display='none';document.getElementById('mt-ai-btn').disabled=false;}
+}
+
+function mtCopySummary(){
+  const text=document.getElementById('mt-summary-text').textContent;
+  navigator.clipboard?.writeText(text).then(()=>showToast('Скопировано ✓'));
+}
+
+function mtGetData(){
+  return{
+    title:document.getElementById('mt-title').value.trim()||'Встреча',
+    date:document.getElementById('mt-date').value,
+    client:document.getElementById('mt-client').value.trim(),
+    participants:document.getElementById('mt-participants').value.trim(),
+    notes:document.getElementById('mt-notes').value.trim(),
+    decisions:document.getElementById('mt-decisions').value.trim(),
+    tasks:document.getElementById('mt-tasks').value.trim(),
+    summary:document.getElementById('mt-summary-text').textContent.trim(),
+  };
+}
+
+function mtExportPDF(){
+  const d=mtGetData();
+  const dateStr=d.date?new Date(d.date).toLocaleDateString('ru-RU',{day:'2-digit',month:'long',year:'numeric'}):'';
+  const sec=(title,body)=>body?`<div class="section"><div class="sec-title">${title}</div><div class="sec-body">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div></div>`:'';
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>${d.title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;600;700&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Onest,Arial,sans-serif;background:#F6F3EE;color:#1a0a0f}
+.page{max-width:800px;margin:0 auto;background:#fff;min-height:100vh}
+.hdr{background:#54052B;padding:28px 40px;display:flex;align-items:flex-end;justify-content:space-between}
+.logo{font-size:34px;font-weight:900;color:#fff;letter-spacing:3px;font-family:Arial,sans-serif;line-height:1}
+.logo-s{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}
+.hdr-r{text-align:right;color:rgba(255,255,255,.75);font-size:12px}
+.hdr-date{font-size:14px;font-weight:700;color:#fff;margin-bottom:2px}
+.body{padding:36px 40px}
+h1{font-size:24px;font-weight:700;color:#54052B;margin-bottom:8px}
+.meta{font-size:12.5px;color:#7a6070;margin-bottom:28px;display:flex;gap:20px;flex-wrap:wrap}
+.meta b{color:#1a0a0f}
+.section{margin-bottom:22px}
+.sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:#54052B;border-bottom:1.5px solid #54052B;padding-bottom:4px;margin-bottom:12px}
+.sec-body{font-size:13.5px;line-height:1.75}
+.ai-box{background:#F6F3EE;border-left:4px solid #54052B;padding:14px 18px;border-radius:0 8px 8px 0}
+.ftr{border-top:1px solid #e8e0e4;padding:14px 40px;display:flex;justify-content:space-between;font-size:11px;color:#b8a8b0}
+@media print{body{background:#fff}@page{margin:0}}</style></head>
+<body><div class="page">
+<div class="hdr"><div><div class="logo">BYTIME</div><div class="logo-s">Агентство бизнес-решений</div></div>
+<div class="hdr-r"><div class="hdr-date">${dateStr}</div><div>Резюме встречи</div></div></div>
+<div class="body">
+<h1>${d.title}</h1>
+<div class="meta">${d.client?`<span><b>Клиент:</b> ${d.client}</span>`:''}${d.participants?`<span><b>Участники:</b> ${d.participants}</span>`:''}</div>
+${d.summary?`<div class="section"><div class="sec-title">AI-Резюме</div><div class="ai-box sec-body">${d.summary.replace(/\n/g,'<br>')}</div></div>`:''}
+${sec('Заметки',d.notes)}${sec('Решения',d.decisions)}${sec('Задачи и следующие шаги',d.tasks)}
+</div>
+<div class="ftr"><span>bytime.agency</span><span>Сформировано ${new Date().toLocaleDateString('ru-RU')}</span></div>
+</div><script>setTimeout(()=>{window.print();},500);<\/script></body></html>`);
+  win.document.close();
+}
+
+async function mtExportDOCX(){
+  const d=mtGetData();
+  if(!window.docx){
+    showToast('Загрузка библиотеки...');
+    await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js';s.onload=res;s.onerror=rej;document.head.appendChild(s);});
+  }
+  const{Document,Packer,Paragraph,TextRun,BorderStyle,AlignmentType,ShadingType}=window.docx;
+  const BV='54052B',GRAY='E0D8DC',LIGHT='F6F3EE';
+  const dateStr=d.date?new Date(d.date).toLocaleDateString('ru-RU',{day:'2-digit',month:'long',year:'numeric'}):'';
+  const paras=[];
+  // Logo bar
+  paras.push(new Paragraph({children:[new TextRun({text:'BYTIME',bold:true,size:52,color:'FFFFFF',font:'Arial'}),new TextRun({text:'   Агентство бизнес-решений',size:18,color:'F0E8EC',font:'Arial'})],shading:{type:ShadingType.CLEAR,fill:BV},spacing:{before:0,after:0},indent:{left:360,right:360}}));
+  paras.push(new Paragraph({children:[new TextRun({text:'Резюме встречи',size:18,color:'E0C8D0',font:'Arial'})],shading:{type:ShadingType.CLEAR,fill:BV},spacing:{after:0},indent:{left:360,right:360}}));
+  paras.push(new Paragraph({spacing:{after:200}}));
+  // Title
+  paras.push(new Paragraph({children:[new TextRun({text:d.title,bold:true,size:40,color:BV,font:'Arial'})],spacing:{after:120}}));
+  // Meta
+  const meta=[d.date?'Дата: '+dateStr:null,d.client?'Клиент: '+d.client:null,d.participants?'Участники: '+d.participants:null].filter(Boolean).join('   ·   ');
+  if(meta)paras.push(new Paragraph({children:[new TextRun({text:meta,size:20,color:'7A6070',font:'Calibri'})],spacing:{after:280}}));
+
+  const addSection=(title,text)=>{
+    if(!text)return;
+    paras.push(new Paragraph({children:[new TextRun({text:title,bold:true,size:22,color:BV,font:'Arial'})],border:{bottom:{style:BorderStyle.SINGLE,size:4,color:BV,space:3}},spacing:{before:280,after:100}}));
+    text.split('\n').filter(l=>l.trim()).forEach(line=>{
+      paras.push(new Paragraph({children:[new TextRun({text:line,size:24,font:'Calibri'})],spacing:{after:80}}));
+    });
+  };
+  if(d.summary){
+    paras.push(new Paragraph({children:[new TextRun({text:'AI-Резюме',bold:true,size:22,color:BV,font:'Arial'})],border:{bottom:{style:BorderStyle.SINGLE,size:4,color:BV,space:3}},spacing:{before:280,after:100}}));
+    d.summary.split('\n').filter(l=>l.trim()).forEach(line=>{
+      paras.push(new Paragraph({children:[new TextRun({text:line,size:24,font:'Calibri'})],shading:{type:ShadingType.CLEAR,fill:LIGHT},indent:{left:200,right:200},spacing:{after:60}}));
+    });
+    paras.push(new Paragraph({spacing:{after:120}}));
+  }
+  addSection('Заметки',d.notes);
+  addSection('Решения',d.decisions);
+  addSection('Задачи и следующие шаги',d.tasks);
+  // Footer
+  paras.push(new Paragraph({children:[new TextRun({text:'bytime.agency   ·   Сформировано '+new Date().toLocaleDateString('ru-RU'),size:18,color:'B8A8B0',font:'Calibri'})],border:{top:{style:BorderStyle.SINGLE,size:4,color:GRAY,space:4}},spacing:{before:400},alignment:AlignmentType.RIGHT}));
+
+  const doc=new Document({sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:720,right:1080,bottom:720,left:1080}}},children:paras}]});
+  const blob=await Packer.toBlob(doc);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=(d.title||'meeting').replace(/[^а-яёa-z0-9\s]/gi,'')+'.docx';
+  a.click();URL.revokeObjectURL(url);showToast('DOCX скачан ✓');
+}
+
+// Init on tab switch
+// ─── AUDIO RECORDING & TRANSCRIPTION ────────────────────
+let _mtRecorder = null, _mtChunks = [], _mtAudioBlob = null;
+
+function mtStartRec() {
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
+    _mtChunks = [];
+    _mtRecorder = new MediaRecorder(stream);
+    _mtRecorder.ondataavailable = e => { if(e.data.size>0) _mtChunks.push(e.data); };
+    _mtRecorder.onstop = () => {
+      _mtAudioBlob = new Blob(_mtChunks, {type:'audio/webm'});
+      const url = URL.createObjectURL(_mtAudioBlob);
+      const player = document.getElementById('mt-audio-player');
+      player.src = url; player.style.display = 'block';
+      document.getElementById('mt-transcribe-btn').style.display = 'inline-flex';
+      stream.getTracks().forEach(t=>t.stop());
+    };
+    _mtRecorder.start();
+    document.getElementById('mt-rec-btn').style.display = 'none';
+    document.getElementById('mt-stop-btn').style.display = 'inline-flex';
+    document.getElementById('mt-rec-indicator').style.display = 'flex';
+  }).catch(() => showToast('Нет доступа к микрофону'));
+}
+
+function mtStopRec() {
+  if(_mtRecorder && _mtRecorder.state !== 'inactive') _mtRecorder.stop();
+  document.getElementById('mt-rec-btn').style.display = 'inline-flex';
+  document.getElementById('mt-stop-btn').style.display = 'none';
+  document.getElementById('mt-rec-indicator').style.display = 'none';
+}
+
+function mtHandleAudio(e) {
+  const file = e.target.files[0]; if(!file) return;
+  _mtAudioBlob = file;
+  const url = URL.createObjectURL(file);
+  const player = document.getElementById('mt-audio-player');
+  player.src = url; player.style.display = 'block';
+  document.getElementById('mt-transcribe-btn').style.display = 'inline-flex';
+}
+
+async function mtTranscribeAudio() {
+  if(!_mtAudioBlob) { showToast('Нет аудио файла'); return; }
+
+  const MAX_MB = 20;
+  if(_mtAudioBlob.size > MAX_MB * 1024 * 1024) {
+    showToast(`Файл слишком большой (макс. ${MAX_MB} МБ)`); return;
+  }
+
+  document.getElementById('mt-transcribe-status').style.display = 'block';
+  document.getElementById('mt-transcribe-status').textContent = '⏳ Транскрибирую аудио...';
+  document.getElementById('mt-transcribe-btn').disabled = true;
+  document.getElementById('mt-ai-loading').style.display = 'block';
+  document.getElementById('mt-summary-wrap').style.display = 'none';
+
+  try {
+    // Convert blob to base64
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result.split(',')[1]);
+      reader.onerror = rej;
+      reader.readAsDataURL(_mtAudioBlob);
+    });
+
+    const mediaType = _mtAudioBlob.type || 'audio/webm';
+    const title = document.getElementById('mt-title').value.trim();
+    const parts = document.getElementById('mt-participants').value.trim();
+    const client = document.getElementById('mt-client').value.trim();
+
+    document.getElementById('mt-transcribe-status').textContent = '✨ Создаю резюме...';
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: mediaType, data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Это запись деловой встречи агентства BYTIME.
+${title ? 'Тема: ' + title : ''}
+${parts ? 'Участники: ' + parts : ''}
+${client ? 'Клиент: ' + client : ''}
+
+Задачи:
+1. Транскрибируй содержание встречи
+2. Составь структурированное резюме в формате:
+
+ТРАНСКРИПЦИЯ (краткий пересказ, не дословно):
+...
+
+КЛЮЧЕВЫЕ РЕШЕНИЯ:
+— ...
+
+СЛЕДУЮЩИЕ ШАГИ / ЗАДАЧИ:
+— ...
+
+Пиши по-русски, деловым стилем, без воды.`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content?.[0]?.text || '';
+
+    if(!text) throw new Error('Пустой ответ');
+
+    // Put transcription into notes if empty, summary into summary block
+    const notesEl = document.getElementById('mt-notes');
+    if(!notesEl.value.trim()) {
+      // Extract transcription part
+      const transcMatch = text.match(/ТРАНСКРИПЦИЯ[:\s]*([\s\S]*?)(?=КЛЮЧЕВЫЕ|СЛЕДУЮЩИЕ|$)/i);
+      if(transcMatch) notesEl.value = transcMatch[1].trim();
+    }
+
+    // Put decisions
+    const decMatch = text.match(/КЛЮЧЕВЫЕ РЕШЕНИЯ[:\s]*([\s\S]*?)(?=СЛЕДУЮЩИЕ|ЗАДАЧИ|$)/i);
+    if(decMatch && !document.getElementById('mt-decisions').value.trim()) {
+      document.getElementById('mt-decisions').value = decMatch[1].trim();
+    }
+
+    // Put tasks
+    const taskMatch = text.match(/(?:СЛЕДУЮЩИЕ ШАГИ|ЗАДАЧИ)[^:]*[:\s]*([\s\S]*?)$/i);
+    if(taskMatch && !document.getElementById('mt-tasks').value.trim()) {
+      document.getElementById('mt-tasks').value = taskMatch[1].trim();
+    }
+
+    // Show full AI output as summary
+    document.getElementById('mt-summary-text').textContent = text;
+    document.getElementById('mt-summary-wrap').style.display = 'block';
+
+    // Auto-save
+    if(mtCurrentId) {
+      mtLoad();
+      const m = mtMeetings.find(x=>x.id===mtCurrentId);
+      if(m) { m.summary = text; mtSaveAll(); }
+    }
+
+    showToast('Транскрипция готова ✓');
+  } catch(e) {
+    console.error(e);
+    showToast('Ошибка транскрипции: ' + (e.message||'неизвестная'));
+  } finally {
+    document.getElementById('mt-transcribe-status').style.display = 'none';
+    document.getElementById('mt-transcribe-btn').disabled = false;
+    document.getElementById('mt-ai-loading').style.display = 'none';
+  }
+}
+
+const _mtOrigSwitch=switchToolTab;
+function switchToolTab(tab,el){
+  _mtOrigSwitch(tab,el);
+  if(tab==='meeting'){mtRender();if(!mtCurrentId)mtNewMeeting();mtUpdateShareBtn();}
+}
 </script>
 </body>
 </html>
