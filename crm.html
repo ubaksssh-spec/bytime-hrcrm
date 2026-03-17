@@ -272,11 +272,7 @@ html.iframe-mode-early .topbar{display:none!important}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
       Воронка
     </div>
-    <div class="nav-item" onclick="nav('tasks')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-      Задачи
-      <span class="nav-badge urgent" id="nb-tasks" style="display:none"></span>
-    </div>
+
     <div class="nav-item" onclick="nav('docs')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Документооборот
@@ -315,11 +311,7 @@ html.iframe-mode-early .topbar{display:none!important}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
       Воронка
     </div>
-    <div class="iframe-tab" id="ift-tasks" onclick="nav('tasks')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-      Задачи
-      <span class="tab-badge" id="itnb-tasks" style="display:none"></span>
-    </div>
+
     <div class="iframe-tab" id="ift-docs" onclick="nav('docs')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
       Документы
@@ -662,9 +654,10 @@ html.iframe-mode-early .topbar{display:none!important}
         </div>
       </div>
       <div class="mo-section" id="mo-tasks-sec" style="display:none">
-        <div class="mo-sec-title">Задачи и напоминания</div>
-        <div class="add-task-row">
-          <input type="text" id="nt-text" placeholder="Новая задача...">
+        <div class="mo-sec-title">Задачи</div>
+        <div class="add-task-row" style="flex-wrap:wrap;gap:6px">
+          <input type="text" id="nt-text" placeholder="Новая задача..." style="flex:2;min-width:160px">
+          <input type="text" id="nt-assign" placeholder="Ответственный" style="flex:1;min-width:120px;padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none">
           <input type="date" id="nt-dl">
           <input type="time" id="nt-tm" style="padding:7px 9px;border:1px solid var(--gray);border-radius:6px;font-size:12px;font-family:'Onest',sans-serif;outline:none;">
           <button class="btn btn-primary btn-sm" onclick="addTask()">+ Добавить</button>
@@ -780,6 +773,7 @@ async function bootApp() {
   subscribeRealtime();
   setSyncStatus('ok','Подключено');
   updateBadges();
+  syncAllCrmTasks(); // push all tasks to shared localStorage
   renderPage(curPage);
 }
 
@@ -959,16 +953,70 @@ async function addTask(){
   if(!text||!curId)return;
   const dl=document.getElementById('nt-dl').value;
   const tm=document.getElementById('nt-tm').value;
+  const assign=document.getElementById('nt-assign').value.trim();
   const c=clients.find(x=>x.id===curId);
   c.tasks=c.tasks||[];
-  c.tasks.push({id:uid(),text,deadline:dl,time:tm,status:'pending',createdAt:todayStr()});
+  const task={id:uid(),text,deadline:dl,time:tm,assign,status:'pending',createdAt:todayStr()};
+  c.tasks.push(task);
   c.history=c.history||[];
   const timeStr=dl?(dl+(tm?' в '+tm:'')):'';
   c.history.unshift({id:uid(),date:new Date().toISOString(),type:'task',text:`Задача: "${text}"${timeStr?' · '+timeStr:''}`});
-  document.getElementById('nt-text').value='';document.getElementById('nt-dl').value='';document.getElementById('nt-tm').value='';
-  await persist(c);renderMoTasks(c);updateBadges();
-  if(curPage==='tasks')renderTasks();if(curPage==='dashboard')renderDashboard();
+  document.getElementById('nt-text').value='';
+  document.getElementById('nt-dl').value='';
+  document.getElementById('nt-tm').value='';
+  document.getElementById('nt-assign').value='';
+  await persist(c);
+  // Sync to shared localStorage for main taskboard
+  syncTaskToMainBoard(task, c);
+  renderMoTasks(c);updateBadges();
+  if(curPage==='dashboard')renderDashboard();
+}
 
+function syncTaskToMainBoard(task, client) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('bt_crm_tasks')||'[]');
+    // Remove old version if exists
+    const filtered = existing.filter(t=>t.id!=='crm_'+task.id);
+    filtered.unshift({
+      id:       'crm_'+task.id,
+      title:    task.text,
+      assign:   task.assign || client.manager || '',
+      priority: 'mid',
+      col:      0,
+      deadline: task.deadline || '',
+      desc:     'CRM · ' + client.name,
+      tags:     ['CRM', client.name].filter(Boolean),
+      clientId: client.id,
+      clientName: client.name,
+      _crm:     true,
+    });
+    localStorage.setItem('bt_crm_tasks', JSON.stringify(filtered));
+  } catch(e) {}
+}
+
+// On load: push all existing CRM tasks to bt_crm_tasks
+function syncAllCrmTasks() {
+  try {
+    const all = [];
+    clients.forEach(c => {
+      (c.tasks||[]).filter(t=>t.status!=='done').forEach(t => {
+        all.push({
+          id:       'crm_'+t.id,
+          title:    t.text,
+          assign:   t.assign || c.manager || '',
+          priority: 'mid',
+          col:      t.status==='in_progress'?1:0,
+          deadline: t.deadline||'',
+          desc:     'CRM · '+c.name,
+          tags:     ['CRM', c.name].filter(Boolean),
+          clientId: c.id,
+          clientName: c.name,
+          _crm:     true,
+        });
+      });
+    });
+    localStorage.setItem('bt_crm_tasks', JSON.stringify(all));
+  } catch(e) {}
 }
 
 async function toggleTask(cid,tid){
@@ -1008,6 +1056,7 @@ function renderMoTasks(c){
     return`<div class="mt-item"><div class="t-check ${isDone?'done':''}" onclick="toggleTask('${c.id}','${t.id}')">
       ${isDone?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>':''}
     </div><div style="flex:1"><div class="t-text ${isDone?'done-text':''}" style="font-size:12px">${t.text}</div>
+    ${t.assign?`<div style="font-size:10px;color:#7a6070;margin-top:1px">👤 ${t.assign}</div>`:''}
     ${t.deadline?`<div class="t-dl ${isDone?'':di.cls}" style="font-size:10px">${di?di.label:t.deadline}${t.time?' в '+t.time:''}</div>`:''}</div>
     ${!isDone?`<a href="${gurl}" target="_blank" title="Добавить в Google Calendar" style="flex-shrink:0;display:flex;align-items:center;padding:3px 7px;background:#f0f7f0;border-radius:4px;color:#024638;font-size:10px;font-weight:700;text-decoration:none;gap:3px;border:1px solid #c8e6c9;transition:.2s" onmouseover="this.style.background='#c8e6c9'" onmouseout="this.style.background='#f0f7f0'">📅 Календарь</a>`:''}
     </div>`;

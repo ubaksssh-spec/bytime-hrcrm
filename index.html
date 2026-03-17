@@ -1127,7 +1127,7 @@ tbody tr:last-child{border-bottom:none}
         <div class="form-row"><label>Колонка</label><select id="tf-col"></select></div>
       </div>
       <div class="form-grid">
-        <div class="form-row"><label>Исполнитель</label><select id="tf-assign"></select></div>
+        <div class="form-row"><label>Ответственный</label><select id="tf-assign"></select></div>
         <div class="form-row"><label>Приоритет</label>
           <select id="tf-priority"><option value="high">🔴 Высокий</option><option value="mid" selected>🟡 Средний</option><option value="low">🟢 Низкий</option></select>
         </div>
@@ -2673,12 +2673,10 @@ function renderBoard() {
 
   let boardTasks;
   if (activeBoardId === 'personal') {
-    // Local tasks assigned to current user
     const localTasks = Object.entries(tasks)
       .filter(([bid]) => bid !== '_ext')
       .flatMap(([bid,arr]) => arr.map(t=>({...t,_board:bid})))
       .filter(t => t.assign === currentUser?.name);
-    // External tasks (CRM + HRM)
     const extTasks = (tasks._ext||[]).map(t=>({...t,_board:'_ext'}));
     boardTasks = [...localTasks, ...extTasks];
   } else {
@@ -5433,19 +5431,29 @@ async function syncExternalTasksToPersonal() {
 
   if (!tasks._ext) tasks._ext = [];
 
-  // ── CRM: tasks live inside clients[].data.tasks[] ──
+  // ── CRM: tasks from localStorage (written by crm.html on load) ──
+  try {
+    const crmTasks = JSON.parse(localStorage.getItem('bt_crm_tasks')||'[]');
+    crmTasks.forEach(t => {
+      tasks._ext.push({...t, _ext:true});
+    });
+  } catch(e) {}
+
+  // ── CRM Supabase fallback ──
   try {
     const rows = await fetchSupabase('crm', 'clients', 'select=id,data');
+    const lsIds = new Set((JSON.parse(localStorage.getItem('bt_crm_tasks')||'[]')).map(t=>t.id));
     (rows||[]).forEach(row => {
       const d = row.data || {};
       (d.tasks||[]).forEach(t => {
         if (t.status === 'done') return;
+        if (lsIds.has('crm_'+t.id)) return; // already from localStorage
         const mgr = (d.manager||'').toLowerCase();
         if (!matchesCurrentUser(mgr)) return;
         tasks._ext.push({
           id:       'crm_'+t.id,
           title:    t.text || t.title || '—',
-          assign:   d.manager || myName,
+          assign:   t.assign || d.manager || myName,
           priority: 'mid',
           col:      0,
           deadline: t.deadline || '',
