@@ -2545,40 +2545,49 @@ function saveEmpDetailEdit() {
   showToast('Карточка сохранена ✓');
 }
 
-function uploadEmpPhoto(id, input) {
+async function uploadEmpPhoto(id, input) {
   const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
+  showToast('Загружаю фото...');
+  try {
+    const url = await uploadToStorage(file, 'emp-photos');
     if (!empProfiles[id]) empProfiles[id] = {};
-    empProfiles[id].photo = e.target.result;
-    saveProfiles();
-    employees = getEmployees();
-    openEmpDetail(id);
-  };
-  reader.readAsDataURL(file);
+    empProfiles[id].photo = url;
+    saveProfiles(); employees = getEmployees(); openEmpDetail(id);
+    showToast('Фото загружено ✓');
+  } catch(e) {
+    // Fallback to base64
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (!empProfiles[id]) empProfiles[id] = {};
+      empProfiles[id].photo = ev.target.result;
+      saveProfiles(); employees = getEmployees(); openEmpDetail(id);
+    };
+    reader.readAsDataURL(file);
+    showToast('Загружено локально');
+  }
+  input.value='';
 }
 
-function uploadEmpFile(id, input) {
+async function uploadEmpFile(id, input) {
   if (!empProfiles[id]) empProfiles[id] = {};
   if (!empProfiles[id].files) empProfiles[id].files = [];
   const files = [...input.files];
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      empProfiles[id].files.push({name: file.name, data: e.target.result});
-      saveProfiles();
-      employees = getEmployees();
-      const el = document.getElementById(`emp-files-${id}`);
-      if (el) el.innerHTML = empProfiles[id].files.map((f,fi)=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray1)">
-          <span style="font-size:16px">📎</span>
-          <span style="flex:1;font-size:13px">${f.name}</span>
-          <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost">↓</a>
-          <button onclick="removeEmpFile('${id}',${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
-        </div>`).join('');
-    };
-    reader.readAsDataURL(file);
-  });
+  showToast(`Загружаю ${files.length} файл(а)...`);
+  for (const file of files) {
+    try {
+      const url = await uploadToStorage(file, 'emp-files');
+      empProfiles[id].files.push({name: file.name, data: url});
+    } catch(e) {
+      // Fallback base64
+      await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = ev => { empProfiles[id].files.push({name:file.name, data:ev.target.result}); resolve(); };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+  saveProfiles(); employees = getEmployees(); openEmpDetail(id);
+  showToast('Файлы загружены ✓');
   input.value='';
 }
 
@@ -2590,19 +2599,28 @@ function removeEmpFile(id, idx) {
   openEmpDetail(id);
 }
 
-function uploadEmpDoc(id, docType, input) {
+async function uploadEmpDoc(id, docType, input) {
   const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
+  showToast('Загружаю документ...');
+  try {
+    const url = await uploadToStorage(file, 'emp-docs');
     if (!empProfiles[id]) empProfiles[id] = {};
-    if (!empProfiles[id].docs) empProfiles[id].docs = {};
-    empProfiles[id].docs[docType] = { name: file.name, data: e.target.result };
-    saveProfiles();
-    employees = getEmployees();
-    openEmpDetail(id);
-    showToast(`${docType==='contract'?'Договор':'НДА'} загружен ✓`);
-  };
-  reader.readAsDataURL(file);
+    if (!empProfiles[id][docType]) empProfiles[id][docType] = [];
+    empProfiles[id][docType].push({name: file.name, data: url});
+    saveProfiles(); employees = getEmployees(); openEmpDetail(id);
+    showToast(`${docType==='contracts'?'Договор':'НДА'} загружен ✓`);
+  } catch(e) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (!empProfiles[id]) empProfiles[id] = {};
+      if (!empProfiles[id][docType]) empProfiles[id][docType] = [];
+      empProfiles[id][docType].push({name: file.name, data: ev.target.result});
+      saveProfiles(); employees = getEmployees(); openEmpDetail(id);
+      showToast('Загружено локально');
+    };
+    reader.readAsDataURL(file);
+  }
+  input.value='';
 }
 
 function removeEmpDoc(id, docType) {
@@ -5416,6 +5434,38 @@ const EXT = {
   crm: { url:'https://jvmagwvupjcmpydzvnin.supabase.co', key:'sb_publishable_oqH0PBg3rAd9mpAkt5ECMw_HLXu2MmH' },
   hrm: { url:'https://izajropzyjmedxueawgd.supabase.co',  key:'sb_publishable_8bD0xkdxGwLhYw4-M6rDCw_dO-WlVtJ' },
 };
+
+// ─── SUPABASE STORAGE ─────────────────────────────────────
+// Bucket: 'bytime-files' in CRM project (public)
+const STORAGE_URL = EXT.crm.url + '/storage/v1';
+const STORAGE_KEY = EXT.crm.key;
+
+async function uploadToStorage(file, folder) {
+  // folder: 'emp-photos', 'emp-files', 'emp-docs', 'crm-docs'
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const res = await fetch(`${STORAGE_URL}/object/bytime-files/${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': STORAGE_KEY,
+      'Authorization': 'Bearer ' + STORAGE_KEY,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true',
+    },
+    body: file,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('Storage upload error:', err);
+    throw new Error('Ошибка загрузки: ' + res.status);
+  }
+  // Return public URL
+  return `${STORAGE_URL}/object/public/bytime-files/${path}`;
+}
+
+function isStorageUrl(str) {
+  return str && (str.startsWith('http://') || str.startsWith('https://'));
+}
 
 async function fetchSupabase(source, table, params='') {
   const {url,key} = EXT[source];

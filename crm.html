@@ -1652,18 +1652,6 @@ function deleteDoc(docId) {
   saveCrmDocs(); renderDocs();
 }
 
-function attachDocFile(docId, input) {
-  const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    loadCrmDocs();
-    const d = crmDocs.find(x=>x.id===docId); if(!d) return;
-    d.file = {name:file.name, data:e.target.result};
-    saveCrmDocs(); renderDocs(); toast('Файл прикреплён ✓');
-  };
-  reader.readAsDataURL(file);
-}
-
 // ── Modal ──
 function openAddDocModal(docId, presetClientId) {
   loadCrmDocs();
@@ -1710,15 +1698,66 @@ function onDocTypeChange() {
   if (!editDocId && !numEl.value) numEl.value = autoDocNumber(type);
 }
 
-function handleDocFileSelect(input) {
+const CRM_STORAGE_URL = 'https://jvmagwvupjcmpydzvnin.supabase.co/storage/v1';
+const CRM_STORAGE_KEY = 'sb_publishable_oqH0PBg3rAd9mpAkt5ECMw_HLXu2MmH';
+
+async function uploadFileToCrmStorage(file, folder) {
+  const ext = file.name.split('.').pop();
+  const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const res = await fetch(`${CRM_STORAGE_URL}/object/bytime-files/${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': CRM_STORAGE_KEY,
+      'Authorization': 'Bearer ' + CRM_STORAGE_KEY,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true',
+    },
+    body: file,
+  });
+  if (!res.ok) throw new Error('Upload failed: ' + res.status);
+  return `${CRM_STORAGE_URL}/object/public/bytime-files/${path}`;
+}
+
+async function attachDocFile(docId, input) {
   const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    docFilePending = {name:file.name, data:e.target.result};
+  toast('Загружаю файл...');
+  try {
+    const url = await uploadFileToCrmStorage(file, 'crm-docs');
+    loadCrmDocs();
+    const d = crmDocs.find(x=>x.id===docId); if(!d) return;
+    d.file = {name:file.name, data:url};
+    saveCrmDocs(); renderDocs(); toast('Файл загружен ✓');
+  } catch(e) {
+    // Fallback base64
+    const reader = new FileReader();
+    reader.onload = ev => {
+      loadCrmDocs();
+      const d = crmDocs.find(x=>x.id===docId); if(!d) return;
+      d.file = {name:file.name, data:ev.target.result};
+      saveCrmDocs(); renderDocs(); toast('Загружено локально');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function handleDocFileSelect(input) {
+  const file = input.files[0]; if(!file) return;
+  document.getElementById('doc-file-label').textContent = '⏳ Загружаю ' + file.name + '...';
+  try {
+    const url = await uploadFileToCrmStorage(file, 'crm-docs');
+    docFilePending = {name:file.name, data:url};
     document.getElementById('doc-file-label').textContent = '✓ ' + file.name;
     document.getElementById('doc-file-area').style.borderColor = '#27ae60';
-  };
-  reader.readAsDataURL(file);
+  } catch(e) {
+    // Fallback base64
+    const reader = new FileReader();
+    reader.onload = ev => {
+      docFilePending = {name:file.name, data:ev.target.result};
+      document.getElementById('doc-file-label').textContent = '✓ ' + file.name + ' (локально)';
+      document.getElementById('doc-file-area').style.borderColor = '#e67e22';
+    };
+    reader.readAsDataURL(file);
+  }
 }
 
 function handleDocFileDrop(e) {
