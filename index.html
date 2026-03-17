@@ -6466,20 +6466,44 @@ function wbRedo() {
 
 function copyWbShareLink() { copyWbShareLinkById(activeWbId); }
 function copyWbShareLinkById(id) {
-  const url = window.location.origin + window.location.pathname + '?wbread=' + id;
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(url)
-      .then(()=>showToast('Ссылка скопирована ✓'))
-      .catch(()=>{ prompt('Скопируйте ссылку для доступа (только чтение):', url); });
-  } else {
-    // Fallback for non-HTTPS / iframe
-    const ta = document.createElement('textarea');
-    ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); showToast('Ссылка скопирована ✓'); }
-    catch(e) { prompt('Скопируйте ссылку для доступа (только чтение):', url); }
-    document.body.removeChild(ta);
-  }
+  const base = window.location.origin + window.location.pathname.replace('index.html','');
+  const url = base + 'whiteboard.html?wb=' + encodeURIComponent(id);
+  const b = whiteboards.find(x=>x.id===id);
+  const name = b ? b.name : 'Доска';
+
+  // Remove existing modal
+  document.getElementById('wb-share-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'wb-share-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:480px;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+      <div style="font-family:var(--font-h);font-size:20px;color:var(--bv);margin-bottom:6px">🔗 Поделиться доской</div>
+      <div style="font-size:13px;color:var(--gray4);margin-bottom:20px">«${name}» — доступна для редактирования всем по ссылке</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input id="wb-share-url-input" value="${url}" readonly
+          style="flex:1;padding:10px 12px;border:1.5px solid var(--gray2);border-radius:8px;font-size:13px;font-family:var(--font-b);outline:none;background:var(--gray1);color:var(--ink)"
+          onclick="this.select()">
+        <button onclick="
+          const inp=document.getElementById('wb-share-url-input');
+          inp.select();
+          navigator.clipboard?.writeText(inp.value).then(()=>showToast('Ссылка скопирована ✓')).catch(()=>{document.execCommand('copy');showToast('Скопирована ✓');});
+        " style="padding:10px 18px;background:var(--bv);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b);white-space:nowrap">
+          Копировать
+        </button>
+      </div>
+      <div style="background:rgba(2,70,56,.07);border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--em);margin-bottom:20px">
+        ⚠️ По этой ссылке можно <b>редактировать</b> доску. Отправляй только доверенным людям.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('wb-share-modal').remove()" 
+          style="padding:9px 20px;background:var(--gray1);border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font-b)">Закрыть</button>
+        <button onclick="window.open('${url}','_blank')" 
+          style="padding:9px 20px;background:var(--em);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font-b)">↗ Открыть</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
 }
 
 // Read-only mode: if URL has ?wbread=id, show board read-only
