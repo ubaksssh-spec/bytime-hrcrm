@@ -4826,6 +4826,7 @@ function renderClientView() {
                       + Задача
                     </button>
                     <button data-action="toggle-etap" data-client="${activeClientId}" data-etap="${etapEnc}"
+                      onclick="event.stopPropagation();toggleEtapCollapse('${activeClientId}','${etapEnc}')"
                       style="background:none;border:1.5px solid var(--gray2);border-radius:7px;padding:4px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray4)"
                       onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'"
                       onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray4)'">
@@ -4923,23 +4924,6 @@ function toggleEtapCollapse(clientId, etapEnc) {
   if (set.has(etap)) set.delete(etap); else set.add(etap);
   renderClientView();
 }
-
-// Delegation handlers for project table buttons (avoids onclick-in-innerHTML issues)
-document.addEventListener('click', function(e) {
-  const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  const action = btn.dataset.action;
-  const clientId = btn.dataset.client;
-  const etapEnc  = btn.dataset.etap;
-  const taskEnc  = btn.dataset.task;
-  if (action === 'toggle-etap') { e.stopPropagation(); toggleEtapCollapse(clientId, etapEnc); }
-  if (action === 'add-task')    { e.stopPropagation(); addTaskToEtap(clientId, etapEnc); }
-  if (action === 'delete-task') { e.stopPropagation(); deleteProjTask(clientId, etapEnc, taskEnc); }
-  if (action === 'to-kanban')   { e.stopPropagation(); sendToKanban(clientId, etapEnc, taskEnc); }
-  if (action === 'open-result') { e.stopPropagation(); openResultModal(clientId, etapEnc, taskEnc); }
-});
-
-function projBtnClick(el) { /* handled by delegation */ }
 
 function projTaskBlur(el) {
   const field = el.dataset.field;
@@ -5407,12 +5391,7 @@ function loadProjectFile(input) {
   input.value='';
 }
 
-function toggleEtapCollapse(clientId, etap) {
-  if (!collapsedEtaps[clientId]) collapsedEtaps[clientId] = new Set();
-  const set = collapsedEtaps[clientId];
-  if (set.has(etap)) set.delete(etap); else set.add(etap);
-  renderClientView();
-}
+function projBtnClick(el) { /* handled by onclick */ }
 
 // ════════════════════════════════════════════
 // EXTERNAL TASKS SYNC (CRM + HRM → Личная)
