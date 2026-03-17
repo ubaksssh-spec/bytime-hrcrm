@@ -44,18 +44,29 @@ body{font-family:'Onest',sans-serif;font-size:14px;color:var(--text-primary);bac
 .breadcrumb-text{color:rgba(255,255,255,0.5);font-size:13px}
 
 /* IFRAME MODE */
-html.iframe-mode-early .topbar{display:none!important}
+html.iframe-mode-early .topbar{visibility:hidden!important;height:0!important;overflow:hidden!important;padding:0!important;border:none!important}
 html.iframe-mode-early .sidebar{display:none!important}
 body.iframe-mode .sidebar{display:none!important}
 body.iframe-mode .topbar{display:none!important}
-body.iframe-mode .iframe-tabbar{display:flex!important}
-body.iframe-mode .main{flex-direction:row}
-body.iframe-mode .content{width:100%!important;flex:1;overflow-y:auto}
-.iframe-tabbar{display:none;background:#fff;border-bottom:2px solid #f0eaea;padding:0 16px;position:sticky;top:0;z-index:100;gap:0;flex-shrink:0;overflow-x:auto}
-.iframe-tab{display:flex;align-items:center;gap:7px;padding:13px 16px;font-size:13px;font-weight:600;color:#999;cursor:pointer;border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap}
+body.iframe-mode .app{padding-top:48px}
+body.iframe-mode .iframe-tabbar{
+  display:flex!important;
+  position:fixed;top:0;left:0;right:0;
+  z-index:99999;
+  background:#fff;
+  border-bottom:2px solid #e8d8d8;
+  padding:0 16px;
+  height:48px;
+  overflow-x:auto;
+  overflow-y:hidden;
+}
+body.iframe-mode .main{overflow:visible}
+body.iframe-mode .content{overflow-y:auto;height:calc(100vh - 48px)}
+.iframe-tabbar{display:none;gap:0;flex-shrink:0;align-items:center}
+.iframe-tab{display:flex;align-items:center;gap:7px;padding:0 16px;height:48px;font-size:13px;font-weight:600;color:#999;cursor:pointer;border-bottom:2.5px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
 .iframe-tab:hover{color:var(--burgundy)}
 .iframe-tab.active{color:var(--burgundy);border-bottom-color:var(--burgundy)}
-.iframe-tab .ib{background:var(--burgundy);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700}
+.iframe-tab .ib{background:var(--burgundy);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px}
 
 /* SIDEBAR */
 .main{display:flex;flex:1;overflow:hidden}
@@ -284,7 +295,17 @@ tr:hover td{background:#FBF9F7}
 .fc-rejected::before{background:#BDBDBD}
 
 </style>
-<script>if(window.self!==window.top){document.documentElement.classList.add('iframe-mode-early');}</script>
+<script>
+(function(){
+  if(window.self!==window.top){
+    document.documentElement.classList.add('iframe-mode-early');
+    // Inline style injected immediately via dynamic CSS
+    var s=document.createElement('style');
+    s.textContent='.topbar{display:none!important}.sidebar{display:none!important}';
+    document.head.appendChild(s);
+  }
+})();
+</script>
 </head>
 <body>
 <script>if(window.self!==window.top){document.body.classList.add('iframe-mode');}</script>
