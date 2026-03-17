@@ -277,6 +277,10 @@ html.iframe-mode-early .topbar{display:none!important}
       Задачи
       <span class="nav-badge urgent" id="nb-tasks" style="display:none"></span>
     </div>
+    <div class="nav-item" onclick="nav('docs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Документооборот
+    </div>
   </nav>
   <div class="nav-item" id="nav-admin" onclick="nav('admin')" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><circle cx="19" cy="6" r="2" fill="currentColor" stroke="none"/></svg>
@@ -315,6 +319,11 @@ html.iframe-mode-early .topbar{display:none!important}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       Задачи
       <span class="tab-badge" id="itnb-tasks" style="display:none"></span>
+    </div>
+    <div class="iframe-tab" id="ift-docs" onclick="nav('docs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Документы
+      <span class="tab-badge" id="itnb-docs" style="display:none">0</span>
     </div>
   </div>
   <header class="topbar">
@@ -430,8 +439,136 @@ html.iframe-mode-early .topbar{display:none!important}
       </div>
     </div>
 
+    <!-- ДОКУМЕНТООБОРОТ -->
+    <div id="page-docs" class="page">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--ink)">Документооборот</div>
+          <div style="font-size:12px;color:var(--gray-mid);margin-top:2px" id="docs-subtitle">Все документы по клиентам</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <!-- View toggle -->
+          <div style="display:flex;background:#f4f0f2;border-radius:8px;padding:3px;gap:2px">
+            <button id="docs-view-table" onclick="setDocsView('table')"
+              style="padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:'Onest',Arial,sans-serif;background:var(--bur);color:#fff;transition:.15s">
+              ☰ Реестр
+            </button>
+            <button id="docs-view-clients" onclick="setDocsView('clients')"
+              style="padding:5px 13px;border:none;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:600;font-family:'Onest',Arial,sans-serif;background:transparent;color:var(--gray-mid);transition:.15s">
+              👥 По клиентам
+            </button>
+          </div>
+          <button onclick="openAddDocModal(null)" style="display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bur);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Onest',Arial,sans-serif">
+            + Документ
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <input id="docs-search" placeholder="🔍 Поиск по номеру, клиенту..." oninput="renderDocs()"
+          style="padding:7px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-size:13px;font-family:'Onest',Arial,sans-serif;outline:none;min-width:220px">
+        <select id="docs-filter-type" onchange="renderDocs()"
+          style="padding:7px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-size:13px;font-family:'Onest',Arial,sans-serif;outline:none;background:#fff;color:var(--ink)">
+          <option value="">Все типы</option>
+          <option value="invoice">Счёт</option>
+          <option value="act">Акт</option>
+          <option value="contract">Договор</option>
+          <option value="addendum">Допсоглашение</option>
+        </select>
+        <select id="docs-filter-status" onchange="renderDocs()"
+          style="padding:7px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-size:13px;font-family:'Onest',Arial,sans-serif;outline:none;background:#fff;color:var(--ink)">
+          <option value="">Все статусы</option>
+          <option value="unpaid">Не оплачен</option>
+          <option value="paid">Оплачен</option>
+          <option value="draft">Не отправлен</option>
+          <option value="sent">Отправлен</option>
+          <option value="signed">Подписан</option>
+          <option value="rejected">Отклонён</option>
+        </select>
+        <select id="docs-filter-client" onchange="renderDocs()"
+          style="padding:7px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-size:13px;font-family:'Onest',Arial,sans-serif;outline:none;background:#fff;color:var(--ink);max-width:200px">
+          <option value="">Все клиенты</option>
+        </select>
+      </div>
+
+      <!-- Content -->
+      <div id="docs-content"></div>
+    </div>
+
   </div>
 </main>
+
+<!-- ADD DOC MODAL -->
+<div id="doc-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid #e8e0e4;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#54052B" id="doc-modal-title">Новый документ</div>
+      <button onclick="closeDocModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#b8a8b0;line-height:1">✕</button>
+    </div>
+    <div style="padding:20px 24px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Тип *</label>
+          <select id="doc-type" onchange="onDocTypeChange()" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;background:#fff">
+            <option value="invoice">Счёт</option>
+            <option value="act">Акт</option>
+            <option value="contract">Договор</option>
+            <option value="addendum">Допсоглашение</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Номер</label>
+          <input id="doc-number" placeholder="№ документа" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Клиент *</label>
+          <select id="doc-client" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;background:#fff">
+            <option value="">— выберите клиента —</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Дата</label>
+          <input id="doc-date" type="date" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Сумма, ₽</label>
+          <input id="doc-amount" type="number" placeholder="0" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+        </div>
+        <div id="doc-status-wrap">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px" id="doc-status-label">Статус</label>
+          <select id="doc-status" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;background:#fff">
+            <option value="draft">Не отправлен</option>
+            <option value="sent">Отправлен клиенту</option>
+            <option value="signed">Подписан</option>
+            <option value="rejected">Отклонён</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Название / описание</label>
+        <input id="doc-title" placeholder="Например: Договор на HR-консалтинг" style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Файл</label>
+        <div id="doc-file-area" style="border:2px dashed #e0d8dc;border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:.15s" onclick="document.getElementById('doc-file-input').click()" ondragover="event.preventDefault();this.style.borderColor='#54052B'" ondragleave="this.style.borderColor='#e0d8dc'" ondrop="handleDocFileDrop(event)">
+          <div id="doc-file-label" style="font-size:13px;color:#b8a8b0">📎 Нажмите или перетащите файл (PDF, DOC, DOCX)</div>
+        </div>
+        <input id="doc-file-input" type="file" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none" onchange="handleDocFileSelect(this)">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;display:block;margin-bottom:5px">Комментарий</label>
+        <textarea id="doc-notes" rows="2" placeholder="Дополнительные заметки..." style="width:100%;padding:9px 12px;border:1.5px solid #e0d8dc;border-radius:8px;font-family:'Onest',Arial,sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="closeDocModal()" style="padding:10px 20px;background:#f4f0f2;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Onest',Arial,sans-serif">Отмена</button>
+        <button onclick="saveDoc()" style="padding:10px 24px;background:#54052B;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Onest',Arial,sans-serif">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL -->
 <div class="mo-overlay" id="mo-overlay" onclick="handleOvClick(event)">
@@ -678,7 +815,7 @@ function nav(page){
   if (tabEl) tabEl.classList.add('active');
   const pageEl = document.getElementById(`page-${page}`);
   if (pageEl) pageEl.classList.add('active');
-  const titles={dashboard:'Дашборд',clients:'Клиенты',kanban:'Воронка продаж',tasks:'Задачи',admin:'Пользователи'};
+  const titles={dashboard:'Дашборд',clients:'Клиенты',kanban:'Воронка продаж',tasks:'Задачи',admin:'Пользователи',docs:'Документооборот'};
   const titleEl = document.getElementById('topbar-title');
   if (titleEl) titleEl.textContent=titles[page]||page;
   renderPage(page);
@@ -689,6 +826,7 @@ function renderPage(p){
   else if(p==='kanban') renderKanban();
   else if(p==='tasks') renderTasks();
   else if(p==='admin') renderUsers();
+  else if(p==='docs') renderDocs();
 }
 
 // ===== MODAL =====
@@ -1116,6 +1254,347 @@ async function removeUser(uid){
     }
   });
 })();
+
+// ═══════════════════════════════════════
+// ДОКУМЕНТООБОРОТ
+// ═══════════════════════════════════════
+const DOCS_KEY = 'bt_crm_docs';
+let crmDocs = [];
+let docsView = 'table';
+let editDocId = null;
+let docFilePending = null;
+
+const DOC_TYPES  = {invoice:'Счёт', act:'Акт', contract:'Договор', addendum:'Допсоглашение'};
+const DOC_ICONS  = {invoice:'🧾', act:'📋', contract:'📝', addendum:'📄'};
+const DOC_PREFIX = {invoice:'СЧ', act:'АКТ', contract:'ДОГ', addendum:'ДОП'};
+
+// Invoice: only paid / unpaid
+const INV_STATUSES = {
+  unpaid: {label:'Не оплачен', color:'#e67e22', bg:'#fef3e2'},
+  paid:   {label:'Оплачен',    color:'#27ae60', bg:'#eafaf1'},
+};
+// Others: signing flow
+const SIGN_STATUSES = {
+  draft:    {label:'Не отправлен',    color:'#b8a8b0', bg:'#f4f0f2'},
+  sent:     {label:'Отправлен',       color:'#e67e22', bg:'#fef3e2'},
+  signed:   {label:'Подписан',        color:'#27ae60', bg:'#eafaf1'},
+  rejected: {label:'Отклонён',        color:'#c0392b', bg:'#fdf0ef'},
+};
+
+function getDocStatuses(type) { return type==='invoice' ? INV_STATUSES : SIGN_STATUSES; }
+
+function autoDocNumber(type) {
+  loadCrmDocs();
+  const prefix = DOC_PREFIX[type]||'ДОК';
+  const year = new Date().getFullYear().toString().slice(2);
+  const existing = crmDocs.filter(d=>d.type===type);
+  const n = existing.length + 1;
+  return `${prefix}-${year}-${String(n).padStart(3,'0')}`;
+}
+
+function loadCrmDocs() {
+  try { crmDocs = JSON.parse(localStorage.getItem(DOCS_KEY)||'[]'); } catch(e) { crmDocs=[]; }
+}
+function saveCrmDocs() {
+  localStorage.setItem(DOCS_KEY, JSON.stringify(crmDocs));
+}
+
+function setDocsView(v) {
+  docsView = v;
+  document.getElementById('docs-view-table').style.background   = v==='table'   ? 'var(--bur)' : 'transparent';
+  document.getElementById('docs-view-table').style.color        = v==='table'   ? '#fff' : 'var(--gray-mid)';
+  document.getElementById('docs-view-clients').style.background = v==='clients' ? 'var(--bur)' : 'transparent';
+  document.getElementById('docs-view-clients').style.color      = v==='clients' ? '#fff' : 'var(--gray-mid)';
+  renderDocs();
+}
+
+function renderDocs() {
+  loadCrmDocs();
+  // Populate client filter
+  const cf = document.getElementById('docs-filter-client');
+  if (cf) {
+    const cur = cf.value;
+    cf.innerHTML = '<option value="">Все клиенты</option>' +
+      clients.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>${c.name}</option>`).join('');
+  }
+  const search  = (document.getElementById('docs-search')?.value||'').toLowerCase();
+  const typeF   = document.getElementById('docs-filter-type')?.value||'';
+  const statusF = document.getElementById('docs-filter-status')?.value||'';
+  const clientF = document.getElementById('docs-filter-client')?.value||'';
+
+  let filtered = crmDocs.filter(d => {
+    const client = clients.find(c=>c.id===d.clientId);
+    const cname  = client?.name||'';
+    if (search  && !d.number?.toLowerCase().includes(search) && !d.title?.toLowerCase().includes(search) && !cname.toLowerCase().includes(search)) return false;
+    if (typeF   && d.type !== typeF) return false;
+    if (statusF && d.status !== statusF) return false;
+    if (clientF && d.clientId !== clientF) return false;
+    return true;
+  });
+
+  // Badge
+  const unsignedCount = crmDocs.filter(d=>d.type!=='invoice'&&d.status==='sent').length;
+  const badge = document.getElementById('itnb-docs');
+  if (badge) { badge.textContent=unsignedCount; badge.style.display=unsignedCount?'inline':'none'; }
+
+  const cont = document.getElementById('docs-content');
+  if (!cont) return;
+
+  if (docsView === 'table') {
+    cont.innerHTML = renderDocsTable(filtered);
+  } else {
+    cont.innerHTML = renderDocsByClients(filtered);
+  }
+  document.getElementById('docs-subtitle').textContent = `${filtered.length} документов`;
+}
+
+function renderDocsTable(docs) {
+  if (!docs.length) return `<div style="text-align:center;padding:48px;color:#b8a8b0;font-size:14px">Нет документов. Нажмите «+ Документ» чтобы добавить.</div>`;
+  return `
+    <div style="background:#fff;border-radius:12px;border:1px solid #e8e0e4;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:#f4f0f2">
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;white-space:nowrap">Тип</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0">Номер / Название</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0">Клиент</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0;white-space:nowrap">Дата</th>
+            <th style="padding:10px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0">Сумма</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0">Статус</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0">Файл</th>
+            <th style="padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b8a8b0">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${docs.map(d => {
+            const client = clients.find(c=>c.id===d.clientId);
+            const statuses = getDocStatuses(d.type);
+            const st = statuses[d.status] || statuses.draft;
+            return `<tr style="border-top:1px solid #f4f0f2" onmouseover="this.style.background='#faf8f9'" onmouseout="this.style.background=''">
+              <td style="padding:12px 14px;white-space:nowrap">
+                <span style="font-size:16px">${DOC_ICONS[d.type]||'📄'}</span>
+                <span style="font-size:12px;color:#7a6070;margin-left:5px">${DOC_TYPES[d.type]||d.type}</span>
+              </td>
+              <td style="padding:12px 14px;max-width:180px">
+                <div style="font-weight:600;color:#1a0a0f">${d.number?'№'+d.number:''}</div>
+                <div style="font-size:12px;color:#7a6070;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.title||'—'}</div>
+              </td>
+              <td style="padding:12px 14px;font-size:13px;color:#1a0a0f">${client?.name||'—'}</td>
+              <td style="padding:12px 14px;font-size:12.5px;color:#7a6070;white-space:nowrap">${d.date||'—'}</td>
+              <td style="padding:12px 14px;text-align:right;font-weight:600;color:#1a0a0f;white-space:nowrap">${d.amount?'₽'+Number(d.amount).toLocaleString('ru-RU'):''}</td>
+              <td style="padding:12px 14px">
+                <select onchange="changeDocStatus('${d.id}',this.value)"
+                  style="padding:3px 8px;border:none;border-radius:6px;font-size:12px;font-weight:600;background:${st.bg};color:${st.color};cursor:pointer;font-family:'Onest',Arial,sans-serif;outline:none">
+                  ${Object.entries(statuses).map(([k,v])=>`<option value="${k}" ${d.status===k?'selected':''}>${v.label}</option>`).join('')}
+                </select>
+              </td>
+              <td style="padding:12px 14px">
+                ${d.file
+                  ? `<a href="${d.file.data}" download="${d.file.name}" style="font-size:12px;color:#54052B;font-weight:600;text-decoration:none" title="${d.file.name}">↓ ${d.file.name.slice(0,16)}${d.file.name.length>16?'…':''}</a>`
+                  : `<label style="font-size:12px;color:#b8a8b0;cursor:pointer;border:1.5px dashed #e0d8dc;border-radius:6px;padding:3px 8px">
+                       + файл<input type="file" accept=".pdf,.doc,.docx" style="display:none" onchange="attachDocFile('${d.id}',this)">
+                     </label>`}
+              </td>
+              <td style="padding:12px 14px;white-space:nowrap">
+                <button onclick="openAddDocModal('${d.id}')" style="background:none;border:1.5px solid #e0d8dc;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px;color:#7a6070;font-family:'Onest',Arial,sans-serif" title="Редактировать">✏️</button>
+                <button onclick="deleteDoc('${d.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;color:#e0d8dc;margin-left:4px" title="Удалить" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#e0d8dc'">✕</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderDocsByClients(docs) {
+  const byClient = {};
+  clients.forEach(c => { byClient[c.id] = {client:c, docs:[]}; });
+  docs.forEach(d => {
+    if (!byClient[d.clientId]) byClient[d.clientId] = {client:clients.find(c=>c.id===d.clientId)||{name:'Неизвестный клиент',id:d.clientId}, docs:[]};
+    byClient[d.clientId].docs.push(d);
+  });
+  const groups = Object.values(byClient).filter(g=>g.docs.length>0);
+  if (!groups.length) return `<div style="text-align:center;padding:48px;color:#b8a8b0;font-size:14px">Нет документов.</div>`;
+  return groups.map(g => {
+    const unsigned = g.docs.filter(d=>d.type!=='invoice'&&d.status==='sent').length;
+    return `
+      <div style="background:#fff;border-radius:12px;border:1px solid #e8e0e4;margin-bottom:12px;overflow:hidden">
+        <div style="padding:12px 18px;background:#f4f0f2;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;background:#54052B;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">${g.client.name[0]?.toUpperCase()}</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#1a0a0f">${g.client.name}</div>
+              <div style="font-size:11.5px;color:#b8a8b0">${g.docs.length} документов</div>
+            </div>
+            ${unsigned ? `<span style="font-size:11px;font-weight:700;background:#fef3e2;color:#e67e22;border-radius:20px;padding:2px 9px">${unsigned} ожидают подписи</span>` : ''}
+          </div>
+          <button onclick="openAddDocModal(null,'${g.client.id}')" style="padding:5px 13px;background:#54052B;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;font-family:'Onest',Arial,sans-serif">+ Документ</button>
+        </div>
+        <div style="padding:4px 0">
+          ${g.docs.map(d => {
+            const statuses = getDocStatuses(d.type);
+            const st = statuses[d.status] || statuses.draft;
+            return `<div style="display:flex;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid #f4f0f2">
+              <span style="font-size:18px;flex-shrink:0">${DOC_ICONS[d.type]}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:600;color:#1a0a0f">${DOC_TYPES[d.type]}${d.number?' №'+d.number:''} ${d.title?'— '+d.title:''}</div>
+                <div style="font-size:11.5px;color:#b8a8b0">${d.date||''} ${d.amount?'· ₽'+Number(d.amount).toLocaleString('ru-RU'):''}</div>
+              </div>
+              <span style="font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;background:${st.bg};color:${st.color};white-space:nowrap">${st.label}</span>
+              ${d.file ? `<a href="${d.file.data}" download="${d.file.name}" style="font-size:12px;color:#54052B;font-weight:600;text-decoration:none;white-space:nowrap">↓ файл</a>` : ''}
+              <button onclick="changeDocStatus('${d.id}', nextDocStatus('${d.id}'))" style="background:none;border:1.5px solid #e0d8dc;border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11.5px;color:#7a6070;font-family:'Onest',Arial,sans-serif;white-space:nowrap">→ статус</button>
+              <button onclick="deleteDoc('${d.id}')" style="background:none;border:none;cursor:pointer;color:#e0d8dc;font-size:14px" onmouseover="this.style.color='#c0392b'" onmouseout="this.style.color='#e0d8dc'">✕</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function nextDocStatus(docId) {
+  const d = crmDocs.find(x=>x.id===docId); if(!d) return 'draft';
+  const statuses = Object.keys(getDocStatuses(d.type));
+  const i = statuses.indexOf(d.status);
+  return statuses[(i+1) % statuses.length];
+}
+
+function changeDocStatus(docId, status) {
+  loadCrmDocs();
+  const d = crmDocs.find(x=>x.id===docId); if(!d) return;
+  d.status = status;
+  if (status==='signed'||status==='paid') d.signedDate = new Date().toLocaleDateString('ru-RU');
+  saveCrmDocs();
+  renderDocs();
+}
+
+function deleteDoc(docId) {
+  if (!confirm('Удалить документ?')) return;
+  loadCrmDocs();
+  crmDocs = crmDocs.filter(x=>x.id!==docId);
+  saveCrmDocs(); renderDocs();
+}
+
+function attachDocFile(docId, input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    loadCrmDocs();
+    const d = crmDocs.find(x=>x.id===docId); if(!d) return;
+    d.file = {name:file.name, data:e.target.result};
+    saveCrmDocs(); renderDocs(); toast('Файл прикреплён ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Modal ──
+function openAddDocModal(docId, presetClientId) {
+  loadCrmDocs();
+  editDocId = docId;
+  docFilePending = null;
+
+  // Populate client select
+  const cs = document.getElementById('doc-client');
+  cs.innerHTML = '<option value="">— выберите клиента —</option>' +
+    clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+
+  const d = docId ? crmDocs.find(x=>x.id===docId) : null;
+  document.getElementById('doc-modal-title').textContent = d ? 'Редактировать документ' : 'Новый документ';
+  document.getElementById('doc-type').value    = d?.type    || 'invoice';
+  document.getElementById('doc-number').value  = d?.number  || (d ? '' : ''); // filled by onDocTypeChange
+  document.getElementById('doc-client').value  = d?.clientId|| presetClientId||'';
+  document.getElementById('doc-date').value    = d?.date    || new Date().toISOString().split('T')[0];
+  document.getElementById('doc-amount').value  = d?.amount  || '';
+  document.getElementById('doc-title').value   = d?.title   || '';
+  document.getElementById('doc-notes').value   = d?.notes   || '';
+  document.getElementById('doc-file-label').textContent = d?.file ? '📎 '+d.file.name : '📎 Нажмите или перетащите файл (PDF, DOC, DOCX)';
+  document.getElementById('doc-file-area').style.borderColor = '#e0d8dc';
+  onDocTypeChange(); // sets status options + auto-number for new docs
+  if (d) { document.getElementById('doc-number').value = d.number||''; document.getElementById('doc-status').value = d.status||'draft'; }
+
+  const ov = document.getElementById('doc-modal-overlay');
+  ov.style.display = 'flex';
+}
+
+function closeDocModal() {
+  document.getElementById('doc-modal-overlay').style.display = 'none';
+  docFilePending = null;
+}
+
+function onDocTypeChange() {
+  const type = document.getElementById('doc-type').value;
+  const sel  = document.getElementById('doc-status');
+  const lbl  = document.getElementById('doc-status-label');
+  const numEl = document.getElementById('doc-number');
+  lbl.textContent = type==='invoice' ? 'Статус оплаты' : 'Статус подписания';
+  const statuses = getDocStatuses(type);
+  sel.innerHTML = Object.entries(statuses).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+  // Auto-fill number if empty
+  if (!editDocId && !numEl.value) numEl.value = autoDocNumber(type);
+}
+
+function handleDocFileSelect(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    docFilePending = {name:file.name, data:e.target.result};
+    document.getElementById('doc-file-label').textContent = '✓ ' + file.name;
+    document.getElementById('doc-file-area').style.borderColor = '#27ae60';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleDocFileDrop(e) {
+  e.preventDefault();
+  document.getElementById('doc-file-area').style.borderColor = '#e0d8dc';
+  const file = e.dataTransfer.files[0]; if(!file) return;
+  const input = document.getElementById('doc-file-input');
+  const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files;
+  handleDocFileSelect(input);
+}
+
+function saveDoc() {
+  const clientId = document.getElementById('doc-client').value;
+  if (!clientId) { toast('Выберите клиента', 'err'); return; }
+  const type = document.getElementById('doc-type').value;
+  loadCrmDocs();
+  if (editDocId) {
+    const d = crmDocs.find(x=>x.id===editDocId); if(!d) return;
+    d.type     = type;
+    d.number   = document.getElementById('doc-number').value.trim();
+    d.clientId = clientId;
+    d.date     = document.getElementById('doc-date').value;
+    d.amount   = document.getElementById('doc-amount').value;
+    d.title    = document.getElementById('doc-title').value.trim();
+    d.status   = document.getElementById('doc-status').value;
+    d.notes    = document.getElementById('doc-notes').value.trim();
+    if (docFilePending) d.file = docFilePending;
+  } else {
+    crmDocs.unshift({
+      id: 'doc_'+Date.now(),
+      type,
+      number:   document.getElementById('doc-number').value.trim(),
+      clientId,
+      date:     document.getElementById('doc-date').value,
+      amount:   document.getElementById('doc-amount').value,
+      title:    document.getElementById('doc-title').value.trim(),
+      status:   document.getElementById('doc-status').value,
+      notes:    document.getElementById('doc-notes').value.trim(),
+      file:     docFilePending || null,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  saveCrmDocs();
+  closeDocModal();
+  renderDocs();
+  toast(editDocId ? 'Документ обновлён ✓' : 'Документ добавлен ✓');
+}
+
+// Helper: get docs for a client (used in client card)
+function getClientDocs(clientId) {
+  loadCrmDocs();
+  return crmDocs.filter(d=>d.clientId===clientId);
+}
+
 </script>
 </body>
 </html>
