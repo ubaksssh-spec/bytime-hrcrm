@@ -51,7 +51,7 @@ html,body{height:100%;background:var(--paper);font-family:var(--font-b);color:va
 .sb-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:rgba(255,255,255,.7);font-size:13.5px;font-weight:500;cursor:pointer;transition:all var(--trans);border-left:3px solid transparent;position:relative}
 .sb-item:hover{background:rgba(255,255,255,.08);color:var(--white)}
 .sb-item.active{background:rgba(255,255,255,.12);color:var(--white);border-left-color:var(--bronze)}
-.sb-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.sb-item .icon{width:16px;height:16px;flex-shrink:0;stroke:currentColor;opacity:.8}
 .sb-badge{background:var(--bronze);color:var(--white);font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:auto}
 .sb-soon{background:rgba(255,255,255,.12);color:rgba(255,255,255,.45);font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;margin-left:auto;letter-spacing:.3px}
 .sb-item-soon{opacity:.6}
@@ -369,26 +369,50 @@ tbody tr:last-child{border-bottom:none}
     </div>
     <div class="sb-nav">
       <!-- Рабочий стол — вне блоков -->
-      <div class="sb-item active" data-page="dashboard" onclick="nav(this)" style="margin-bottom:4px"><span class="icon"></span>Рабочий стол</div>
+      <div class="sb-item active" data-page="dashboard" onclick="nav(this)" style="margin-bottom:4px">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Рабочий стол</div>
 
       <div class="sb-section">Управление</div>
-      <div class="sb-item" data-page="finance" onclick="nav(this)"><span class="icon"></span>Финансы</div>
-      <div class="sb-item" data-page="metrics" onclick="nav(this)"><span class="icon"></span>Метрики</div>
-      <div class="sb-item" data-page="users" onclick="nav(this)"><span class="icon"></span>Команда</div>
+      <div class="sb-item" data-page="finance" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Финансы</div>
+      <div class="sb-item" data-page="metrics" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Метрики</div>
+      <div class="sb-item" data-page="users" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Команда</div>
 
       <div class="sb-section">Процессы</div>
-      <div class="sb-item sb-item-crm" data-page="crm" onclick="navExternal('crm')"><span class="icon"></span>CRM</div>
-      <div class="sb-item" data-page="tasks" onclick="nav(this)"><span class="icon"></span>Задачник<span class="sb-badge" id="tasks-badge">5</span></div>
-      <div class="sb-item sb-item-hrm" data-page="hrm" onclick="navExternal('hrm')"><span class="icon"></span>HRM</div>
-      <div class="sb-item" data-page="projects" onclick="nav(this)"><span class="icon"></span>Операционка</div>
-      <div class="sb-item" data-page="kb" onclick="nav(this)"><span class="icon"></span>База знаний</div>
-      <div class="sb-item" data-page="passwords" onclick="nav(this)"><span class="icon"></span>Пароли</div>
+      <div class="sb-item sb-item-crm" data-page="crm" onclick="navExternal('crm')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+        CRM</div>
+      <div class="sb-item" data-page="tasks" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Задачник<span class="sb-badge" id="tasks-badge">5</span></div>
+      <div class="sb-item sb-item-hrm" data-page="hrm" onclick="navExternal('hrm')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        HRM</div>
+      <div class="sb-item" data-page="projects" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+        Операционка</div>
+      <div class="sb-item" data-page="kb" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        База знаний</div>
+      <div class="sb-item" data-page="passwords" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Пароли</div>
 
       <div class="sb-section">Коммуникации</div>
-      <div class="sb-item" data-page="chat" onclick="nav(this)"><span class="icon"></span>Чат<span class="sb-badge" id="chat-badge">3</span></div>
+      <div class="sb-item" data-page="chat" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Чат<span class="sb-badge" id="chat-badge">3</span></div>
 
       <div class="sb-section">Развитие</div>
-      <div class="sb-item" data-page="tools" onclick="nav(this)"><span class="icon"></span>Инструменты</div>
+      <div class="sb-item" data-page="tools" onclick="nav(this)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        Инструменты</div>
     </div>
     <div class="sb-user">
       <div class="flex items-center gap-2">
