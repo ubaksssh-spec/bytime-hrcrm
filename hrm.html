@@ -6510,6 +6510,22 @@ sb.auth.onAuthStateChange((event, session) => {
       }, 100);
       setTimeout(updateUnreadCounter, 2000);
       setInterval(updateUnreadCounter, 60000);
+      return;
+    }
+
+    // Try auto-login from credentials passed by parent (index.html)
+    const iframeEmail = localStorage.getItem('bt_iframe_email');
+    const iframePass  = localStorage.getItem('bt_iframe_pass');
+    if(iframeEmail && iframePass) {
+      const {data, error} = await sb.auth.signInWithPassword({email: iframeEmail, password: iframePass});
+      if(!error && data.session) {
+        document.getElementById('login-screen').style.display = 'none';
+        await loadUserProfile();
+        loadVacancies(); loadStats(); loadCandidates();
+        setTimeout(updateUnreadCounter, 2000);
+        setInterval(updateUnreadCounter, 60000);
+        return;
+      }
     }
   } catch(e) {
     // форма уже показана

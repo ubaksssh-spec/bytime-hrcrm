@@ -1856,6 +1856,9 @@ function bootSession(email, user, savedPage) {
     currentUser.pages = ROLE_DEFAULTS[user.role] || ROLE_DEFAULTS.contractor;
   }
   localStorage.setItem('bt_session', JSON.stringify({email, pass:user.pass}));
+  // Pre-write for CRM/HRM iframe auto-login
+  localStorage.setItem('bt_iframe_email', email);
+  localStorage.setItem('bt_iframe_pass', user.pass);
 
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
@@ -2155,6 +2158,15 @@ function navExternal(pageId) {
   // Show the iframe page
   const page = document.getElementById(`page-${pageId}`);
   if (page) page.classList.add('active');
+
+  // Pass credentials to CRM/HRM via localStorage so iframe auto-logs in
+  try {
+    const sess = JSON.parse(localStorage.getItem('bt_session')||'{}');
+    if(sess.email && sess.pass) {
+      localStorage.setItem('bt_iframe_email', sess.email);
+      localStorage.setItem('bt_iframe_pass', sess.pass);
+    }
+  } catch(e) {}
 
   // Load iframe src only once
   const frame = document.getElementById(`${pageId}-frame`);

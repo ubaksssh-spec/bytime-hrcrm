@@ -1346,7 +1346,6 @@ async function removeUser(uid){
 
 // ===== AUTO-CONNECT =====
 (async()=>{
-  // Pre-fill credentials
   const AUTO_URL = 'https://jvmagwvupjcmpydzvnin.supabase.co';
   const AUTO_KEY = 'sb_publishable_oqH0PBg3rAd9mpAkt5ECMw_HLXu2MmH';
   localStorage.setItem(LS_URL, AUTO_URL);
@@ -1356,20 +1355,36 @@ async function removeUser(uid){
   if(urlEl) urlEl.value = AUTO_URL;
   if(keyEl) keyEl.value = AUTO_KEY;
 
-  const url=localStorage.getItem(LS_URL),key=localStorage.getItem(LS_KEY);
-  if(!url||!key){document.getElementById('auth-screen').style.display='flex';return;}
   const{createClient}=supabase;
-  DB=createClient(url,key);
-  // Check existing session
+  DB=createClient(AUTO_URL, AUTO_KEY);
+
+  // Check existing Supabase session first
   const {data:{session}}=await DB.auth.getSession();
   if(session){
     currentUser=session.user;
     await loadProfile();
     await bootApp();
-  } else {
-    document.getElementById('auth-screen').style.display='flex';
+    return;
   }
-  // Listen for auth changes
+
+  // Try auto-login from credentials passed by parent window (index.html)
+  const iframeEmail = localStorage.getItem('bt_iframe_email');
+  const iframePass  = localStorage.getItem('bt_iframe_pass');
+  if(iframeEmail && iframePass){
+    try {
+      const {data,error}=await DB.auth.signInWithPassword({email:iframeEmail, password:iframePass});
+      if(!error && data.user){
+        currentUser=data.user;
+        await loadProfile();
+        await bootApp();
+        return;
+      }
+    } catch(e){}
+  }
+
+  // No session — show login screen
+  document.getElementById('auth-screen').style.display='flex';
+
   DB.auth.onAuthStateChange(async(event,session)=>{
     if(event==='SIGNED_OUT'){
       document.getElementById('auth-screen').style.display='flex';
