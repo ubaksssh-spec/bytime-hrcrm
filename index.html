@@ -2751,8 +2751,26 @@ function dropTask(e,col) {
   e.preventDefault();
   document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));
   if(dragId===null) return;
-  const t = tasks[dragBoard]?.find(t=>t.id===dragId);
-  if(t) t.col = col;
+
+  // Find task — could be in any board including _ext
+  let t = tasks[dragBoard]?.find(t=>t.id===dragId);
+
+  // For _ext tasks, find across all _ext
+  if(!t && dragBoard==='_ext') {
+    t = (tasks._ext||[]).find(x=>x.id===dragId);
+  }
+
+  if(t) {
+    t.col = col;
+    // If CRM task — sync col back to bt_crm_tasks
+    if(t._crm) {
+      try {
+        const crmTasks = JSON.parse(localStorage.getItem('bt_crm_tasks')||'[]');
+        const ct = crmTasks.find(x=>x.id===t.id);
+        if(ct) { ct.col = col; localStorage.setItem('bt_crm_tasks', JSON.stringify(crmTasks)); }
+      } catch(e) {}
+    }
+  }
   dragId=null; renderBoard();
 }
 
