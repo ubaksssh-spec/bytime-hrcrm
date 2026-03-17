@@ -44,6 +44,8 @@ body{font-family:'Onest',sans-serif;font-size:14px;color:var(--text-primary);bac
 .breadcrumb-text{color:rgba(255,255,255,0.5);font-size:13px}
 
 /* IFRAME MODE */
+html.iframe-mode-early .topbar{display:none!important}
+html.iframe-mode-early .sidebar{display:none!important}
 body.iframe-mode .sidebar{display:none!important}
 body.iframe-mode .topbar{display:none!important}
 body.iframe-mode .iframe-tabbar{display:flex!important}
@@ -282,8 +284,10 @@ tr:hover td{background:#FBF9F7}
 .fc-rejected::before{background:#BDBDBD}
 
 </style>
+<script>if(window.self!==window.top){document.documentElement.classList.add('iframe-mode-early');}</script>
 </head>
 <body>
+<script>if(window.self!==window.top){document.body.classList.add('iframe-mode');}</script>
 <!-- ЭКРАН ВХОДА -->
 <div id="login-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--burgundy-dark);display:flex;align-items:center;justify-content:center;z-index:9999">
   <!-- Loading state -->

@@ -222,9 +222,13 @@ textarea.fi{resize:vertical;min-height:72px}
 .up-client:hover{color:var(--bur)}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:var(--gray);border-radius:3px}
+html.iframe-mode-early .sidebar{display:none!important}
+html.iframe-mode-early .topbar{display:none!important}
 </style>
+<script>if(window.self!==window.top){document.documentElement.classList.add('iframe-mode-early');}</script>
 </head>
 <body>
+<script>if(window.self!==window.top){document.body.classList.add('iframe-mode');}</script>
 
 <!-- AUTH SCREEN -->
 <div class="setup-screen" id="auth-screen">
