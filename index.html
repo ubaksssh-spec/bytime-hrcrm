@@ -5915,6 +5915,7 @@ function switchToolTab(tab, el) {
   if (tab==='boards') renderBoardsList();
   if (tab==='notes') renderToolNotes();
   if (tab==='kp') initKpTool();
+  if (tab==='meeting') { mtRender(); if(!mtCurrentId) mtNewMeeting(); mtUpdateShareBtn(); }
 }
 
 // ════════════════════════════════════════════
@@ -7781,12 +7782,6 @@ ${client ? 'Клиент: ' + client : ''}
     document.getElementById('mt-transcribe-btn').disabled = false;
     document.getElementById('mt-ai-loading').style.display = 'none';
   }
-}
-
-const _mtOrigSwitch=switchToolTab;
-function switchToolTab(tab,el){
-  _mtOrigSwitch(tab,el);
-  if(tab==='meeting'){mtRender();if(!mtCurrentId)mtNewMeeting();mtUpdateShareBtn();}
 }
 </script>
 </body>
