@@ -2434,34 +2434,6 @@ function openEmpDetail(id) {
 
     <div class="divider"></div>
 
-    <!-- Documents: Договор + НДА -->
-    <div style="margin-top:16px;margin-bottom:16px">
-      <div class="text-xs color-gray fw-6" style="margin-bottom:10px">📄 Документы</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        ${['contract','nda'].map(docType => {
-          const label = docType==='contract' ? 'Договор' : 'НДА';
-          const icon  = docType==='contract' ? '📋' : '🔒';
-          const doc   = (e.docs||{})[docType];
-          return `<div style="border:1.5px solid var(--gray2);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
-            <div style="font-size:12px;font-weight:700;color:var(--ink)">${icon} ${label}</div>
-            ${doc
-              ? `<div style="font-size:12px;color:var(--gray4);word-break:break-all">${doc.name}</div>
-                 <div style="display:flex;gap:6px">
-                   <a href="${doc.data}" download="${doc.name}" class="btn btn-sm btn-ghost" style="flex:1;justify-content:center">↓ Скачать</a>
-                   <button onclick="removeEmpDoc('${e.id}','${docType}')" style="background:none;border:1.5px solid var(--gray2);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--danger);font-size:12px" title="Удалить">✕</button>
-                 </div>`
-              : `<div style="font-size:12px;color:var(--gray4)">Не загружен</div>
-                 <label class="btn btn-sm btn-ghost" style="cursor:pointer;justify-content:center">
-                   + Загрузить
-                   <input type="file" accept=".pdf,.doc,.docx" style="display:none" onchange="uploadEmpDoc('${e.id}','${docType}',this)">
-                 </label>`}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
     <!-- Files -->
     <div style="margin-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
