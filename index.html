@@ -1797,6 +1797,22 @@ function doLogout() {
 // Auto-restore session on page load
 document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
+// When user returns to this tab from whiteboard — refresh board list
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && currentUser) {
+    if (currentPage === 'tools' || currentPage === 'projects') {
+      reloadWhiteboards();
+      renderBoardsList();
+    }
+  }
+});
+window.addEventListener('focus', () => {
+  if (currentUser && (currentPage === 'tools' || currentPage === 'projects')) {
+    reloadWhiteboards();
+    renderBoardsList();
+  }
+});
+
 // ════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════
@@ -5958,7 +5974,12 @@ function downloadProjectTemplate() {
 // ════════════════════════════════════════════
 // WHITEBOARD
 // ════════════════════════════════════════════
+function reloadWhiteboards() {
+  try { whiteboards = JSON.parse(localStorage.getItem('bt_wbs')||'[]'); } catch(e) { whiteboards = []; }
+}
+
 function renderBoardsList() {
+  reloadWhiteboards(); // always get fresh data
   const q = (document.getElementById('wb-search')?.value||'').toLowerCase();
   const el = document.getElementById('wb-boards-grid'); if (!el) return;
   const list = whiteboards.filter(b=>!q||b.name.toLowerCase().includes(q));
