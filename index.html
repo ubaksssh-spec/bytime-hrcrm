@@ -1413,6 +1413,11 @@ function getEmployees() {
       email: u.email, phone: p.phone||'',
       hire: p.hire||'', dob: p.dob||'',
       emergency: p.emergency||'',
+      address:   p.address||'',
+      pvzOzon:   p.pvzOzon||'',
+      pvzWb:     p.pvzWb||'',
+      note:      p.note||'',
+      docs:      p.docs||{},
       status: p.status||u.status||'Активен',
       photo: p.photo||null, files: p.files||[],
     };
@@ -2331,7 +2336,14 @@ function openEmpDetail(id) {
         <div><div class="text-xs color-gray fw-6">Дата рождения</div><div class="mt-1">${e.dob||'—'}</div></div>
         <div><div class="text-xs color-gray fw-6">Дата найма</div><div class="mt-1">${e.hire||'—'}</div></div>
         <div style="grid-column:1/-1"><div class="text-xs color-gray fw-6">Резервный контакт</div><div class="mt-1">${e.emergency||'—'}</div></div>
+        <div style="grid-column:1/-1"><div class="text-xs color-gray fw-6">Адрес проживания</div><div class="mt-1">${e.address||'—'}</div></div>
+        <div><div class="text-xs color-gray fw-6">ПВЗ Ozon</div><div class="mt-1">${e.pvzOzon||'—'}</div></div>
+        <div><div class="text-xs color-gray fw-6">ПВЗ Wildberries</div><div class="mt-1">${e.pvzWb||'—'}</div></div>
       </div>
+      ${e.note ? `<div style="background:#fffbea;border:1.5px solid #f0d060;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+        <div class="text-xs fw-6" style="color:#b8860b;margin-bottom:6px">📝 Примечание</div>
+        <div style="font-size:13.5px;color:#333;line-height:1.6;white-space:pre-wrap">${e.note}</div>
+      </div>` : ''}
     </div>
 
     <!-- Edit fields (hidden by default) -->
@@ -2353,6 +2365,43 @@ function openEmpDetail(id) {
         <div class="form-row"><label>Дата найма</label><input id="edm-hire" type="date" value="${e.hire||''}"></div>
       </div>
       <div class="form-row mb-2"><label>Резервный контакт</label><input id="edm-emergency" value="${e.emergency||''}" placeholder="Имя, телефон"></div>
+      <div class="form-row mb-2"><label>Адрес проживания</label><input id="edm-address" value="${e.address||''}" placeholder="Город, улица, дом, кв."></div>
+      <div class="form-grid mb-2">
+        <div class="form-row"><label>ПВЗ Ozon</label><input id="edm-pvzOzon" value="${e.pvzOzon||''}" placeholder="Адрес пункта выдачи Ozon"></div>
+        <div class="form-row"><label>ПВЗ Wildberries</label><input id="edm-pvzWb" value="${e.pvzWb||''}" placeholder="Адрес пункта выдачи WB"></div>
+      </div>
+      <div class="form-row mb-2">
+        <label>📝 Примечание</label>
+        <textarea id="edm-note" rows="3" placeholder="Любит вязать, если надо замотивировать — заказать пряжу…" style="resize:vertical">${e.note||''}</textarea>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Documents: Договор + НДА -->
+    <div style="margin-top:16px;margin-bottom:16px">
+      <div class="text-xs color-gray fw-6" style="margin-bottom:10px">📄 Документы</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        ${['contract','nda'].map(docType => {
+          const label = docType==='contract' ? 'Договор' : 'НДА';
+          const icon  = docType==='contract' ? '📋' : '🔒';
+          const doc   = (e.docs||{})[docType];
+          return `<div style="border:1.5px solid var(--gray2);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:12px;font-weight:700;color:var(--ink)">${icon} ${label}</div>
+            ${doc
+              ? `<div style="font-size:12px;color:var(--gray4);word-break:break-all">${doc.name}</div>
+                 <div style="display:flex;gap:6px">
+                   <a href="${doc.data}" download="${doc.name}" class="btn btn-sm btn-ghost" style="flex:1;justify-content:center">↓ Скачать</a>
+                   <button onclick="removeEmpDoc('${e.id}','${docType}')" style="background:none;border:1.5px solid var(--gray2);border-radius:6px;padding:4px 8px;cursor:pointer;color:var(--danger);font-size:12px" title="Удалить">✕</button>
+                 </div>`
+              : `<div style="font-size:12px;color:var(--gray4)">Не загружен</div>
+                 <label class="btn btn-sm btn-ghost" style="cursor:pointer;justify-content:center">
+                   + Загрузить
+                   <input type="file" accept=".pdf,.doc,.docx" style="display:none" onchange="uploadEmpDoc('${e.id}','${docType}',this)">
+                 </label>`}
+          </div>`;
+        }).join('')}
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -2376,6 +2425,58 @@ function openEmpDetail(id) {
               <button onclick="removeEmpFile('${e.id}',${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.5" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5">✕</button>
             </div>`).join('')
           : '<div style="color:var(--gray4);font-size:13px">Нет прикреплённых файлов</div>'}
+      </div>
+    </div>
+
+    <div class="divider" style="margin-top:16px"></div>
+
+    <!-- Documents: Contract & NDA -->
+    <div style="margin-top:16px">
+      <div class="text-xs color-gray fw-6" style="margin-bottom:12px">Документы</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+        <!-- Contract -->
+        <div style="border:1.5px solid var(--gray2);border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:var(--ink)">📄 Договор</div>
+            ${(e.contracts||[]).length
+              ? `<span style="font-size:10px;font-weight:700;color:white;background:var(--em);border-radius:6px;padding:2px 8px">${(e.contracts||[]).length} файл${(e.contracts||[]).length>1?'а':''}</span>`
+              : `<span style="font-size:10px;color:var(--gray4)">не загружен</span>`}
+          </div>
+          ${(e.contracts||[]).map((f,fi)=>`
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--gray1)">
+              <span style="font-size:13px">📎</span>
+              <span style="flex:1;font-size:12px;color:var(--ink)">${f.name}</span>
+              <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost" style="padding:3px 8px;font-size:11px">↓</a>
+              <button onclick="removeEmpDoc('${e.id}','contracts',${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.4;font-size:13px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>
+            </div>`).join('')}
+          <label class="btn btn-sm btn-ghost" style="cursor:pointer;margin-top:8px;width:100%;justify-content:center">
+            + Загрузить договор
+            <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none" onchange="uploadEmpDoc('${e.id}','contracts',this)">
+          </label>
+        </div>
+
+        <!-- NDA -->
+        <div style="border:1.5px solid var(--gray2);border-radius:10px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:13px;font-weight:700;color:var(--ink)">🔒 НДА</div>
+            ${(e.ndas||[]).length
+              ? `<span style="font-size:10px;font-weight:700;color:white;background:var(--bv);border-radius:6px;padding:2px 8px">${(e.ndas||[]).length} файл${(e.ndas||[]).length>1?'а':''}</span>`
+              : `<span style="font-size:10px;color:var(--gray4)">не загружен</span>`}
+          </div>
+          ${(e.ndas||[]).map((f,fi)=>`
+            <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--gray1)">
+              <span style="font-size:13px">📎</span>
+              <span style="flex:1;font-size:12px;color:var(--ink)">${f.name}</span>
+              <a href="${f.data}" download="${f.name}" class="btn btn-sm btn-ghost" style="padding:3px 8px;font-size:11px">↓</a>
+              <button onclick="removeEmpDoc('${e.id}','ndas',${fi})" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.4;font-size:13px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4">✕</button>
+            </div>`).join('')}
+          <label class="btn btn-sm btn-ghost" style="cursor:pointer;margin-top:8px;width:100%;justify-content:center">
+            + Загрузить НДА
+            <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none" onchange="uploadEmpDoc('${e.id}','ndas',this)">
+          </label>
+        </div>
+
       </div>
     </div>`;
 
@@ -2404,11 +2505,15 @@ function saveEmpDetailEdit() {
     dob:       document.getElementById('edm-dob')?.value||'',
     hire:      document.getElementById('edm-hire')?.value||'',
     emergency: document.getElementById('edm-emergency')?.value.trim()||'',
+    address:   document.getElementById('edm-address')?.value.trim()||'',
+    pvzOzon:   document.getElementById('edm-pvzOzon')?.value.trim()||'',
+    pvzWb:     document.getElementById('edm-pvzWb')?.value.trim()||'',
+    note:      document.getElementById('edm-note')?.value.trim()||'',
   });
   employees = getEmployees();
   saveProfiles();
   renderOrg();
-  openEmpDetail(userId); // reload in view mode
+  openEmpDetail(userId);
   showToast('Карточка сохранена ✓');
 }
 
@@ -2452,6 +2557,29 @@ function uploadEmpFile(id, input) {
 function removeEmpFile(id, idx) {
   if (!empProfiles[id]?.files) return;
   empProfiles[id].files.splice(idx,1);
+  saveProfiles();
+  employees = getEmployees();
+  openEmpDetail(id);
+}
+
+function uploadEmpDoc(id, docType, input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (!empProfiles[id]) empProfiles[id] = {};
+    if (!empProfiles[id].docs) empProfiles[id].docs = {};
+    empProfiles[id].docs[docType] = { name: file.name, data: e.target.result };
+    saveProfiles();
+    employees = getEmployees();
+    openEmpDetail(id);
+    showToast(`${docType==='contract'?'Договор':'НДА'} загружен ✓`);
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeEmpDoc(id, docType) {
+  if (!empProfiles[id]?.docs) return;
+  delete empProfiles[id].docs[docType];
   saveProfiles();
   employees = getEmployees();
   openEmpDetail(id);
@@ -4584,7 +4712,6 @@ function renderClientView() {
             const isCollapsed= collapsed.has(etap);
             const etapEnc    = encodeURIComponent(etap);
 
-            // Etap section-header row (spans all cols)
             const headerRow = `<tr style="border-top:2px solid var(--gray2)">
               <td colspan="7" style="padding:0">
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:${allDone?'rgba(39,174,96,.06)':'rgba(84,5,43,.03)'}">
@@ -4594,36 +4721,48 @@ function renderClientView() {
                     <div style="height:4px;width:60px;background:var(--gray2);border-radius:2px"><div style="width:${Math.round(etapDone/etapTasks.length*100)}%;height:100%;background:${allDone?'var(--success)':'var(--bv)'};border-radius:2px"></div></div>
                     ${allDone?'<span style="font-size:11px;background:rgba(39,174,96,.12);color:var(--success);padding:2px 8px;border-radius:20px;font-weight:600">✓ Завершён</span>':''}
                   </div>
-                  <button onclick="toggleEtapCollapse('${activeClientId}','${etapEnc}')"
-                    style="background:none;border:1.5px solid var(--gray2);border-radius:7px;padding:4px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray4);transition:all .15s"
-                    onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'"
-                    onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray4)'">
-                    ${isCollapsed?'▶ Развернуть':'▼ Свернуть'}
-                  </button>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <button onclick="addTaskToEtap('${activeClientId}','${etapEnc}')"
+                      style="background:var(--bv);color:white;border:none;border-radius:7px;padding:4px 12px;cursor:pointer;font-size:12px;font-weight:600">
+                      + Задача
+                    </button>
+                    <button onclick="toggleEtapCollapse('${activeClientId}','${etapEnc}')"
+                      style="background:none;border:1.5px solid var(--gray2);border-radius:7px;padding:4px 12px;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray4)"
+                      onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'"
+                      onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray4)'">
+                      ${isCollapsed?'▶ Развернуть':'▼ Свернуть'}
+                    </button>
+                  </div>
                 </div>
               </td>
             </tr>`;
 
             if (isCollapsed) return headerRow;
 
-            // Task rows with rowspan on Этап column
             const taskRows = etapTasks.map((t,i)=>{
               const d = t.deadline?new Date(t.deadline):null; if(d) d.setHours(0,0,0,0);
               const isBurning = d&&t.status!=='Сделано'&&(d-today)<=86400000;
               const tEtapEnc = encodeURIComponent(t.etap);
               const taskEnc  = encodeURIComponent(t.task);
               const rowBg = isBurning?'rgba(192,57,43,.03)':i%2===1?'rgba(0,0,0,.015)':'';
-
-              // First row of etap gets the rowspan Этап cell
               const etapCell = i===0 ? `<td rowspan="${etapTasks.length}" style="padding:10px 14px;font-size:12.5px;font-weight:700;color:var(--bv);vertical-align:top;border-right:2px solid var(--gray1);max-width:170px;line-height:1.45">${etap}</td>` : '';
 
               return `<tr style="border-top:1px solid var(--gray1);background:${rowBg}">
                 ${etapCell}
-                <td style="padding:10px 12px;font-size:13px;color:var(--ink);max-width:280px">
-                  ${isBurning?'🔥 ':''}<span title="${t.task}">${t.task.slice(0,80)}${t.task.length>80?'…':''}</span>
+                <td style="padding:6px 8px;font-size:13px;color:var(--ink);max-width:260px">
+                  <input value="${(t.task||'').replace(/"/g,'&quot;')}"
+                    onblur="updateProjTaskField('${activeClientId}','${tEtapEnc}','${taskEnc}','task',this.value)"
+                    style="width:100%;border:none;background:transparent;font-family:var(--font-b);font-size:13px;color:var(--ink);outline:none;padding:4px 6px;border-radius:5px"
+                    onfocus="this.style.background='var(--gray1)'" onblur2="this.style.background='transparent'">
                 </td>
-                <td style="padding:10px 12px;font-size:12.5px;color:var(--gray4);white-space:nowrap">${t.resp||'—'}</td>
-                <td style="padding:10px 12px">
+                <td style="padding:6px 8px;white-space:nowrap">
+                  <input value="${(t.resp||'').replace(/"/g,'&quot;')}"
+                    onblur="updateProjTaskField('${activeClientId}','${tEtapEnc}','${taskEnc}','resp',this.value)"
+                    placeholder="—"
+                    style="width:110px;border:none;background:transparent;font-family:var(--font-b);font-size:12.5px;color:var(--gray4);outline:none;padding:4px 6px;border-radius:5px"
+                    onfocus="this.style.background='var(--gray1)'" onblur2="this.style.background='transparent'">
+                </td>
+                <td style="padding:6px 8px">
                   <select onchange="setProjTaskStatusDirect('${activeClientId}','${tEtapEnc}','${taskEnc}',this.value)"
                     style="padding:5px 8px;border:1.5px solid ${t.status==='Сделано'?'rgba(39,174,96,.4)':t.status==='В работе'?'rgba(84,5,43,.3)':'var(--gray2)'};border-radius:7px;font-family:var(--font-b);font-size:12.5px;font-weight:600;color:${statusColors[t.status]||'var(--gray4)'};background:${t.status==='Сделано'?'rgba(39,174,96,.07)':t.status==='В работе'?'rgba(84,5,43,.06)':'var(--white)'};cursor:pointer;outline:none;min-width:130px">
                     <option value="Не в работе" ${t.status==='Не в работе'?'selected':''}>Не в работе</option>
@@ -4631,17 +4770,25 @@ function renderClientView() {
                     <option value="Сделано"     ${t.status==='Сделано'?'selected':''}>Сделано</option>
                   </select>
                 </td>
-                <td style="padding:10px 12px;font-size:12.5px;white-space:nowrap;color:${isBurning?'var(--danger)':'var(--gray4)'};font-weight:${isBurning?700:400}">${t.deadline||'—'}</td>
-                <td style="padding:10px 12px;font-size:12px;color:var(--gray4);max-width:180px">
+                <td style="padding:6px 8px;white-space:nowrap">
+                  <input type="date" value="${t.deadline||''}"
+                    onchange="updateProjTaskField('${activeClientId}','${tEtapEnc}','${taskEnc}','deadline',this.value)"
+                    style="border:1.5px solid var(--gray2);border-radius:6px;padding:4px 6px;font-family:var(--font-b);font-size:12px;color:${isBurning?'var(--danger)':'var(--gray4)'};outline:none;cursor:pointer"
+                    onfocus="this.style.borderColor='var(--bv)'" onblur="this.style.borderColor='var(--gray2)'">
+                </td>
+                <td style="padding:6px 8px;font-size:12px;color:var(--gray4);max-width:180px">
                   ${t.result
                     ? (t.result.startsWith('http')
                         ? `<a href="${t.result}" target="_blank" style="color:var(--bv);text-decoration:none;font-weight:600">🔗 Открыть</a>`
                         : `<span title="${t.result}">${t.result.slice(0,30)}${t.result.length>30?'…':''}</span>`)
-                    : `<button onclick="openResultModal('${activeClientId}','${tEtapEnc}','${taskEnc}')" style="background:none;border:1.5px dashed var(--gray2);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px;color:var(--gray3);transition:all .15s" onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'" onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray3)'">+ Результат</button>`}
+                    : `<button onclick="openResultModal('${activeClientId}','${tEtapEnc}','${taskEnc}')" style="background:none;border:1.5px dashed var(--gray2);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:12px;color:var(--gray3)" onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'" onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray3)'">+ Результат</button>`}
                   ${t.result?`<button onclick="openResultModal('${activeClientId}','${tEtapEnc}','${taskEnc}')" style="background:none;border:none;cursor:pointer;opacity:.35;margin-left:3px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.35">✏️</button>`:''}
                 </td>
-                <td style="padding:10px 12px;white-space:nowrap">
-                  <button onclick="sendToKanban('${activeClientId}','${tEtapEnc}','${taskEnc}')" style="background:none;border:1.5px solid var(--gray2);border-radius:7px;padding:4px 10px;cursor:pointer;font-size:11.5px;color:var(--gray4);font-weight:600;transition:all .15s" onmouseover="this.style.borderColor='var(--em)';this.style.color='var(--em)'" onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray4)'">✅ В задачник</button>
+                <td style="padding:6px 8px;white-space:nowrap">
+                  <div style="display:flex;gap:4px;align-items:center">
+                    <button onclick="sendToKanban('${activeClientId}','${tEtapEnc}','${taskEnc}')" style="background:none;border:1.5px solid var(--gray2);border-radius:7px;padding:4px 8px;cursor:pointer;font-size:11px;color:var(--gray4);font-weight:600" onmouseover="this.style.borderColor='var(--em)';this.style.color='var(--em)'" onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray4)'">✅ В задачник</button>
+                    <button onclick="deleteProjTask('${activeClientId}','${tEtapEnc}','${taskEnc}')" style="background:none;border:none;cursor:pointer;color:var(--danger);opacity:.3;font-size:15px;padding:2px 4px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.3" title="Удалить задачу">✕</button>
+                  </div>
                 </td>
               </tr>`;
             }).join('');
@@ -4650,8 +4797,20 @@ function renderClientView() {
           }).join('')}
         </tbody>
       </table>
-    </div>`
-  : '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Нет задач, соответствующих фильтрам</div></div>';
+    </div>
+    <button onclick="addNewEtap('${activeClientId}')"
+      style="margin-top:12px;width:100%;background:none;border:2px dashed var(--gray2);border-radius:10px;padding:12px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--gray3);font-family:var(--font-b);transition:all .15s"
+      onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'"
+      onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray3)'">
+      + Добавить этап
+    </button>`
+  : `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Нет задач</div></div>
+    <button onclick="addNewEtap('${activeClientId}')"
+      style="margin-top:12px;width:100%;background:none;border:2px dashed var(--gray2);border-radius:10px;padding:12px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--gray3);font-family:var(--font-b)"
+      onmouseover="this.style.borderColor='var(--bv)';this.style.color='var(--bv)'"
+      onmouseout="this.style.borderColor='var(--gray2)';this.style.color='var(--gray3)'">
+      + Добавить этап
+    </button>`;
 }
 
 function toggleEtapCollapse(clientId, etapEnc) {
@@ -4660,6 +4819,44 @@ function toggleEtapCollapse(clientId, etapEnc) {
   const set = collapsedEtaps[clientId];
   if (set.has(etap)) set.delete(etap); else set.add(etap);
   renderClientView();
+}
+
+function addTaskToEtap(clientId, etapEnc) {
+  const c = clients.find(x=>x.id===clientId); if(!c) return;
+  const etap = decodeURIComponent(etapEnc);
+  c.tasks.push({etap, task:'Новая задача', resp:'', status:'Не в работе', result:'', start:'', deadline:''});
+  saveWbs(); renderClientView();
+}
+
+function addNewEtap(clientId) {
+  const name = prompt('Название нового этапа:');
+  if (!name || !name.trim()) return;
+  const c = clients.find(x=>x.id===clientId); if(!c) return;
+  c.tasks.push({etap:name.trim(), task:'Новая задача', resp:'', status:'Не в работе', result:'', start:'', deadline:''});
+  saveWbs(); renderClientView();
+}
+
+function deleteProjTask(clientId, etapEnc, taskEnc) {
+  const c = clients.find(x=>x.id===clientId); if(!c) return;
+  const etap = decodeURIComponent(etapEnc);
+  const task = decodeURIComponent(taskEnc);
+  const idx = c.tasks.findIndex(t=>t.etap===etap && t.task===task);
+  if (idx===-1) return;
+  if (!confirm(`Удалить задачу «${task.slice(0,60)}»?`)) return;
+  c.tasks.splice(idx,1);
+  saveWbs(); renderClientView(); renderProjectsList();
+}
+
+function updateProjTaskField(clientId, etapEnc, taskEnc, field, val) {
+  const c = clients.find(x=>x.id===clientId); if(!c) return;
+  const etap = decodeURIComponent(etapEnc);
+  const task = decodeURIComponent(taskEnc);
+  const t = c.tasks.find(x=>x.etap===etap && x.task===task);
+  if (!t) return;
+  t[field] = val;
+  saveWbs();
+  // Refresh only KPI + progress bar, not full table re-render (to avoid losing focus)
+  renderProjectsList();
 }
 
 function setProjTaskStatusDirect(clientId, etapEnc, taskEnc, status) {
