@@ -1661,11 +1661,6 @@ const ALL_PROJECTS = ['HR','Операционка','Комплекс','Марк
 const ALL_PAY_TYPES = ['р/с ИП Андреева','р/с ИП Курбан','р/с ФЛ','Крипта','Наличные'];
 let activeFinTab = 'dds';
 
-// CRM клиенты для генератора документов
-const SUPABASE_URL = 'https://rqvqbzfglodvwclxorfl.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdnFiemZnbG9kdndjbHhvcmZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU3NTYyMzEsImV4cCI6MjA1MTMzMjIzMX0.iyE-UzhFbHZ2Q1aD7ht-TDRJ0h6OFHRzARZcl7IWFe4';
-let crmClients = [];
-
 let finOps = [
   {id:1, type:'income',  amount:450000, dds:'Поступления от клиентов', pl:'Выручка', project:'HR',         payType:'р/с ИП Андреева', desc:'Оплата за HR-стратегию, ООО Ромашка',   date:'2026-03-01'},
   {id:2, type:'income',  amount:320000, dds:'Поступления от клиентов', pl:'Выручка', project:'HR',         payType:'р/с ИП Курбан',   desc:'Подбор 5 сотрудников, ИП Захаров',      date:'2026-03-05'},
@@ -2103,7 +2098,6 @@ async function aiCall(prompt, maxTokens=1500) {
 
 function initAll() {
   employees = getEmployees();
-  loadCrmClients(); // Загружаем клиентов из CRM
   renderDashboard();
   renderOrg();
   renderBoardTabs();
@@ -2117,23 +2111,6 @@ function initAll() {
   renderProjectsList(); renderProjProcesses();
   renderUsersTable();
   setTimeout(syncExternalTasksToPersonal, 1500);
-}
-
-// Загрузка клиентов из CRM для генератора документов
-async function loadCrmClients() {
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/clients?select=*&order=updated_at.desc`, {
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      }
-    });
-    if (response.ok) {
-      crmClients = await response.json();
-    }
-  } catch (error) {
-    console.error('Ошибка загрузки клиентов CRM:', error);
-  }
 }
 
 // ════════════════════════════════════════════
@@ -6046,30 +6023,8 @@ function switchToolTab(tab, el) {
   if (tab==='notes') renderToolNotes();
   if (tab==='kp') initKpTool();
   if (tab==='meeting') { mtRender(); if(!mtCurrentId) mtNewMeeting(); mtUpdateShareBtn(); }
-  if (tab==='documents') {
-    // Отправляем клиентов в iframe генератора документов
-    setTimeout(() => {
-      const iframe = document.querySelector('#tool-documents iframe');
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.postMessage({ type: 'CLIENTS_DATA', clients: crmClients }, window.location.origin);
-      }
-    }, 100);
-  }
   localStorage.setItem('bt_last_tool_tab', tab);
 }
-
-// Обработчик запросов от iframe генератора документов
-window.addEventListener('message', function(event) {
-  // Проверяем origin для безопасности
-  if (event.origin !== window.location.origin) return;
-  
-  if (event.data.type === 'REQUEST_CLIENTS') {
-    const iframe = document.querySelector('#tool-documents iframe');
-    if (iframe && iframe.contentWindow) {
-      iframe.contentWindow.postMessage({ type: 'CLIENTS_DATA', clients: crmClients }, window.location.origin);
-    }
-  }
-});
 
 // ════════════════════════════════════════════
 // TEMPLATES
