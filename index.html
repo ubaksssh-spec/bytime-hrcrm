@@ -572,6 +572,7 @@ tbody tr:last-child{border-bottom:none}
           <div class="tab active" onclick="switchToolTab('processes',this)">Бизнес-процессы</div>
           <div class="tab" onclick="switchToolTab('notes',this)">Заметки</div>
           <div class="tab" onclick="switchToolTab('boards',this)">Доска</div>
+          <div class="tab" onclick="switchToolTab('documents',this)">📄 Документы</div>
           <div class="tab" onclick="switchToolTab('kp',this)">📄 КП</div>
           <div class="tab" onclick="switchToolTab('meeting',this)">🎤 Встречи</div>
         </div>
@@ -622,6 +623,13 @@ tbody tr:last-child{border-bottom:none}
             <button class="btn btn-bv" onclick="createNewWhiteboard()">+ Новая доска</button>
           </div>
           <div id="wb-boards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px"></div>
+        </div>
+
+        <!-- Tool: Documents Generator -->
+        <div id="tool-documents" style="display:none">
+          <iframe src="document_generator.html" 
+            style="width:100%;height:calc(100vh - 200px);border:none;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05);background:white">
+          </iframe>
         </div>
 
         <!-- Tool: Documents (КП generator) -->
@@ -6005,7 +6013,7 @@ function renderProjProcesses() {
 function switchToolTab(tab, el) {
   document.querySelectorAll('#page-tools .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards,#tool-kp,#tool-meeting').forEach(t=>t.style.display='none');
+  document.querySelectorAll('#tool-processes,#tool-notes,#tool-boards,#tool-documents,#tool-kp,#tool-meeting').forEach(t=>t.style.display='none');
   const panel = document.getElementById('tool-'+tab);
   if (panel) panel.style.display='';
   if (tab==='processes') renderProcesses();

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор документов BYTIME</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Onest', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F6F3EE;
+            color: #000000;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            background: #54052B;
+            color: #F6F3EE;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .doc-selector {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #54052B;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #E0E0E0;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #54052B;
+        }
+
+        .btn {
+            background: #54052B;
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #3d0320;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(84, 5, 43, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #024638;
+        }
+
+        .btn-secondary:hover {
+            background: #013328;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #54052B;
+            color: #54052B;
+        }
+
+        .btn-outline:hover {
+            background: #54052B;
+            color: white;
+        }
+
+        .document-preview {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            min-height: 400px;
+            display: none;
+        }
+
+        .document-preview.active {
+            display: block;
+        }
+
+        .document-content {
+            max-width: 800px;
+            margin: 0 auto;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .document-content h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            margin: 20px 0 10px;
+            color: #54052B;
+        }
+
+        .document-content p {
+            margin-bottom: 12px;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #E0E0E0;
+        }
+
+        .editable {
+            background-color: #E8F5E9;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            color: #54052B;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            line-height: 1;
+        }
+
+        .share-link {
+            background: #F6F3EE;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .table td:first-child {
+            font-weight: 600;
+            background: #F6F3EE;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .document-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ГЕНЕРАТОР ДОКУМЕНТОВ</h1>
+            <p>Договоры, счета, акты и дополнительные соглашения</p>
+        </div>
+
+        <div class="doc-selector">
+            <div class="form-group">
+                <label for="docType">Тип документа</label>
+                <select id="docType">
+                    <option value="">Выберите тип документа</option>
+                    <optgroup label="Договоры с клиентами">
+                        <option value="contract_recruitment">Договор подбора персонала</option>
+                        <option value="contract_operations">Операционный договор (консалтинг)</option>
+                        <option value="contract_partnership">Партнерский договор</option>
+                    </optgroup>
+                    <optgroup label="Договоры с сотрудниками">
+                        <option value="contract_employee_ip">Договор с ИП (сотрудник)</option>
+                        <option value="contract_employee_smz">Договор с самозанятым</option>
+                    </optgroup>
+                    <optgroup label="Дополнительные документы">
+                        <option value="terms_conditions">Условия взаимодействия</option>
+                        <option value="agreement_termination">Соглашение о расторжении</option>
+                        <option value="agreement_suspension">Соглашение о приостановке</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="client">Клиент</label>
+                <select id="client">
+                    <option value="">Выберите клиента из CRM</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="positionGroup" style="display: none;">
+                <label for="position">Вакансия</label>
+                <input type="text" id="position" placeholder="Например: Менеджер по продажам">
+            </div>
+
+            <div class="form-group" id="contractNumberGroup" style="display: none;">
+                <label for="contractNumber">Номер договора</label>
+                <input type="text" id="contractNumber" placeholder="Например: 001-2026">
+            </div>
+            
+            <div class="form-group" id="originalContractNumberGroup" style="display: none;">
+                <label for="originalContractNumber">Номер расторгаемого договора</label>
+                <input type="text" id="originalContractNumber" placeholder="Например: 001-2025">
+            </div>
+            
+            <div class="form-group" id="refundAmountGroup" style="display: none;">
+                <label for="refundAmount">Сумма возврата (руб.)</label>
+                <input type="text" id="refundAmount" placeholder="Например: 50000">
+            </div>
+
+            <button class="btn" id="generateBtn" disabled>Создать документ</button>
+        </div>
+
+        <div class="document-preview" id="documentPreview">
+            <div class="document-content" id="documentContent">
+                <div class="loading">Загрузка документа...</div>
+            </div>
+
+            <div class="document-actions">
+                <button class="btn btn-outline" id="editBtn">Редактировать</button>
+                <button class="btn btn-secondary" id="shareBtn">Отправить</button>
+                <button class="btn" id="downloadWordBtn">Скачать Word</button>
+                <button class="btn" id="downloadPdfBtn">Скачать PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактор документа</h2>
+                <button class="close-btn" id="closeEditModal">&times;</button>
+            </div>
+            <div id="editableContent" contenteditable="true" style="min-height: 300px; padding: 20px; border: 1px solid #ddd; border-radius: 6px;">
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" id="saveEditsBtn">Сохранить изменения</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для отправки -->
+    <div class="modal" id="shareModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Отправить документ</h2>
+                <button class="close-btn" id="closeShareModal">&times;</button>
+            </div>
+            <p>Ссылка для просмотра и комментирования документа:</p>
+            <div class="share-link" id="shareLink"></div>
+            <button class="btn" id="copyLinkBtn">Скопировать ссылку</button>
+        </div>
+    </div>
+
+    <script>
+        // Подключение к Supabase CRM
+        const SUPABASE_URL = 'https://rqvqbzfglodvwclxorfl.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdnFiemZnbG9kdndjbHhvcmZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU3NTYyMzEsImV4cCI6MjA1MTMzMjIzMX0.iyE-UzhFbHZ2Q1aD7ht-TDRJ0h6OFHRzARZcl7IWFe4';
+
+        let clients = [];
+        let currentDocument = null;
+
+        // Загрузка клиентов из CRM
+        async function loadClients() {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/clients?select=*&order=updated_at.desc`, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                });
+                
+                clients = await response.json();
+                populateClientSelect();
+            } catch (error) {
+                console.error('Ошибка загрузки клиентов:', error);
+                alert('Не удалось загрузить клиентов из CRM');
+            }
+        }
+
+        function populateClientSelect() {
+            const select = document.getElementById('client');
+            select.innerHTML = '<option value="">Выберите клиента из CRM</option>';
+            
+            clients.forEach(client => {
+                const option = document.createElement('option');
+                option.value = client.id;
+                option.textContent = client.name || 'Без названия';
+                select.appendChild(option);
+            });
+        }
+
+        // Обработчики событий
+        document.getElementById('docType').addEventListener('change', function() {
+            const docType = this.value;
+            const positionGroup = document.getElementById('positionGroup');
+            const contractNumberGroup = document.getElementById('contractNumberGroup');
+            const originalContractNumberGroup = document.getElementById('originalContractNumberGroup');
+            const refundAmountGroup = document.getElementById('refundAmountGroup');
+            
+            // Скрываем все дополнительные поля
+            positionGroup.style.display = 'none';
+            contractNumberGroup.style.display = 'none';
+            originalContractNumberGroup.style.display = 'none';
+            refundAmountGroup.style.display = 'none';
+            
+            // Показываем нужные поля в зависимости от типа
+            if (docType === 'contract_recruitment') {
+                positionGroup.style.display = 'block';
+                contractNumberGroup.style.display = 'block';
+            } else if (['contract_operations', 'contract_partnership', 'contract_employee_ip', 'contract_employee_smz'].includes(docType)) {
+                contractNumberGroup.style.display = 'block';
+            } else if (docType === 'agreement_termination') {
+                originalContractNumberGroup.style.display = 'block';
+                refundAmountGroup.style.display = 'block';
+            } else if (docType === 'agreement_suspension') {
+                originalContractNumberGroup.style.display = 'block';
+            }
+            
+            checkFormComplete();
+        });
+
+        document.getElementById('client').addEventListener('change', checkFormComplete);
+        document.getElementById('position').addEventListener('input', checkFormComplete);
+        document.getElementById('contractNumber').addEventListener('input', checkFormComplete);
+        document.getElementById('originalContractNumber').addEventListener('input', checkFormComplete);
+        document.getElementById('refundAmount').addEventListener('input', checkFormComplete);
+
+        function checkFormComplete() {
+            const docType = document.getElementById('docType').value;
+            const client = document.getElementById('client').value;
+            
+            let isComplete = docType && client;
+            
+            // Проверяем обязательные поля для каждого типа
+            if (docType === 'contract_recruitment') {
+                const position = document.getElementById('position').value;
+                const contractNumber = document.getElementById('contractNumber').value;
+                isComplete = isComplete && position && contractNumber;
+            } else if (['contract_operations', 'contract_partnership', 'contract_employee_ip', 'contract_employee_smz'].includes(docType)) {
+                const contractNumber = document.getElementById('contractNumber').value;
+                isComplete = isComplete && contractNumber;
+            } else if (docType === 'agreement_termination') {
+                const originalContractNumber = document.getElementById('originalContractNumber').value;
+                const refundAmount = document.getElementById('refundAmount').value;
+                isComplete = isComplete && originalContractNumber && refundAmount;
+            } else if (docType === 'agreement_suspension') {
+                const originalContractNumber = document.getElementById('originalContractNumber').value;
+                isComplete = isComplete && originalContractNumber;
+            }
+            
+            document.getElementById('generateBtn').disabled = !isComplete;
+        }
+
+        document.getElementById('generateBtn').addEventListener('click', generateDocument);
+
+        function generateDocument() {
+            const docType = document.getElementById('docType').value;
+            const clientId = document.getElementById('client').value;
+            const client = clients.find(c => c.id === parseInt(clientId));
+            
+            if (!client) {
+                alert('Клиент не найден');
+                return;
+            }
+
+            const params = {
+                position: document.getElementById('position').value,
+                contractNumber: document.getElementById('contractNumber').value,
+                originalContractNumber: document.getElementById('originalContractNumber').value,
+                refundAmount: document.getElementById('refundAmount').value
+            };
+
+            // Вызываем нужный генератор в зависимости от типа
+            switch(docType) {
+                case 'contract_recruitment':
+                    currentDocument = generateContractRecruitment(client, params);
+                    break;
+                case 'contract_operations':
+                    currentDocument = generateContractOperations(client, params);
+                    break;
+                case 'contract_partnership':
+                    currentDocument = generateContractPartnership(client, params);
+                    break;
+                case 'contract_employee_ip':
+                    currentDocument = generateContractEmployeeIP(client, params);
+                    break;
+                case 'contract_employee_smz':
+                    currentDocument = generateContractEmployeeSMZ(client, params);
+                    break;
+                case 'terms_conditions':
+                    currentDocument = generateTermsConditions(client, params);
+                    break;
+                case 'agreement_termination':
+                    currentDocument = generateAgreementTermination(client, params);
+                    break;
+                case 'agreement_suspension':
+                    currentDocument = generateAgreementSuspension(client, params);
+                    break;
+                default:
+                    alert('Неизвестный тип документа');
+                    return;
+            }
+
+            displayDocument(currentDocument);
+        }
+        
+        // Вспомогательная функция для получения компании
+        function getMainCompany(client) {
+            if (client.companies && client.companies.length > 0) {
+                return client.companies[0];
+            }
+            return {
+                name: client.company || client.name || '',
+                inn: '',
+                kpp: '',
+                ogrn: '',
+                address: '',
+                bank: {name: '', bik: '', rs: '', ks: ''}
+            };
+        }
+        
+        // Вспомогательная функция для форматирования даты
+        function getFormattedDate() {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            const month = months[today.getMonth()];
+            const year = today.getFullYear();
+            return {day, month, year, full: `«${day}» ${month} ${year} г.`};
+        }
+
+        function generateContract(client, position, contractNumber) {
+            const today = new Date();
+            const day = today.getDate();
+            const month = today.toLocaleDateString('ru-RU', { month: 'long' });
+            const year = today.getFullYear();
+
+            // Парсинг данных клиента из поля contacts
+            let clientData = {
+                name: client.name || 'ООО "Название компании"',
+                inn: '',
+                ogrn: '',
+                legalAddress: '',
+                postAddress: '',
+                email: '',
+                phone: '',
+                bankAccount: '',
+                bank: '',
+                bik: '',
+                corrAccount: '',
+                bankAddress: '',
+                representative: '',
+                representativeBasis: 'Устава',
+                responsiblePerson: '',
+                responsibleEmail: '',
+                responsiblePhone: ''
+            };
+
+            // Попытка извлечь данные из JSON поля contacts
+            if (client.contacts) {
+                try {
+                    const contacts = typeof client.contacts === 'string' 
+                        ? JSON.parse(client.contacts) 
+                        : client.contacts;
+                    
+                    if (Array.isArray(contacts)) {
+                        contacts.forEach(contact => {
+                            if (contact.type === 'email') clientData.email = contact.value;
+                            if (contact.type === 'phone') clientData.phone = contact.value;
+                        });
+                    }
+                } catch (e) {
+                    console.error('Ошибка парсинга контактов:', e);
+                }
+            }
+
+            const html = `
+                <div style="max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6;">
+                    <h2 style="text-align: center; font-weight: bold;">
+                        Договор возмездного оказания услуг <span class="editable" data-field="contractNumber">${contractNumber}</span>
+                    </h2>
+                    
+                    <p style="text-align: center;">г. Санкт-Петербург «${day}» ${month} ${year} г.</p>
+
+                    <p>
+                        <span class="editable" data-field="clientName">${clientData.name}</span>, 
+                        в лице <span class="editable" data-field="representative">${clientData.representative || '_________________'}</span>,
+                        действующего на основании <span class="editable" data-field="basis">${clientData.representativeBasis}</span>,
+                        именуемое в дальнейшем «Заказчик», с одной стороны, и
+                    </p>
+
+                    <p>
+                        Гражданка РФ Андреева Ульяна Георгиевна, зарегистрированная в качестве 
+                        Индивидуального предпринимателя (ОГРНИП 323470400009977), действующая от 
+                        своего имени, именуемая в дальнейшем «Исполнитель», с другой стороны, 
+                        совместно именуемые «Стороны», заключили настоящий договор (далее — Договор) 
+                        о нижеследующем:
+                    </p>
+
+                    <h2>1. Предмет Договора</h2>
+
+                    <p>
+                        1.1. В соответствии с условиями настоящего Договора, Исполнитель обязуется 
+                        по заданию Заказчика оказать ему услуги по поиску и подбору работника на 
+                        имеющуюся вакантную должность «<span class="editable" data-field="position">${position}</span>» 
+                        (далее — Услуги), именуемого в дальнейшем «Кандидат», в соответствии с требованиями, 
+                        указанными Заказчиком в Задании (портрете кандидата на соответствующую должность), 
+                        а Заказчик обязуется оплатить оказанные услуги в порядке и в сроки, указанные 
+                        в настоящем Договоре.
+                    </p>
+
+                    <h2>2. Права и обязанности сторон</h2>
+                    
+                    <p>2.1. Исполнитель обязуется:</p>
+                    <p style="margin-left: 20px;">
+                        - Разместить вакансию на профильных площадках;<br>
+                        - Провести отбор и собеседования кандидатов;<br>
+                        - Предоставить отобранных кандидатов на стажировку сроком до 3 рабочих дней;<br>
+                        - Предоставить гарантию по безвозмездной замене кандидата.
+                    </p>
+
+                    <h2>3. Стоимость услуг</h2>
+                    
+                    <p>
+                        3.1. Стоимость услуг определяется в Приложении № 2 к настоящему Договору 
+                        и составляет 100% одного совокупного месячного дохода нанятого сотрудника.
+                    </p>
+
+                    <h2>4. Адреса, реквизиты и подписи Сторон</h2>
+
+                    <table class="table" style="width: 100%; margin: 20px 0; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 50%; padding: 10px; border: 1px solid #ddd; vertical-align: top;">
+                                <strong>Заказчик:</strong><br><br>
+                                <strong>Название:</strong> <span class="editable" data-field="clientName">${clientData.name}</span><br>
+                                <strong>ИНН:</strong> <span class="editable" data-field="inn">${clientData.inn || '_________________'}</span><br>
+                                <strong>ОГРН:</strong> <span class="editable" data-field="ogrn">${clientData.ogrn || '_________________'}</span><br>
+                                <strong>Юр. адрес:</strong> <span class="editable" data-field="legalAddress">${clientData.legalAddress || '_________________'}</span><br>
+                                <strong>Email:</strong> <span class="editable" data-field="email">${clientData.email || '_________________'}</span><br>
+                                <strong>Телефон:</strong> <span class="editable" data-field="phone">${clientData.phone || '_________________'}</span><br>
+                            </td>
+                            <td style="width: 50%; padding: 10px; border: 1px solid #ddd; vertical-align: top;">
+                                <strong>Исполнитель:</strong><br><br>
+                                ИП Андреева Ульяна Георгиевна<br>
+                                ИНН 540862619705<br>
+                                ОГРНИП 323470400009977<br>
+                                Юридический адрес: 194295, Россия, г Санкт-Петербург, ул Ивана Фомина, дом 7, корпус 3 литера А, кв 296<br>
+                                E-mail: documents@bytime.agency<br>
+                                Контактный телефон: 89139466096<br>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                        <div>
+                            _________________<br>
+                            Заказчик
+                        </div>
+                        <div>
+                            _________________<br>
+                            Андреева У.Г.<br>
+                            Исполнитель
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return {
+                type: 'contract',
+                html: html,
+                data: {
+                    client: clientData,
+                    position: position,
+                    contractNumber: contractNumber,
+                    date: `${day} ${month} ${year}`
+                }
+            };
+        }
+// Вставьте этот код ПОСЛЕ строки 702 (после function generateContract)
+
+function generateContractRecruitment(client, params) {
+    const date = getFormattedDate();
+    const company = getMainCompany(client);
+    return {type: 'contract_recruitment', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Договор подбора персонала №${params.contractNumber}</h2><p>Вакансия: ${params.position}</p><p>Клиент: ${company.name}</p><p>Дата: ${date.full}</p></div>`, data: {client: company, position: params.position, contractNumber: params.contractNumber, date: date.full}};
+}
+
+function generateContractOperations(client, params) {
+    const date = getFormattedDate();
+    const company = getMainCompany(client);
+    return {type: 'contract_operations', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Операционный договор №${params.contractNumber}</h2><p>Клиент: ${company.name}</p><p>Дата: ${date.full}</p></div>`, data: {client: company, contractNumber: params.contractNumber, date: date.full}};
+}
+
+function generateContractPartnership(client, params) {
+    const date = getFormattedDate();
+    const company = getMainCompany(client);
+    return {type: 'contract_partnership', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Партнерское соглашение</h2><p>Партнер: ${company.name}</p><p>Дата: ${date.full}</p></div>`, data: {client: company, date: date.full}};
+}
+
+function generateContractEmployeeIP(client, params) {
+    const date = getFormattedDate();
+    return {type: 'contract_employee_ip', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Договор с ИП №${params.contractNumber}</h2><p>Дата: ${date.full}</p></div>`, data: {contractNumber: params.contractNumber, date: date.full}};
+}
+
+function generateContractEmployeeSMZ(client, params) {
+    const date = getFormattedDate();
+    return {type: 'contract_employee_smz', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Договор с самозанятым №${params.contractNumber}</h2><p>Дата: ${date.full}</p></div>`, data: {contractNumber: params.contractNumber, date: date.full}};
+}
+
+function generateTermsConditions(client, params) {
+    const date = getFormattedDate();
+    return {type: 'terms_conditions', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Условия взаимодействия</h2><p>Дата: ${date.full}</p></div>`, data: {date: date.full}};
+}
+
+function generateAgreementTermination(client, params) {
+    const date = getFormattedDate();
+    const company = getMainCompany(client);
+    return {type: 'agreement_termination', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Соглашение о расторжении</h2><p>Договор №${params.originalContractNumber}</p><p>Клиент: ${company.name}</p><p>Возврат: ${params.refundAmount} руб.</p><p>Дата: ${date.full}</p></div>`, data: {client: company, originalContractNumber: params.originalContractNumber, refundAmount: params.refundAmount, date: date.full}};
+}
+
+function generateAgreementSuspension(client, params) {
+    const date = getFormattedDate();
+    return {type: 'agreement_suspension', html: `<div style="font-family: 'Times New Roman', serif; font-size: 14px; padding: 40px;"><h2>Соглашение о приостановке</h2><p>Договор №${params.originalContractNumber}</p><p>Дата: ${date.full}</p></div>`, data: {originalContractNumber: params.originalContractNumber, date: date.full}};
+}
+
+        function displayDocument(doc) {
+            const preview = document.getElementById('documentPreview');
+            const content = document.getElementById('documentContent');
+            
+            content.innerHTML = doc.html;
+            preview.classList.add('active');
+            
+            // Прокрутка к документу
+            preview.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Редактирование
+        document.getElementById('editBtn').addEventListener('click', function() {
+            const modal = document.getElementById('editModal');
+            const editableContent = document.getElementById('editableContent');
+            const documentContent = document.getElementById('documentContent').innerHTML;
+            
+            editableContent.innerHTML = documentContent;
+            modal.classList.add('active');
+        });
+
+        document.getElementById('closeEditModal').addEventListener('click', function() {
+            document.getElementById('editModal').classList.remove('active');
+        });
+
+        document.getElementById('saveEditsBtn').addEventListener('click', function() {
+            const editableContent = document.getElementById('editableContent').innerHTML;
+            document.getElementById('documentContent').innerHTML = editableContent;
+            document.getElementById('editModal').classList.remove('active');
+            
+            // Обновляем currentDocument
+            if (currentDocument) {
+                currentDocument.html = editableContent;
+            }
+        });
+
+        // Отправка
+        document.getElementById('shareBtn').addEventListener('click', function() {
+            const modal = document.getElementById('shareModal');
+            const shareLink = document.getElementById('shareLink');
+            
+            // Генерируем уникальную ссылку
+            const docId = 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Сохраняем документ в localStorage для демонстрации
+            localStorage.setItem(docId, JSON.stringify(currentDocument));
+            
+            const link = window.location.origin + window.location.pathname + '?view=' + docId;
+            shareLink.textContent = link;
+            
+            modal.classList.add('active');
+        });
+
+        document.getElementById('closeShareModal').addEventListener('click', function() {
+            document.getElementById('shareModal').classList.remove('active');
+        });
+
+        document.getElementById('copyLinkBtn').addEventListener('click', function() {
+            const link = document.getElementById('shareLink').textContent;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Ссылка скопирована в буфер обмена!');
+            });
+        });
+
+        // Скачивание
+        document.getElementById('downloadWordBtn').addEventListener('click', function() {
+            downloadAsWord();
+        });
+
+        document.getElementById('downloadPdfBtn').addEventListener('click', function() {
+            downloadAsPdf();
+        });
+
+        function downloadAsWord() {
+            if (!currentDocument) return;
+            
+            const content = document.getElementById('documentContent').innerHTML;
+            
+            // Создаем blob с HTML содержимым
+            const blob = new Blob([
+                '<html><head><meta charset="utf-8"><title>Договор</title></head><body>' +
+                content +
+                '</body></html>'
+            ], { type: 'application/msword' });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Договор_${currentDocument.data.contractNumber}_${Date.now()}.doc`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadAsPdf() {
+            if (!currentDocument) return;
+            
+            alert('Для скачивания PDF используйте функцию печати браузера (Ctrl+P) и выберите "Сохранить как PDF"');
+            window.print();
+        }
+
+        // Проверка, если открыт документ по ссылке
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewId = urlParams.get('view');
+            
+            if (viewId) {
+                const savedDoc = localStorage.getItem(viewId);
+                if (savedDoc) {
+                    currentDocument = JSON.parse(savedDoc);
+                    displayDocument(currentDocument);
+                    
+                    // Скрываем форму
+                    document.querySelector('.doc-selector').style.display = 'none';
+                    document.querySelector('.header p').textContent = 'Режим просмотра документа';
+                }
+            } else {
+                // Загружаем клиентов
+                loadClients();
+            }
+        });
+    </script>
+</body>
+</html>
