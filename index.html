@@ -7151,6 +7151,18 @@ function kpPopulateMeetings() {
     ).join('');
 }
 
+// Get KP data
+function getKpData() {
+  return {
+    client: document.getElementById('kp-client')?.value || '',
+    date: document.getElementById('kp-date')?.value || '',
+    managerName: document.getElementById('kp-manager-name')?.value || 'Ульяна Майорова',
+    managerPhone: document.getElementById('kp-manager-phone')?.value || '+7 996 594 32 43',
+    managerEmail: document.getElementById('kp-manager-email')?.value || 'corp@bytime.agency',
+    stages: kpStages
+  };
+}
+
 // Open preview in new window
 function openKpPreview() {
   const d = getKpData();
