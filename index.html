@@ -1899,11 +1899,15 @@ function bootSession(email, user, savedPage) {
   const now = new Date();
   document.getElementById('dash-date').textContent = now.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   applyPagePermissions();
+
+  // Save target page BEFORE initAll (which activates dashboard)
+  const page = savedPage || localStorage.getItem('bt_last_page') || 'dashboard';
+
   initAll();
 
   // Restore last page AFTER initAll
-  const page = savedPage || localStorage.getItem('bt_last_page') || 'dashboard';
   setTimeout(() => {
+    if (page === 'dashboard') return; // already on dashboard, nothing to do
     const sbEl = document.querySelector(`.sb-item[data-page="${page}"]`);
     if (sbEl && getComputedStyle(sbEl).display !== 'none') {
       if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) navExternal(page);
@@ -1914,12 +1918,8 @@ function bootSession(email, user, savedPage) {
         const tabEl = document.querySelector(`#page-tools .tab[onclick*="'${lastTab}'"]`);
         if (tabEl) switchToolTab(lastTab, tabEl);
       }
-    } else {
-      // fallback to dashboard
-      const dash = document.querySelector('.sb-item[data-page="dashboard"]');
-      if (dash) nav(dash);
     }
-  }, 50);
+  }, 100);
 }
 
 function applyPagePermissions() {
@@ -6921,100 +6921,148 @@ function renderKpStagesForm() {
 
 function buildKpSlides(d, stages, total, esc, dateStr) {
   const BV = '#54052B';
+  const BV2 = '#6b1040'; // slightly lighter for shapes
 
-  const logoHtml = `
-    <div style="padding:28px 32px 0;display:flex;justify-content:space-between;align-items:flex-start">
+  // ── Logo bar (top of dark slides) ──
+  const logoBar = `
+    <div style="padding:26px 30px 0;display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:3">
       <div style="display:flex;align-items:center;gap:10px">
-        <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:#fff;font-family:Arial,sans-serif">BYTIME</div>
-        <div style="font-size:9px;font-weight:700;line-height:1.3;text-transform:uppercase;letter-spacing:.3px;color:rgba(255,255,255,.85)">АГЕНТСТВО<br>БИЗНЕС-РЕШЕНИЙ</div>
+        <span style="font-size:28px;font-weight:900;letter-spacing:1px;color:#fff;font-family:Arial,sans-serif;line-height:1">BYTIME</span>
+        <div style="font-size:8.5px;font-weight:700;line-height:1.35;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.8)">АГЕНТСТВО<br>БИЗНЕС-РЕШЕНИЙ</div>
       </div>
-      <div style="font-size:13px;color:rgba(255,255,255,.7);letter-spacing:1px;font-weight:700">BYTIME.AGENCY</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.7);letter-spacing:1.5px;font-weight:700;font-family:Arial,sans-serif">BYTIME.AGENCY</div>
     </div>`;
 
-  const puzzleDecor = (top='33%') => `
-    <div style="position:absolute;left:0;top:${top};width:100%;height:50%;pointer-events:none">
-      <div style="position:absolute;left:0;top:0;width:42%;height:100%;background:rgba(255,255,255,.07);border-radius:0 0 28px 0"></div>
-      <div style="position:absolute;left:30%;top:18%;width:65%;height:82%;background:rgba(255,255,255,.07);border-radius:28px 28px 0 0"></div>
+  // ── Decorative "puzzle/folder" blocks ── (matching PDF exactly)
+  const decor = `
+    <div style="position:absolute;inset:0;pointer-events:none;z-index:1">
+      <!-- Left block -->
+      <div style="position:absolute;left:0;top:36%;width:48%;height:42%;background:${BV2};border-radius:0 0 24px 0"></div>
+      <!-- Right block (overlapping, creates folder tab shape) -->
+      <div style="position:absolute;left:28%;top:42%;width:72%;height:40%;background:${BV2};border-radius:24px 0 0 0"></div>
     </div>`;
 
-  // SLIDE 1: Cover
+  // ── SLIDE 1: Cover ──
   const s1 = `
-    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif">
-      ${logoHtml}
-      ${puzzleDecor('33%')}
-      <div style="position:absolute;bottom:0;left:0;right:0;padding:32px 32px 40px">
-        <div style="font-size:52px;font-weight:900;line-height:1.05;letter-spacing:-1px">Коммерческое<br>предложение</div>
-        ${d.client ? `<div style="font-size:15px;margin-top:10px;opacity:.65">для ${esc(d.client)}</div>` : ''}
-        ${dateStr ? `<div style="font-size:12px;margin-top:4px;opacity:.45">${dateStr}</div>` : ''}
+    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+      ${logoBar}
+      ${decor}
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:30px 30px 44px;z-index:3">
+        <div style="font-size:54px;font-weight:800;line-height:1.0;letter-spacing:-1px;font-family:'Onest',Arial,sans-serif">Коммерческое<br>предложение</div>
+        ${d.client ? `<div style="font-size:15px;margin-top:14px;opacity:.6;font-weight:400">для ${esc(d.client)}</div>` : ''}
+        ${dateStr ? `<div style="font-size:12px;margin-top:4px;opacity:.35">${dateStr}</div>` : ''}
       </div>
     </div>`;
 
-  // STAGES SLIDES
+  // ── SLIDES 2+: Stages ──
+  // When 1-4 stages: single page vertical layout (like PDF page 3)
+  // When 5-6 stages: pairs layout (like PDF page 2)
   const stageSlides = [];
-  if (stages.length >= 3 && stages.length <= 4) {
+
+  if (stages.length <= 4) {
+    // Vertical layout — all on one page, no price per stage if only one service
+    const allHavePrice = stages.every(s => s.price && s.price.trim());
+    const singlePrice = stages.length === 1 && stages[0].price;
+
     stageSlides.push(`
-      <div style="background:#fff;width:210mm;min-height:297mm;padding:40px 36px;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
-        <div style="font-size:44px;font-weight:900;color:#1a1a1a;margin-bottom:24px">Этапы работы</div>
-        ${stages.map((s,i) => `
-          <div style="background:#F4EFF2;border-radius:14px;padding:18px 22px;margin-bottom:14px">
-            <div style="font-size:17px;font-weight:700;color:${BV};margin-bottom:3px">Этап ${i+1}. ${esc(s.title)}</div>
-            ${s.duration ? `<div style="font-size:11px;color:#aaa;margin-bottom:8px">Срок: ${esc(s.duration)}</div>` : ''}
-            <div style="font-size:12.5px;color:#333;line-height:1.5">${esc(s.description)}</div>
-            ${s.price ? `<div style="font-size:20px;font-weight:900;color:${BV};margin-top:10px">${esc(s.price)} рублей</div>` : ''}
-          </div>`).join('')}
+      <div style="background:#fff;width:210mm;min-height:297mm;padding:36px 32px;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+        <div style="font-size:38px;font-weight:800;color:#1a0a0f;margin-bottom:28px;line-height:1.1">Этапы работы</div>
+        ${stages.map((s,i) => {
+          const bullets = (s.description||'').split('\n').filter(Boolean);
+          return `
+          <div style="margin-bottom:22px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:${s.price && allHavePrice ? '4px' : '6px'}">
+              <div style="font-size:18px;font-weight:700;color:#1a0a0f">Этап ${i+1}. ${esc(s.title||'')}</div>
+              ${s.price && allHavePrice ? `<div style="font-size:20px;font-weight:800;color:${BV};white-space:nowrap">${esc(s.price)} рублей</div>` : ''}
+            </div>
+            ${s.duration ? `<div style="font-size:12px;color:#aaa;margin-bottom:8px;font-weight:500">Срок: ${esc(s.duration)}</div>` : ''}
+            ${bullets.length > 1
+              ? bullets.map(b=>`<div style="font-size:13px;color:#333;line-height:1.55;margin-bottom:5px;padding-left:14px;position:relative"><span style="position:absolute;left:0;color:${BV};font-size:10px;top:3px">●</span>${esc(b)}</div>`).join('')
+              : `<div style="font-size:13px;color:#333;line-height:1.6">${esc(s.description||'')}</div>`
+            }
+            ${i < stages.length-1 ? `<div style="height:1px;background:#ede8ea;margin-top:20px"></div>` : ''}
+          </div>`;
+        }).join('')}
+        ${singlePrice ? `<div style="font-size:28px;font-weight:800;color:${BV};margin-top:8px">${esc(stages[0].price)} рублей</div>` : ''}
       </div>`);
+
   } else {
+    // Pairs layout (2 per page) — like PDF page 2
     for (let i = 0; i < stages.length; i += 2) {
       const pair = stages.slice(i, i+2);
       stageSlides.push(`
-        <div style="background:#fff;width:210mm;min-height:297mm;padding:40px 36px;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
-          <div style="font-size:46px;font-weight:900;color:#1a1a1a;margin-bottom:28px">Этапы работ${i>0?' (продолжение)':''}</div>
-          ${pair.map((s,j) => `
-            <div style="background:#F4EFF2;border-radius:16px;padding:22px 24px 52px;margin-bottom:18px;position:relative">
-              <div style="font-size:18px;font-weight:700;color:${BV};margin-bottom:4px">Этап ${i+j+1}. ${esc(s.title)}</div>
-              <div style="font-size:11px;color:#aaa;margin-bottom:10px">Срок: ${esc(s.duration||'—')}</div>
-              <ul style="padding-left:18px;margin:0">${(s.description||'').split('\n').filter(Boolean).map(l=>`<li style="font-size:13px;color:#333;line-height:1.45;margin-bottom:5px">${esc(l)}</li>`).join('') || `<li style="font-size:13px;color:#333">${esc(s.description||'')}</li>`}</ul>
-              ${s.price ? `<div style="position:absolute;bottom:16px;right:16px;background:${BV};color:#fff;border-radius:10px;padding:8px 16px;font-size:15px;font-weight:700">${esc(s.price)} рублей</div>` : ''}
-            </div>`).join('')}
+        <div style="background:#fff;width:210mm;min-height:297mm;padding:36px 32px;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+          <div style="font-size:38px;font-weight:800;color:#1a0a0f;margin-bottom:28px">Этапы работ${i > 0 ? ' (продолжение)' : ''}</div>
+          ${pair.map((s,j) => {
+            const bullets = (s.description||'').split('\n').filter(Boolean);
+            return `
+            <div style="background:#F6F0F3;border-radius:16px;padding:22px 24px;margin-bottom:18px;position:relative">
+              <div style="font-size:18px;font-weight:700;color:#1a0a0f;margin-bottom:3px">Этап ${i+j+1}. ${esc(s.title||'')}</div>
+              ${s.duration ? `<div style="font-size:11px;color:#aaa;margin-bottom:12px">Срок: ${esc(s.duration)}</div>` : ''}
+              <div style="padding-bottom:${s.price?'44px':'0'}">
+                ${bullets.length > 1
+                  ? bullets.map(b=>`<div style="font-size:13px;color:#333;line-height:1.55;margin-bottom:6px;padding-left:14px;position:relative"><span style="position:absolute;left:0;color:${BV};font-size:10px;top:3px">●</span>${esc(b)}</div>`).join('')
+                  : `<div style="font-size:13px;color:#333;line-height:1.6">${esc(s.description||'')}</div>`
+                }
+              </div>
+              ${s.price ? `<div style="font-size:20px;font-weight:800;color:${BV};margin-top:12px">${esc(s.price)} рублей</div>` : ''}
+            </div>`;
+          }).join('')}
         </div>`);
     }
   }
 
-  // SLIDE BUDGET
+  // ── SLIDE: Budget ──
   const sBudget = `
-    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif">
-      <div style="position:absolute;left:0;top:0;width:40%;height:52%;background:rgba(255,255,255,.06);border-radius:0 0 32px 0"></div>
-      <div style="position:absolute;right:0;bottom:0;width:55%;height:40%;background:rgba(255,255,255,.06);border-radius:32px 0 0 0"></div>
-      <div style="position:relative;z-index:2">
-        <div style="text-align:right;padding:50px 36px 0">
-          <div style="display:inline-block;background:rgba(255,255,255,.12);border-radius:14px 14px 14px 0;padding:22px 32px;min-width:55%">
-            <div style="font-size:42px;font-weight:900">Общая<br>смета</div>
-          </div>
+    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+      <!-- Decor shapes -->
+      <div style="position:absolute;left:0;top:0;width:38%;height:48%;background:rgba(255,255,255,.05);border-radius:0 0 28px 0;pointer-events:none"></div>
+      <div style="position:absolute;right:0;bottom:0;width:50%;height:32%;background:rgba(255,255,255,.05);border-radius:28px 0 0 0;pointer-events:none"></div>
+      <!-- Title block -->
+      <div style="display:flex;justify-content:flex-end;padding:44px 32px 0;position:relative;z-index:2">
+        <div style="background:rgba(255,255,255,.1);border-radius:18px 18px 0 18px;padding:24px 36px;min-width:50%;text-align:center">
+          <div style="font-size:44px;font-weight:800;line-height:1.05">Общая<br>смета</div>
         </div>
-        <table style="margin:44px 36px;border-collapse:collapse;width:calc(100% - 72px)">
-          <tr><td style="padding:14px 18px;border:1.5px solid rgba(255,255,255,.3);font-size:13px;opacity:.7;font-weight:600;width:65%">Описание</td>
-              <td style="padding:14px 18px;border:1.5px solid rgba(255,255,255,.3);font-size:13px;opacity:.7;font-weight:600;width:35%">Стоимость</td></tr>
+      </div>
+      <!-- Table -->
+      <div style="margin:40px 32px;position:relative;z-index:2">
+        <table style="width:100%;border-collapse:collapse">
+          <tr>
+            <td style="padding:14px 18px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;font-weight:700;width:65%">Описание</td>
+            <td style="padding:14px 18px;border:1.5px solid rgba(255,255,255,.3);font-size:14px;font-weight:700">Стоимость</td>
+          </tr>
           ${stages.filter(s=>s.price).map((s,i)=>`
-          <tr><td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);font-size:14px;vertical-align:top">Этап ${i+1}. ${esc(s.title)}</td>
-              <td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);font-size:14px;font-weight:700">${esc(s.price)} руб</td></tr>`).join('')}
-          <tr><td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);border-top:2.5px solid rgba(255,255,255,.6);font-size:17px;font-weight:700">Стоимость проекта</td>
-              <td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);border-top:2.5px solid rgba(255,255,255,.6);font-size:17px;font-weight:700">${total>0?total.toLocaleString('ru-RU')+' руб':'—'}</td></tr>
+          <tr>
+            <td style="padding:18px 18px;border:1.5px solid rgba(255,255,255,.2);font-size:14px;vertical-align:top;line-height:1.4">Этап ${i+1}. ${esc(s.title||'')}</td>
+            <td style="padding:18px 18px;border:1.5px solid rgba(255,255,255,.2);font-size:14px;font-weight:600">${esc(s.price)} руб</td>
+          </tr>`).join('')}
+          <tr>
+            <td style="padding:18px 18px;border:1.5px solid rgba(255,255,255,.2);border-top:2px solid rgba(255,255,255,.7);font-size:16px;font-weight:700">Стоимость проекта</td>
+            <td style="padding:18px 18px;border:1.5px solid rgba(255,255,255,.2);border-top:2px solid rgba(255,255,255,.7);font-size:16px;font-weight:700">${total>0?total.toLocaleString('ru-RU')+' руб':'—'}</td>
+          </tr>
         </table>
       </div>
     </div>`;
 
-  // SLIDE CONTACT
-  const nameParts = (d.managerName||'').split(' ');
-  const nameDisplay = nameParts.length >= 2 ? nameParts[0]+'<br>'+nameParts.slice(1).join(' ') : esc(d.managerName||'');
+  // ── SLIDE: Contact ──
+  const nameParts = (d.managerName||'Ульяна Майорова').trim().split(' ');
+  const firstName = nameParts[0]||'';
+  const lastName  = nameParts.slice(1).join(' ')||'';
+
   const sContact = `
-    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif">
-      ${logoHtml}
-      ${puzzleDecor('30%')}
-      <div style="position:absolute;right:36px;top:43%;font-size:20px;opacity:.55;z-index:2">Контакты</div>
-      <div style="position:absolute;bottom:28%;left:32px;font-size:52px;font-weight:900;line-height:1.05;z-index:2">${nameDisplay}</div>
-      <div style="position:absolute;bottom:8%;left:0;right:0;display:flex;padding:0 32px;z-index:2">
-        <div style="flex:1;font-size:18px;font-weight:600">${esc(d.managerPhone||'+7 996 594 32 43')}</div>
-        <div style="flex:1;font-size:18px;font-weight:600">${esc(d.managerEmail||'corp@bytime.agency')}</div>
+    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+      ${logoBar}
+      ${decor}
+      <!-- "Контакты" label -->
+      <div style="position:absolute;right:32px;top:45%;font-size:18px;color:rgba(255,255,255,.5);z-index:3;font-weight:400">Контакты</div>
+      <!-- Name -->
+      <div style="position:absolute;bottom:33%;left:30px;z-index:3">
+        <div style="font-size:56px;font-weight:800;line-height:1.0;letter-spacing:-1px">${esc(firstName)}<br>${esc(lastName)}</div>
+      </div>
+      <!-- Phone + Email -->
+      <div style="position:absolute;bottom:9%;left:0;right:0;padding:0 30px;display:flex;gap:40px;z-index:3">
+        <div style="font-size:17px;font-weight:700;letter-spacing:.3px">${esc(d.managerPhone||'+7 996 594 32 43')}</div>
+        <div style="font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.3px">${esc(d.managerEmail||'corp@bytime.agency')}</div>
       </div>
     </div>`;
 
