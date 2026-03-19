@@ -7165,18 +7165,19 @@ function getKpData() {
 
 // Open preview in new window
 function openKpPreview() {
-  const d = getKpData();
-  const stages = d.stages;
-  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const total = kpStages.filter(s=>s.price).reduce((a,s)=>{
-    const n=parseInt((s.price||'0').replace(/\D/g,''),10); return a+(isNaN(n)?0:n);
-  },0);
-  const dateStr = d.date ? new Date(d.date).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) : '';
+  try {
+    const d = getKpData();
+    const stages = d.stages;
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const total = kpStages.filter(s=>s.price).reduce((a,s)=>{
+      const n=parseInt((s.price||'0').replace(/\D/g,''),10); return a+(isNaN(n)?0:n);
+    },0);
+    const dateStr = d.date ? new Date(d.date).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) : '';
 
-  if (!stages.length) { showToast('Добавьте хотя бы один этап'); return; }
+    if (!stages.length) { showToast('Добавьте хотя бы один этап'); return; }
 
-  const slides = buildKpSlides(d, stages, total, esc, dateStr);
-  const html = `<!DOCTYPE html><html lang="ru"><head>
+    const slides = buildKpSlides(d, stages, total, esc, dateStr);
+    const html = `<!DOCTYPE html><html lang="ru"><head>
     <meta charset="UTF-8">
     <title>КП — ${esc(d.client||'BYTIME')}</title>
     <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -7204,15 +7205,23 @@ function openKpPreview() {
     </div>
   </body></html>`;
 
-  const win = window.open('','_blank','width=1100,height=900');
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-  } else {
-    // Fallback: open via blob URL (works when popups are blocked)
-    const blob = new Blob([html], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    // Try to open new window
+    const win = window.open('','_blank','width=1100,height=900');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    } else {
+      // Fallback: open via blob URL (works when popups are blocked)
+      const blob = new Blob([html], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const newWin = window.open(url, '_blank');
+      if (!newWin) {
+        showToast('❌ Браузер блокирует попапы. Разрешите всплывающие окна для этого сайта.');
+      }
+    }
+  } catch(err) {
+    console.error('Ошибка openKpPreview:', err);
+    showToast('❌ Ошибка: ' + err.message);
   }
 }
 
