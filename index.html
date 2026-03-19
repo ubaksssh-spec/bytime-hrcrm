@@ -657,8 +657,18 @@ tbody tr:last-child{border-bottom:none}
               </div>
               <div id="kp-stages-form"></div>
 
-              <div style="display:flex;gap:10px;margin-top:20px">
-                <button onclick="openKpForPrint()" style="flex:1;background:var(--bv);color:white;border:none;border-radius:9px;padding:12px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">↓ Открыть / Сохранить PDF</button>
+              <!-- Load from meeting -->
+              <div style="border:1.5px dashed rgba(2,70,56,.3);border-radius:10px;padding:12px 14px;margin-top:4px;margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--em);margin-bottom:8px">📋 Загрузить из встречи</div>
+                <select id="kp-meeting-select" style="width:100%;padding:8px 10px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13px;outline:none;background:#fff;margin-bottom:8px">
+                  <option value="">— выбрать встречу —</option>
+                </select>
+                <button onclick="kpLoadFromMeeting()" style="width:100%;background:var(--em);color:#fff;border:none;border-radius:8px;padding:9px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">✨ Сгенерировать КП из встречи</button>
+              </div>
+
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <button onclick="openKpPreview()" style="flex:1;background:var(--bv);color:white;border:none;border-radius:9px;padding:12px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">👁 Открыть</button>
+                <button onclick="openKpForPrint()" style="flex:1;background:transparent;color:var(--bv);border:2px solid var(--bv);border-radius:9px;padding:12px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">↓ PDF</button>
               </div>
             </div>
 
@@ -6851,24 +6861,57 @@ let kpStages = [
 function initKpTool() {
   const dateEl = document.getElementById('kp-date');
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
-  // Fill manager dropdown from systemUsers
+
+  // Fixed managers list with phones
+  const KP_MANAGERS = [
+    {id:'yana',  name:'Яна Сучкова',     phone:'+7 999 999 99 99', email:'yana@bytime.agency'},
+    {id:'ulyana',name:'Ульяна Майорова', phone:'+7 913 946 60 96', email:'admin@bytime.agency'},
+  ];
+  // Also merge systemUsers that have phones
+  systemUsers.forEach(u => {
+    if (!KP_MANAGERS.find(m=>m.email===u.email)) {
+      const profile = empProfiles[u.id];
+      KP_MANAGERS.push({id:u.id, name:u.name, phone:profile?.phone||'', email:u.email});
+    }
+  });
+
   const sel = document.getElementById('kp-manager-select');
   if (sel) {
     sel.innerHTML = '<option value="">— выбрать из команды —</option>' +
-      systemUsers.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+      KP_MANAGERS.map(m=>`<option value="${m.id}" data-phone="${m.phone}" data-email="${m.email}">${m.name}</option>`).join('');
+    sel.onchange = function() {
+      const opt = this.options[this.selectedIndex];
+      if (!opt.value) return;
+      const nameEl = document.getElementById('kp-manager-name');
+      const phoneEl = document.getElementById('kp-manager-phone');
+      const emailEl = document.getElementById('kp-manager-email');
+      if (nameEl) nameEl.value = opt.text;
+      if (phoneEl) phoneEl.value = opt.dataset.phone || '';
+      if (emailEl) emailEl.value = opt.dataset.email || '';
+      renderKpPreview();
+    };
   }
+
   // Auto-fill current user
   const nameEl = document.getElementById('kp-manager-name');
   if (nameEl && !nameEl.value && currentUser) {
-    nameEl.value = currentUser.name;
-    const su = systemUsers.find(u=>u.email===currentUser.email);
-    if (su && sel) sel.value = su.id;
-    kpFillManager(su?.id||'', true);
+    const match = KP_MANAGERS.find(m=>m.email===currentUser.email);
+    if (match) {
+      nameEl.value = match.name;
+      const phoneEl = document.getElementById('kp-manager-phone');
+      const emailEl = document.getElementById('kp-manager-email');
+      if (phoneEl && match.phone) phoneEl.value = match.phone;
+      if (emailEl) emailEl.value = match.email;
+      if (sel) sel.value = match.id;
+    } else {
+      nameEl.value = currentUser.name || '';
+    }
   }
   const emailEl = document.getElementById('kp-manager-email');
   if (emailEl && !emailEl.value) emailEl.value = currentUser?.email||'corp@bytime.agency';
   renderKpStagesForm();
   renderKpPreview();
+  kpPopulateMeetings();
 }
 
 function kpFillManager(userId, skipOverwrite) {
@@ -7067,6 +7110,149 @@ function buildKpSlides(d, stages, total, esc, dateStr) {
     </div>`;
 
   return [s1, ...stageSlides, sBudget, sContact];
+}
+
+// Populate meeting select when KP tab opens
+function kpPopulateMeetings() {
+  const sel = document.getElementById('kp-meeting-select');
+  if (!sel) return;
+  mtLoad();
+  const all = [...mtMeetings, ...mtShared.filter(m=>!mtMeetings.find(x=>x.id===m.id))];
+  sel.innerHTML = '<option value="">— выбрать встречу —</option>' +
+    all.filter(m=>m.title||m.notes||m.summary).map(m=>
+      `<option value="${m.id}">${m.title||'Без названия'} ${m.date?'('+m.date+')':''}</option>`
+    ).join('');
+}
+
+// Open preview in new window
+function openKpPreview() {
+  const d = getKpData();
+  const stages = d.stages;
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const total = kpStages.filter(s=>s.price).reduce((a,s)=>{
+    const n=parseInt((s.price||'0').replace(/\D/g,''),10); return a+(isNaN(n)?0:n);
+  },0);
+  const dateStr = d.date ? new Date(d.date).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) : '';
+
+  if (!stages.length) { showToast('Добавьте хотя бы один этап'); return; }
+
+  const slides = buildKpSlides(d, stages, total, esc, dateStr);
+  const html = `<!DOCTYPE html><html lang="ru"><head>
+    <meta charset="UTF-8">
+    <title>КП — ${esc(d.client||'BYTIME')}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{background:#2a2a2a;font-family:'Onest',Arial,sans-serif}
+      .bar{position:fixed;top:0;left:0;right:0;background:#1a1a1a;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:99;font-family:'Onest',sans-serif}
+      .bar button{padding:7px 20px;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;font-family:'Onest',sans-serif}
+      .btn-pdf{background:#54052B;color:#fff}
+      .btn-close{background:#444;color:#fff}
+      .bar .hint{font-size:12px;color:#888;margin-left:8px}
+      .wrap{padding:60px 40px 60px;display:flex;flex-direction:column;align-items:center;gap:32px}
+      .slide-frame{box-shadow:0 8px 40px rgba(0,0,0,.5);border-radius:4px;overflow:hidden;width:210mm}
+      @media print{body{background:#fff}.bar{display:none}.wrap{padding:0;gap:0}.slide-frame{box-shadow:none;page-break-after:always;break-after:page}}
+      @page{size:A4 portrait;margin:0}
+    </style>
+  </head><body>
+    <div class="bar">
+      <button class="btn-pdf" onclick="window.print()">↓ Сохранить PDF</button>
+      <button class="btn-close" onclick="window.close()">✕ Закрыть</button>
+      <span class="hint">Масштаб 100%, поля = нет при сохранении PDF</span>
+    </div>
+    <div class="wrap">
+      ${slides.map(s=>`<div class="slide-frame">${s}</div>`).join('')}
+    </div>
+  </body></html>`;
+
+  const win = window.open('','_blank','width=1000,height=900');
+  if (win) { win.document.write(html); win.document.close(); }
+  else showToast('Разрешите всплывающие окна в браузере');
+}
+
+// Load transcription from meeting and generate KP
+async function kpLoadFromMeeting() {
+  const sel = document.getElementById('kp-meeting-select');
+  const meetingId = sel?.value;
+  if (!meetingId) { showToast('Выберите встречу'); return; }
+
+  mtLoad();
+  const meeting = [...mtMeetings, ...mtShared].find(m=>m.id===meetingId);
+  if (!meeting) { showToast('Встреча не найдена'); return; }
+
+  const context = [
+    meeting.summary || '',
+    meeting.notes ? 'Заметки: ' + meeting.notes : '',
+    meeting.decisions ? 'Решения: ' + meeting.decisions : '',
+    meeting.tasks ? 'Задачи: ' + meeting.tasks : '',
+  ].filter(Boolean).join('\n\n');
+
+  if (!context.trim()) { showToast('В выбранной встрече нет текста'); return; }
+
+  // Pre-fill client from meeting
+  const clientEl = document.getElementById('kp-client');
+  if (clientEl && !clientEl.value && meeting.client) clientEl.value = meeting.client;
+
+  // Set AI context
+  const ctxEl = document.getElementById('kp-ai-context');
+  if (ctxEl) ctxEl.value = `Транскрипция встречи:\n${context}`;
+
+  const btn = document.getElementById('kp-ai-btn');
+  const status = document.getElementById('kp-ai-status');
+  btn.disabled = true; status.style.display = 'block'; status.textContent = '⏳ Анализирую встречу и формирую этапы...';
+
+  try {
+    const prompt = `Ты — коммерческий директор агентства BYTIME (подбор персонала, HR-стратегия, операционная эффективность, клиентский сервис).
+
+На основе материалов встречи сформируй коммерческое предложение.
+
+Материалы встречи:
+${context}
+
+Клиент: ${meeting.client || 'не указан'}
+Участники: ${meeting.participants || 'не указаны'}
+
+Задача: определи 2–4 этапа работ которые BYTIME может предложить клиенту, исходя из обсуждённого.
+
+Верни JSON:
+{
+  "stages": [
+    {
+      "title": "Название этапа",
+      "duration": "срок (например: 2 недели)",
+      "description": "пункт 1\nпункт 2\nпункт 3",
+      "price": "60 000"
+    }
+  ]
+}
+
+Только JSON, без пояснений. Цены в рублях без знака, ориентировочные.`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user',content:prompt}]})
+    });
+    const data = await resp.json();
+    let text = (data.content?.[0]?.text||'').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const parsed = JSON.parse(text);
+
+    if (parsed.stages?.length) {
+      kpStages = parsed.stages.map(s=>({
+        title: s.title||'',
+        duration: s.duration||'',
+        description: s.description||'',
+        price: s.price||'',
+      }));
+      renderKpStagesForm();
+      renderKpPreview();
+      showToast('КП сформировано из встречи ✓');
+    }
+  } catch(e) {
+    showToast('Ошибка: ' + (e.message||'неизвестная'));
+  } finally {
+    btn.disabled = false; status.style.display = 'none';
+  }
 }
 
 async function kpGenerateWithAI() {
