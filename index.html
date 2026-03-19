@@ -558,6 +558,14 @@ tbody tr:last-child{border-bottom:none}
       <div id="tool-main-view">
         <div class="page-header">
           <div><div class="page-title">Инструменты</div><div class="page-subtitle">Рабочие инструменты и процессы</div></div>
+          <!-- Claude API key - used by all AI features -->
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <label style="font-size:11px;font-weight:700;color:var(--gray4);white-space:nowrap">🤖 Claude API Key</label>
+            <input id="claude-api-key" type="password" placeholder="sk-ant-..." value=""
+              style="padding:6px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-size:12px;font-family:var(--font-b);outline:none;width:200px"
+              oninput="localStorage.setItem('bt_claude_key',this.value)">
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--em);white-space:nowrap">Получить ключ →</a>
+          </div>
         </div>
         <!-- Tool tabs -->
         <div class="tabs" style="margin-bottom:24px">
@@ -1908,6 +1916,9 @@ function bootSession(email, user, savedPage) {
   document.getElementById('sb-avatar').textContent = user.initials;
   const now = new Date();
   document.getElementById('dash-date').textContent = now.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  // Restore saved Claude API key
+  const savedClaudeKey = localStorage.getItem('bt_claude_key');
+  if (savedClaudeKey) { const el = document.getElementById('claude-api-key'); if(el) el.value = savedClaudeKey; }
   applyPagePermissions();
 
   // Save target page BEFORE initAll (which activates dashboard)
@@ -2049,6 +2060,33 @@ function accessDenied(el) {
 // ════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════
+// ── Universal AI call helper ──────────────────────────────
+async function aiCall(prompt, maxTokens=1500) {
+  const key = localStorage.getItem('bt_claude_key') ||
+              document.getElementById('claude-api-key')?.value || '';
+  if (!key) throw new Error('Введите Claude API Key в шапке раздела Инструменты');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      messages: [{role:'user', content: prompt}]
+    })
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err?.error?.message || 'HTTP ' + resp.status);
+  }
+  const data = await resp.json();
+  return data.content?.[0]?.text || '';
+}
+
 function initAll() {
   employees = getEmployees();
   renderDashboard();
@@ -7165,9 +7203,16 @@ function openKpPreview() {
     </div>
   </body></html>`;
 
-  const win = window.open('','_blank','width=1000,height=900');
-  if (win) { win.document.write(html); win.document.close(); }
-  else showToast('Разрешите всплывающие окна в браузере');
+  const win = window.open('','_blank','width=1100,height=900');
+  if (win) {
+    win.document.write(html);
+    win.document.close();
+  } else {
+    // Fallback: open via blob URL (works when popups are blocked)
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
 }
 
 // Load transcription from meeting and generate KP
@@ -7228,13 +7273,8 @@ ${context}
 
 Только JSON, без пояснений. Цены в рублях без знака, ориентировочные.`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user',content:prompt}]})
-    });
-    const data = await resp.json();
-    let text = (data.content?.[0]?.text||'').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const rawText2 = await aiCall(prompt, 2000);
+    let text = rawText2.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
     const parsed = JSON.parse(text);
 
     if (parsed.stages?.length) {
@@ -7284,13 +7324,8 @@ ${titles}
 
 Порядок совпадает с порядком этапов. Только JSON, без пояснений.`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user',content:prompt}]})
-    });
-    const data = await resp.json();
-    let text = (data.content?.[0]?.text||'').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const rawText = await aiCall(prompt, 2000);
+    let text = rawText.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
     const arr = JSON.parse(text);
     arr.forEach((item, i) => {
       if (kpStages[i]) kpStages[i].description = item.bullets || '';
@@ -7931,9 +7966,7 @@ ${tasks||'—'}
 
 Деловой стиль, без воды, максимум 200 слов.`;
   try {
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
-    const data=await resp.json();
-    const text=data.content?.[0]?.text||'';
+    const text = await aiCall(prompt, 800);
     document.getElementById('mt-summary-text').textContent=text;
     document.getElementById('mt-summary-wrap').style.display='block';
     if(mtCurrentId){mtLoad();const m=mtMeetings.find(x=>x.id===mtCurrentId);if(m){m.summary=text;mtSaveAll();}const sm=mtShared.find(x=>x.id===mtCurrentId);if(sm){sm.summary=text;mtSaveShared();}}
@@ -8254,18 +8287,7 @@ ${tasks ? 'Задачи:\n' + tasks : ''}
 
 Верни ТОЛЬКО JSON массив, без объяснений и markdown.`;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{role: 'user', content: prompt}]
-      })
-    });
-
-    const data = await resp.json();
-    let text = data.content?.[0]?.text || '';
+    let text = await aiCall(prompt, 2000);
 
     // Strip markdown fences if present
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
