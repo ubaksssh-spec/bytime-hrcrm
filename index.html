@@ -569,6 +569,7 @@ tbody tr:last-child{border-bottom:none}
         </div>
         <!-- Tool: Processes (embedded) -->
         <div id="tool-processes">
+          <div id="proc-list-view">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
             <div style="display:flex;align-items:center;gap:10px">
               <div class="search-box"><span class="search-icon">🔍</span><input type="text" id="proc-search" placeholder="Поиск процесса..." oninput="renderProcesses()"></div>
@@ -580,6 +581,7 @@ tbody tr:last-child{border-bottom:none}
           </div>
           <div class="tabs" id="proc-dept-tabs"></div>
           <div class="procs-grid" id="proc-grid"></div>
+          </div>
           <!-- Canvas editor inside tools -->
           <div id="proc-canvas-view" style="display:none">
             <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--gray2);background:var(--white)">
