@@ -619,12 +619,12 @@ tbody tr:last-child{border-bottom:none}
         <!-- Tool: Documents (КП generator) -->
         <!-- Tool: КП Generator -->
         <div id="tool-kp" style="display:none">
-          <div style="display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:flex-start;max-width:1300px">
+          <div style="display:grid;grid-template-columns:420px 1fr;gap:28px;align-items:flex-start;max-width:1400px">
 
             <!-- LEFT: Form -->
-            <div style="background:var(--white);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--gray1);padding:24px;position:sticky;top:20px">
-              <div style="font-size:16px;font-weight:700;color:var(--bv);margin-bottom:4px">📄 Коммерческое предложение</div>
-              <div style="font-size:12.5px;color:var(--gray4);margin-bottom:20px">Заполните поля и скачайте готовое КП</div>
+            <div style="background:var(--white);border-radius:14px;box-shadow:var(--shadow);border:1px solid var(--gray1);padding:24px;position:sticky;top:20px;max-height:calc(100vh - 60px);overflow-y:auto">
+              <div style="font-size:16px;font-weight:700;color:var(--bv);margin-bottom:2px">📄 Коммерческое предложение</div>
+              <div style="font-size:12px;color:var(--gray4);margin-bottom:20px">Заполните поля — КП отобразится справа</div>
 
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin-bottom:8px">Клиент</div>
               <div class="form-row" style="margin-bottom:8px"><label>Название компании</label><input id="kp-client" placeholder='ООО "Ромашка"' oninput="renderKpPreview()"></div>
@@ -638,24 +638,34 @@ tbody tr:last-child{border-bottom:none}
                 </select>
               </div>
               <div class="form-row" style="margin-bottom:8px"><label>Имя</label><input id="kp-manager-name" placeholder="Ульяна Майорова" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:8px"><label>Телефон</label><input id="kp-manager-phone" placeholder="+7 913 946 60 96" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:8px"><label>Email</label><input id="kp-manager-email" placeholder="corp@bytime.agency" oninput="renderKpPreview()"></div>
+              <div class="form-row" style="margin-bottom:8px"><label>Телефон</label><input id="kp-manager-phone" placeholder="+7 996 594 32 43" oninput="renderKpPreview()"></div>
+              <div class="form-row" style="margin-bottom:16px"><label>Email</label><input id="kp-manager-email" placeholder="corp@bytime.agency" oninput="renderKpPreview()"></div>
 
-              <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+              <!-- AI context -->
+              <div style="background:rgba(84,5,43,.04);border:1.5px solid rgba(84,5,43,.12);border-radius:10px;padding:14px;margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--bv);margin-bottom:8px">✨ AI-генерация описаний</div>
+                <div class="form-row" style="margin-bottom:8px"><label>Контекст для AI</label>
+                  <textarea id="kp-ai-context" rows="3" placeholder="Что за клиент, какая задача, что нужно сделать. Например: производственная компания, нужен операционный аудит и настройка HR-процессов" style="font-size:13px;resize:vertical"></textarea>
+                </div>
+                <button id="kp-ai-btn" onclick="kpGenerateWithAI()" style="width:100%;background:var(--bv);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">✨ Сгенерировать описания этапов</button>
+                <div id="kp-ai-status" style="display:none;font-size:12px;color:var(--gray4);margin-top:8px;text-align:center">⏳ Генерирую...</div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                 <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4)">Этапы работ</div>
                 <button onclick="addKpStage()" class="btn btn-sm btn-ghost">+ Этап</button>
               </div>
               <div id="kp-stages-form"></div>
 
               <div style="display:flex;gap:10px;margin-top:20px">
-                <button onclick="openKpForPrint()" style="flex:1;background:var(--bv);color:white;border:none;border-radius:9px;padding:12px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">↓ Сохранить PDF</button>
+                <button onclick="openKpForPrint()" style="flex:1;background:var(--bv);color:white;border:none;border-radius:9px;padding:12px;cursor:pointer;font-size:13.5px;font-weight:700;font-family:var(--font-b)">↓ Открыть / Сохранить PDF</button>
               </div>
             </div>
 
-            <!-- RIGHT: Preview -->
+            <!-- RIGHT: Live Preview -->
             <div>
               <div style="font-size:12px;font-weight:700;color:var(--gray4);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">Предпросмотр</div>
-              <div id="kp-preview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px"></div>
+              <div id="kp-preview" style="display:flex;flex-direction:column;gap:16px"></div>
             </div>
           </div>
         </div>
@@ -6909,63 +6919,186 @@ function renderKpStagesForm() {
     </div>`).join('');
 }
 
-function getKpData() {
-  return {
-    client:  document.getElementById('kp-client')?.value || 'Клиент',
-    date:    document.getElementById('kp-date')?.value || '',
-    managerName:  document.getElementById('kp-manager-name')?.value || 'Ульяна Майорова',
-    managerPhone: document.getElementById('kp-manager-phone')?.value || '+7 913 946 60 96',
-    managerEmail: document.getElementById('kp-manager-email')?.value || 'corp@bytime.agency',
-    stages: kpStages.filter(s=>s.title||s.description),
-  };
+function buildKpSlides(d, stages, total, esc, dateStr) {
+  const BV = '#54052B';
+
+  const logoHtml = `
+    <div style="padding:28px 32px 0;display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:#fff;font-family:Arial,sans-serif">BYTIME</div>
+        <div style="font-size:9px;font-weight:700;line-height:1.3;text-transform:uppercase;letter-spacing:.3px;color:rgba(255,255,255,.85)">АГЕНТСТВО<br>БИЗНЕС-РЕШЕНИЙ</div>
+      </div>
+      <div style="font-size:13px;color:rgba(255,255,255,.7);letter-spacing:1px;font-weight:700">BYTIME.AGENCY</div>
+    </div>`;
+
+  const puzzleDecor = (top='33%') => `
+    <div style="position:absolute;left:0;top:${top};width:100%;height:50%;pointer-events:none">
+      <div style="position:absolute;left:0;top:0;width:42%;height:100%;background:rgba(255,255,255,.07);border-radius:0 0 28px 0"></div>
+      <div style="position:absolute;left:30%;top:18%;width:65%;height:82%;background:rgba(255,255,255,.07);border-radius:28px 28px 0 0"></div>
+    </div>`;
+
+  // SLIDE 1: Cover
+  const s1 = `
+    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif">
+      ${logoHtml}
+      ${puzzleDecor('33%')}
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:32px 32px 40px">
+        <div style="font-size:52px;font-weight:900;line-height:1.05;letter-spacing:-1px">Коммерческое<br>предложение</div>
+        ${d.client ? `<div style="font-size:15px;margin-top:10px;opacity:.65">для ${esc(d.client)}</div>` : ''}
+        ${dateStr ? `<div style="font-size:12px;margin-top:4px;opacity:.45">${dateStr}</div>` : ''}
+      </div>
+    </div>`;
+
+  // STAGES SLIDES
+  const stageSlides = [];
+  if (stages.length >= 3 && stages.length <= 4) {
+    stageSlides.push(`
+      <div style="background:#fff;width:210mm;min-height:297mm;padding:40px 36px;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+        <div style="font-size:44px;font-weight:900;color:#1a1a1a;margin-bottom:24px">Этапы работы</div>
+        ${stages.map((s,i) => `
+          <div style="background:#F4EFF2;border-radius:14px;padding:18px 22px;margin-bottom:14px">
+            <div style="font-size:17px;font-weight:700;color:${BV};margin-bottom:3px">Этап ${i+1}. ${esc(s.title)}</div>
+            ${s.duration ? `<div style="font-size:11px;color:#aaa;margin-bottom:8px">Срок: ${esc(s.duration)}</div>` : ''}
+            <div style="font-size:12.5px;color:#333;line-height:1.5">${esc(s.description)}</div>
+            ${s.price ? `<div style="font-size:20px;font-weight:900;color:${BV};margin-top:10px">${esc(s.price)} рублей</div>` : ''}
+          </div>`).join('')}
+      </div>`);
+  } else {
+    for (let i = 0; i < stages.length; i += 2) {
+      const pair = stages.slice(i, i+2);
+      stageSlides.push(`
+        <div style="background:#fff;width:210mm;min-height:297mm;padding:40px 36px;font-family:'Onest',Arial,sans-serif;box-sizing:border-box">
+          <div style="font-size:46px;font-weight:900;color:#1a1a1a;margin-bottom:28px">Этапы работ${i>0?' (продолжение)':''}</div>
+          ${pair.map((s,j) => `
+            <div style="background:#F4EFF2;border-radius:16px;padding:22px 24px 52px;margin-bottom:18px;position:relative">
+              <div style="font-size:18px;font-weight:700;color:${BV};margin-bottom:4px">Этап ${i+j+1}. ${esc(s.title)}</div>
+              <div style="font-size:11px;color:#aaa;margin-bottom:10px">Срок: ${esc(s.duration||'—')}</div>
+              <ul style="padding-left:18px;margin:0">${(s.description||'').split('\n').filter(Boolean).map(l=>`<li style="font-size:13px;color:#333;line-height:1.45;margin-bottom:5px">${esc(l)}</li>`).join('') || `<li style="font-size:13px;color:#333">${esc(s.description||'')}</li>`}</ul>
+              ${s.price ? `<div style="position:absolute;bottom:16px;right:16px;background:${BV};color:#fff;border-radius:10px;padding:8px 16px;font-size:15px;font-weight:700">${esc(s.price)} рублей</div>` : ''}
+            </div>`).join('')}
+        </div>`);
+    }
+  }
+
+  // SLIDE BUDGET
+  const sBudget = `
+    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif">
+      <div style="position:absolute;left:0;top:0;width:40%;height:52%;background:rgba(255,255,255,.06);border-radius:0 0 32px 0"></div>
+      <div style="position:absolute;right:0;bottom:0;width:55%;height:40%;background:rgba(255,255,255,.06);border-radius:32px 0 0 0"></div>
+      <div style="position:relative;z-index:2">
+        <div style="text-align:right;padding:50px 36px 0">
+          <div style="display:inline-block;background:rgba(255,255,255,.12);border-radius:14px 14px 14px 0;padding:22px 32px;min-width:55%">
+            <div style="font-size:42px;font-weight:900">Общая<br>смета</div>
+          </div>
+        </div>
+        <table style="margin:44px 36px;border-collapse:collapse;width:calc(100% - 72px)">
+          <tr><td style="padding:14px 18px;border:1.5px solid rgba(255,255,255,.3);font-size:13px;opacity:.7;font-weight:600;width:65%">Описание</td>
+              <td style="padding:14px 18px;border:1.5px solid rgba(255,255,255,.3);font-size:13px;opacity:.7;font-weight:600;width:35%">Стоимость</td></tr>
+          ${stages.filter(s=>s.price).map((s,i)=>`
+          <tr><td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);font-size:14px;vertical-align:top">Этап ${i+1}. ${esc(s.title)}</td>
+              <td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);font-size:14px;font-weight:700">${esc(s.price)} руб</td></tr>`).join('')}
+          <tr><td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);border-top:2.5px solid rgba(255,255,255,.6);font-size:17px;font-weight:700">Стоимость проекта</td>
+              <td style="padding:16px 18px;border:1.5px solid rgba(255,255,255,.25);border-top:2.5px solid rgba(255,255,255,.6);font-size:17px;font-weight:700">${total>0?total.toLocaleString('ru-RU')+' руб':'—'}</td></tr>
+        </table>
+      </div>
+    </div>`;
+
+  // SLIDE CONTACT
+  const nameParts = (d.managerName||'').split(' ');
+  const nameDisplay = nameParts.length >= 2 ? nameParts[0]+'<br>'+nameParts.slice(1).join(' ') : esc(d.managerName||'');
+  const sContact = `
+    <div style="background:${BV};color:#fff;width:210mm;min-height:297mm;position:relative;overflow:hidden;font-family:'Onest',Arial,sans-serif">
+      ${logoHtml}
+      ${puzzleDecor('30%')}
+      <div style="position:absolute;right:36px;top:43%;font-size:20px;opacity:.55;z-index:2">Контакты</div>
+      <div style="position:absolute;bottom:28%;left:32px;font-size:52px;font-weight:900;line-height:1.05;z-index:2">${nameDisplay}</div>
+      <div style="position:absolute;bottom:8%;left:0;right:0;display:flex;padding:0 32px;z-index:2">
+        <div style="flex:1;font-size:18px;font-weight:600">${esc(d.managerPhone||'+7 996 594 32 43')}</div>
+        <div style="flex:1;font-size:18px;font-weight:600">${esc(d.managerEmail||'corp@bytime.agency')}</div>
+      </div>
+    </div>`;
+
+  return [s1, ...stageSlides, sBudget, sContact];
+}
+
+async function kpGenerateWithAI() {
+  const context = document.getElementById('kp-ai-context')?.value.trim();
+  if (!kpStages.length) { showToast('Добавьте хотя бы один этап'); return; }
+  const titles = kpStages.map((s,i) => `Этап ${i+1}: ${s.title||'(без названия)'}`).join('\n');
+
+  const btn = document.getElementById('kp-ai-btn');
+  const status = document.getElementById('kp-ai-status');
+  btn.disabled = true; status.style.display = 'block';
+
+  try {
+    const prompt = `Ты — копирайтер агентства BYTIME (агентство бизнес-решений: подбор, HR, операционная эффективность, клиентский сервис).
+Напиши описания для этапов коммерческого предложения.
+
+Контекст клиента:
+${context || 'Не указан'}
+
+Этапы:
+${titles}
+
+Для каждого этапа напиши:
+- 3-4 пункта (каждый с новой строки, начинается с заглавной буквы, без тире и маркеров)
+- Конкретно, что именно делается, какой результат
+- Деловой стиль, без воды
+
+Ответь в формате JSON:
+[{"bullets": "пункт 1\nпункт 2\nпункт 3"}, ...]
+
+Порядок совпадает с порядком этапов. Только JSON, без пояснений.`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:2000, messages:[{role:'user',content:prompt}]})
+    });
+    const data = await resp.json();
+    let text = (data.content?.[0]?.text||'').replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const arr = JSON.parse(text);
+    arr.forEach((item, i) => {
+      if (kpStages[i]) kpStages[i].description = item.bullets || '';
+    });
+    renderKpStagesForm();
+    renderKpPreview();
+    showToast('Описания сгенерированы ✓');
+  } catch(e) {
+    showToast('Ошибка AI: ' + (e.message||'неизвестная'));
+  } finally {
+    btn.disabled = false; status.style.display = 'none';
+  }
 }
 
 function renderKpPreview() {
   const el = document.getElementById('kp-preview'); if (!el) return;
   const d = getKpData();
+  const stages = d.stages;
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const total = kpStages.filter(s=>s.price).reduce((a,s)=>{
     const n=parseInt((s.price||'0').replace(/\D/g,''),10); return a+(isNaN(n)?0:n);
   },0);
+  const dateStr = d.date ? new Date(d.date).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) : '';
 
-  // Show static slide thumbnails (real template design)
-  // with overlaid editable data badges
-  el.innerHTML = KP_SLIDE_PREVIEWS.map((src, idx) => {
-    const slideNum = idx + 1;
-    let overlay = '';
+  const SCALE = 0.42; // scale factor for preview
+  const W = 210; const H = 297; // mm
 
-    if (slideNum === 1 && (d.client || d.date)) {
-      overlay = `<div style="position:absolute;bottom:6%;left:5%;right:5%;background:rgba(84,5,43,.75);border-radius:8px;padding:8px 12px;backdrop-filter:blur(4px)">
-        ${d.client ? `<div style="font-size:12px;font-weight:700;color:white;margin-bottom:2px">для ${d.client}</div>` : ''}
-        ${d.date ? `<div style="font-size:11px;color:rgba(255,255,255,.7)">${new Date(d.date).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})}</div>` : ''}
-      </div>`;
-    }
+  const slideStyle = `
+    width:${W}mm; min-height:${H}mm; position:relative; overflow:hidden;
+    box-shadow:0 4px 20px rgba(0,0,0,.18); border-radius:4px; flex-shrink:0;
+    transform:scale(${SCALE}); transform-origin:top left;
+    margin-bottom:${Math.round(H*SCALE*0.42 - H)}mm;
+  `;
+  const wrapStyle = `width:${Math.round(W*SCALE)}mm; height:${Math.round(H*SCALE)}mm; overflow:hidden; flex-shrink:0;`;
 
-    if (slideNum === 3 && kpStages.length) {
-      overlay = `<div style="position:absolute;top:2%;right:2%;display:flex;flex-direction:column;gap:4px">
-        ${kpStages.slice(0,2).map((s,i)=>s.title?`<div style="background:rgba(84,5,43,.85);color:white;font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px">Эт.${i+1}: ${s.title.slice(0,25)}</div>`:'').join('')}
-      </div>`;
-    }
+  // Build slides using same HTML as print
+  const slides = buildKpSlides(d, stages, total, esc, dateStr);
 
-    if (slideNum === 5) {
-      overlay = `<div style="position:absolute;bottom:8%;left:5%;right:5%;background:rgba(255,255,255,.12);border-radius:8px;padding:8px 12px;border:1px solid rgba(255,255,255,.2)">
-        ${kpStages.filter(s=>s.price).map((s,i)=>`<div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,.9);margin-bottom:3px"><span>Эт.${i+1} ${(s.title||'').slice(0,25)}</span><span style="font-weight:700">${s.price} руб</span></div>`).join('')}
-        ${total>0?`<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:white;border-top:1px solid rgba(255,255,255,.3);margin-top:4px;padding-top:4px"><span>Итого</span><span>${total.toLocaleString('ru-RU')} руб</span></div>`:''}
-      </div>`;
-    }
-
-    if (slideNum === 6) {
-      overlay = `<div style="position:absolute;bottom:12%;left:5%;right:5%;background:rgba(84,5,43,.8);border-radius:8px;padding:8px 12px;backdrop-filter:blur(4px)">
-        <div style="font-size:12px;font-weight:700;color:white">${d.managerName||'—'}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.7);margin-top:2px">${d.managerPhone||''}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.7)">${d.managerEmail||''}</div>
-      </div>`;
-    }
-
-    return `<div style="position:relative;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)">
-      <img src="${src}" style="width:100%;display:block">
-      ${overlay}
-    </div>`;
-  }).join('');
+  el.innerHTML = slides.map(s => `
+    <div style="${wrapStyle}">
+      <div style="${slideStyle}">${s}</div>
+    </div>`).join('');
 }
 
 
@@ -7187,19 +7320,30 @@ function openKpForPrint() {
   </div>`;
 
   // ── ASSEMBLE & OPEN ──────────────────────────────────────────
+  const slides = buildKpSlides(d, stages, total, esc, dateStr);
   const html = `<!DOCTYPE html><html lang="ru"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>КП BYTIME — ${esc(d.client||'')}</title>
-    <style>${css}</style>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box;}
+      body{background:#ccc;font-family:'Onest',Arial,sans-serif;}
+      .slide-wrap{width:210mm;display:block;page-break-after:always;break-after:page;}
+      @media print{body{background:#fff;}.no-print{display:none!important;}.slide-wrap{page-break-after:always;break-after:page;box-shadow:none;}}
+      @page{size:A4 portrait;margin:0;}
+      .print-bar{position:fixed;top:0;left:0;right:0;background:#2a2a2a;color:#fff;padding:10px 24px;display:flex;align-items:center;gap:16px;z-index:9999;font-family:'Onest',sans-serif;font-size:13px;}
+      .print-bar button{background:#54052B;color:#fff;border:none;border-radius:8px;padding:8px 22px;font-size:14px;font-weight:700;cursor:pointer;}
+      .slides-wrap{padding:60px 24px 40px;display:flex;flex-direction:column;gap:24px;align-items:center;}
+    </style>
   </head><body>
     <div class="print-bar no-print">
-      <button onclick="window.print()">🖨 Печать / Сохранить PDF</button>
-      <span class="hint">В диалоге печати выберите «Сохранить как PDF», убедитесь что масштаб 100% и поля = нет</span>
-      <span style="margin-left:auto;font-size:12px;opacity:.5">КП для ${esc(d.client||'клиента')}</span>
+      <button onclick="window.print()">🖨 Сохранить PDF</button>
+      <span style="opacity:.6">В диалоге печати: «Сохранить как PDF», масштаб 100%, поля = нет</span>
+      <span style="margin-left:auto;opacity:.4">КП для ${esc(d.client||'клиента')}</span>
     </div>
     <div class="slides-wrap">
-      ${slide1}${slide2}${stageSlides.join('')}${slide5}${slide6}
+      ${slides.map(s=>`<div class="slide-wrap">${s}</div>`).join('')}
     </div>
   </body></html>`;
 
