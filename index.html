@@ -1895,15 +1895,21 @@ function bootSession(email, user, savedPage) {
   const page = savedPage || localStorage.getItem('bt_last_page') || 'dashboard';
   setTimeout(() => {
     const sbEl = document.querySelector(`.sb-item[data-page="${page}"]`);
-    if (sbEl && sbEl.style.display !== 'none') {
+    if (sbEl && getComputedStyle(sbEl).display !== 'none') {
       if (EXTERNAL_PAGES && EXTERNAL_PAGES[page]) navExternal(page);
       else nav(sbEl);
+      // Restore tool subtab if on tools page
+      if (page === 'tools') {
+        const lastTab = localStorage.getItem('bt_last_tool_tab') || 'processes';
+        const tabEl = document.querySelector(`#page-tools .tab[onclick*="'${lastTab}'"]`);
+        if (tabEl) switchToolTab(lastTab, tabEl);
+      }
     } else {
       // fallback to dashboard
       const dash = document.querySelector('.sb-item[data-page="dashboard"]');
       if (dash) nav(dash);
     }
-  }, 0);
+  }, 50);
 }
 
 function applyPagePermissions() {
@@ -5949,6 +5955,7 @@ function switchToolTab(tab, el) {
   if (tab==='notes') renderToolNotes();
   if (tab==='kp') initKpTool();
   if (tab==='meeting') { mtRender(); if(!mtCurrentId) mtNewMeeting(); mtUpdateShareBtn(); }
+  localStorage.setItem('bt_last_tool_tab', tab);
 }
 
 // ════════════════════════════════════════════
