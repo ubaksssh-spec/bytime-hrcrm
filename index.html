@@ -1659,6 +1659,7 @@ const DDS_HANDBOOK = [
 ];
 const ALL_PROJECTS = ['HR','Операционка','Комплекс','Маркетинг','Финансы'];
 const ALL_PAY_TYPES = ['р/с ИП Андреева','р/с ИП Курбан','р/с ФЛ','Крипта','Наличные'];
+let activeFinTab = 'dds';
 
 let finOps = [
   {id:1, type:'income',  amount:450000, dds:'Поступления от клиентов', pl:'Выручка', project:'HR',         payType:'р/с ИП Андреева', desc:'Оплата за HR-стратегию, ООО Ромашка',   date:'2026-03-01'},
@@ -3216,6 +3217,7 @@ function renderFinance() {
     <div class="stat-card green"><div class="stat-val">₽${fmtMoney(profit)}</div><div class="stat-label">Прибыль</div></div>
     <div class="stat-card bronze"><div class="stat-val">${Math.round(profit/income*100)}%</div><div class="stat-label">Маржа</div></div>
   `;
+  if (typeof activeFinTab === 'undefined') activeFinTab = 'dds';
   renderFinTab(activeFinTab);
 }
 function switchFinTab(tab,el) {
@@ -6021,8 +6023,30 @@ function switchToolTab(tab, el) {
   if (tab==='notes') renderToolNotes();
   if (tab==='kp') initKpTool();
   if (tab==='meeting') { mtRender(); if(!mtCurrentId) mtNewMeeting(); mtUpdateShareBtn(); }
+  if (tab==='documents') {
+    // Отправляем клиентов в iframe генератора документов
+    setTimeout(() => {
+      const iframe = document.querySelector('#tool-documents iframe');
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.postMessage({ type: 'CLIENTS_DATA', clients: CLIENTS }, window.location.origin);
+      }
+    }, 100);
+  }
   localStorage.setItem('bt_last_tool_tab', tab);
 }
+
+// Обработчик запросов от iframe генератора документов
+window.addEventListener('message', function(event) {
+  // Проверяем origin для безопасности
+  if (event.origin !== window.location.origin) return;
+  
+  if (event.data.type === 'REQUEST_CLIENTS') {
+    const iframe = document.querySelector('#tool-documents iframe');
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'CLIENTS_DATA', clients: CLIENTS }, window.location.origin);
+    }
+  }
+});
 
 // ════════════════════════════════════════════
 // TEMPLATES

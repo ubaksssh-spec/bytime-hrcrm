@@ -387,13 +387,16 @@
         async function loadClients() {
             // Запрашиваем клиентов у родительского окна
             if (window.parent !== window) {
-                window.parent.postMessage({ type: 'REQUEST_CLIENTS' }, '*');
+                window.parent.postMessage({ type: 'REQUEST_CLIENTS' }, window.location.origin);
             }
         }
         
         // Слушаем сообщения от родительского окна
         window.addEventListener('message', function(event) {
-            if (event.data.type === 'CLIENTS_DATA') {
+            // Проверяем origin для безопасности (разрешаем только с того же домена)
+            if (event.origin !== window.location.origin) return;
+            
+            if (event.data && event.data.type === 'CLIENTS_DATA') {
                 clients = event.data.clients || [];
                 populateClientSelect();
             }
