@@ -640,24 +640,18 @@ tbody tr:last-child{border-bottom:none}
 
               <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin:16px 0 8px">Менеджер</div>
               <div class="form-row" style="margin-bottom:8px">
-                <label>Выбрать из команды</label>
                 <select id="kp-manager-select" onchange="kpFillManager(this.value)" style="padding:9px 12px;border:1.5px solid var(--gray2);border-radius:8px;font-family:var(--font-b);font-size:13.5px;outline:none;width:100%;cursor:pointer">
-                  <option value="">— выбрать —</option>
+                  <option value="">— выбрать из команды —</option>
                 </select>
               </div>
-              <div class="form-row" style="margin-bottom:8px"><label>Имя</label><input id="kp-manager-name" placeholder="Ульяна Майорова" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:8px"><label>Телефон</label><input id="kp-manager-phone" placeholder="+7 996 594 32 43" oninput="renderKpPreview()"></div>
-              <div class="form-row" style="margin-bottom:16px"><label>Email</label><input id="kp-manager-email" placeholder="corp@bytime.agency" oninput="renderKpPreview()"></div>
-
-              <!-- AI context -->
-              <div style="background:rgba(84,5,43,.04);border:1.5px solid rgba(84,5,43,.12);border-radius:10px;padding:14px;margin-bottom:16px">
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--bv);margin-bottom:8px">✨ AI-генерация описаний</div>
-                <div class="form-row" style="margin-bottom:8px"><label>Контекст для AI</label>
-                  <textarea id="kp-ai-context" rows="3" placeholder="Что за клиент, какая задача, что нужно сделать. Например: производственная компания, нужен операционный аудит и настройка HR-процессов" style="font-size:13px;resize:vertical"></textarea>
-                </div>
-                <button id="kp-ai-btn" onclick="kpGenerateWithAI()" style="width:100%;background:var(--bv);color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--font-b)">✨ Сгенерировать описания этапов</button>
-                <div id="kp-ai-status" style="display:none;font-size:12px;color:var(--gray4);margin-top:8px;text-align:center">⏳ Генерирую...</div>
+              <div id="kp-manager-preview" style="display:none;background:rgba(84,5,43,.04);border:1.5px solid rgba(84,5,43,.12);border-radius:8px;padding:12px;margin-bottom:16px">
+                <div style="font-size:14px;font-weight:700;color:var(--bv);margin-bottom:4px" id="kp-manager-name-display"></div>
+                <div style="font-size:12px;color:var(--gray4)" id="kp-manager-phone-display"></div>
+                <div style="font-size:12px;color:var(--gray4)" id="kp-manager-email-display"></div>
               </div>
+              <input type="hidden" id="kp-manager-name">
+              <input type="hidden" id="kp-manager-phone">
+              <input type="hidden" id="kp-manager-email">
 
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                 <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4)">Этапы работ</div>
@@ -6900,18 +6894,14 @@ function initKpTool() {
   const dateEl = document.getElementById('kp-date');
   if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
 
-  // Fixed managers list with phones
-  const KP_MANAGERS = [
-    {id:'yana',  name:'Яна Сучкова',     phone:'+7 999 999 99 99', email:'yana@bytime.agency'},
-    {id:'ulyana',name:'Ульяна Майорова', phone:'+7 913 946 60 96', email:'admin@bytime.agency'},
-  ];
-  // Also merge systemUsers that have phones
-  systemUsers.forEach(u => {
-    if (!KP_MANAGERS.find(m=>m.email===u.email)) {
-      const profile = empProfiles[u.id];
-      KP_MANAGERS.push({id:u.id, name:u.name, phone:profile?.phone||'', email:u.email});
-    }
-  });
+  // Load managers from employees
+  const emps = getEmployees();
+  const KP_MANAGERS = emps.map(e => ({
+    id: e.id,
+    name: `${e.first} ${e.last}`.trim(),
+    phone: e.phone || '',
+    email: e.email || ''
+  })).filter(m => m.name); // только с именем
 
   const sel = document.getElementById('kp-manager-select');
   if (sel) {
@@ -6923,9 +6913,22 @@ function initKpTool() {
       const nameEl = document.getElementById('kp-manager-name');
       const phoneEl = document.getElementById('kp-manager-phone');
       const emailEl = document.getElementById('kp-manager-email');
+      const preview = document.getElementById('kp-manager-preview');
+      const nameDisplay = document.getElementById('kp-manager-name-display');
+      const phoneDisplay = document.getElementById('kp-manager-phone-display');
+      const emailDisplay = document.getElementById('kp-manager-email-display');
+      
       if (nameEl) nameEl.value = opt.text;
       if (phoneEl) phoneEl.value = opt.dataset.phone || '';
       if (emailEl) emailEl.value = opt.dataset.email || '';
+      
+      if (preview && nameDisplay && phoneDisplay && emailDisplay) {
+        preview.style.display = 'block';
+        nameDisplay.textContent = opt.text;
+        phoneDisplay.textContent = opt.dataset.phone || '—';
+        emailDisplay.textContent = opt.dataset.email || '—';
+      }
+      
       renderKpPreview();
     };
   }
@@ -7162,6 +7165,17 @@ function kpPopulateMeetings() {
     ).join('');
 }
 
+function getKpData() {
+  return {
+    client: document.getElementById('kp-client')?.value || '',
+    date: document.getElementById('kp-date')?.value || '',
+    managerName: document.getElementById('kp-manager-name')?.value || 'Ульяна Майорова',
+    managerPhone: document.getElementById('kp-manager-phone')?.value || '+7 996 594 32 43',
+    managerEmail: document.getElementById('kp-manager-email')?.value || 'corp@bytime.agency',
+    stages: kpStages
+  };
+}
+
 // Open preview in new window
 function openKpPreview() {
   const d = getKpData();
@@ -7290,51 +7304,6 @@ ${context}
     }
   } catch(e) {
     showToast('Ошибка: ' + (e.message||'неизвестная'));
-  } finally {
-    btn.disabled = false; status.style.display = 'none';
-  }
-}
-
-async function kpGenerateWithAI() {
-  const context = document.getElementById('kp-ai-context')?.value.trim();
-  if (!kpStages.length) { showToast('Добавьте хотя бы один этап'); return; }
-  const titles = kpStages.map((s,i) => `Этап ${i+1}: ${s.title||'(без названия)'}`).join('\n');
-
-  const btn = document.getElementById('kp-ai-btn');
-  const status = document.getElementById('kp-ai-status');
-  btn.disabled = true; status.style.display = 'block';
-
-  try {
-    const prompt = `Ты — копирайтер агентства BYTIME (агентство бизнес-решений: подбор, HR, операционная эффективность, клиентский сервис).
-Напиши описания для этапов коммерческого предложения.
-
-Контекст клиента:
-${context || 'Не указан'}
-
-Этапы:
-${titles}
-
-Для каждого этапа напиши:
-- 3-4 пункта (каждый с новой строки, начинается с заглавной буквы, без тире и маркеров)
-- Конкретно, что именно делается, какой результат
-- Деловой стиль, без воды
-
-Ответь в формате JSON:
-[{"bullets": "пункт 1\nпункт 2\nпункт 3"}, ...]
-
-Порядок совпадает с порядком этапов. Только JSON, без пояснений.`;
-
-    const rawText = await aiCall(prompt, 2000);
-    let text = rawText.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const arr = JSON.parse(text);
-    arr.forEach((item, i) => {
-      if (kpStages[i]) kpStages[i].description = item.bullets || '';
-    });
-    renderKpStagesForm();
-    renderKpPreview();
-    showToast('Описания сгенерированы ✓');
-  } catch(e) {
-    showToast('Ошибка AI: ' + (e.message||'неизвестная'));
   } finally {
     btn.disabled = false; status.style.display = 'none';
   }
