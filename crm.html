@@ -210,6 +210,16 @@ textarea.fi{resize:vertical;min-height:72px}
 ::-webkit-scrollbar-thumb{background:var(--gray);border-radius:3px}
 html.iframe-mode-early .sidebar{display:none!important}
 html.iframe-mode-early .topbar{display:none!important}
+/* COMPANY CARDS */
+.company-card{background:var(--paper);border:1px solid var(--gray);border-radius:8px;padding:14px 16px;position:relative}
+.company-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.company-card-title{font-size:11px;font-weight:700;color:var(--gray-dark);text-transform:uppercase;letter-spacing:.7px}
+.company-card-delete{background:transparent;border:none;color:#922b21;font-size:14px;cursor:pointer;padding:0 4px;transition:.2s}
+.company-card-delete:hover{color:#7b1f18}
+.company-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.company-grid .fg{margin-bottom:0}
+.company-grid .fg.full{grid-column:1/-1}
+
 </style>
 <script>
 (function(){
@@ -637,8 +647,7 @@ html.iframe-mode-early .topbar{display:none!important}
       <div class="mo-section">
         <div class="mo-sec-title">Контактная информация</div>
         <div class="form-grid">
-          <div class="fg"><label class="fl">Имя *</label><input class="fi" id="f-name" type="text" placeholder="Иван Иванов"></div>
-          <div class="fg"><label class="fl">Компания</label><input class="fi" id="f-co" type="text" placeholder="ООО «Название»"></div>
+          <div class="fg"><label class="fl">Внутреннее название *</label><input class="fi" id="f-name" type="text" placeholder="Гордоскин (основной клиент)"></div>
           <div class="fg"><label class="fl">Телефон</label><input class="fi" id="f-ph" type="tel" placeholder="+7 (999) 000-00-00"></div>
           <div class="fg"><label class="fl">Email</label><input class="fi" id="f-em" type="email" placeholder="email@company.ru"></div>
           <div class="fg"><label class="fl">Источник</label>
@@ -652,6 +661,11 @@ html.iframe-mode-early .topbar{display:none!important}
           <div class="fg"><label class="fl">Дата последнего касания</label><input class="fi" id="f-lt" type="date"></div>
           <div class="fg full"><label class="fl">Заметки</label><textarea class="fi" id="f-notes" placeholder="Краткие заметки по клиенту..."></textarea></div>
         </div>
+      </div>
+      <div class="mo-section">
+        <div class="mo-sec-title">Компании</div>
+        <div id="companies-list" style="display:flex;flex-direction:column;gap:12px;margin-bottom:12px"></div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addCompanyRow()" style="width:100%">+ Добавить компанию</button>
       </div>
       <div class="mo-section" id="mo-tasks-sec" style="display:none">
         <div class="mo-sec-title">Задачи</div>
@@ -906,27 +920,43 @@ function selStage(sid){
 }
 function getCurStage(){return document.querySelector('.s-btn.sel')?.dataset.stage||'lead';}
 function fillForm(c){
-  document.getElementById('f-name').value=c.name||'';document.getElementById('f-co').value=c.company||'';
+  document.getElementById('f-name').value=c.name||'';
   document.getElementById('f-ph').value=c.phone||'';document.getElementById('f-em').value=c.email||'';
   document.getElementById('f-src').value=c.source||'';document.getElementById('f-mgr').value=c.manager||'';
   document.getElementById('f-cr').value=c.createdAt||'';document.getElementById('f-lt').value=c.lastTouchDate||'';
   document.getElementById('f-notes').value=c.notes||'';document.getElementById('f-ref').value=c.refusalReason||'';
+  renderCompanies(c.companies || []);
   selStage(c.stage||'lead');
 }
 function resetForm(){
-  ['f-name','f-co','f-ph','f-em','f-mgr','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-name','f-ph','f-em','f-mgr','f-notes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-src').value='';document.getElementById('f-ref').value='';
   document.getElementById('f-cr').value=todayStr();document.getElementById('f-lt').value=todayStr();
+  document.getElementById('companies-list').innerHTML = '';
 }
 
 async function saveClient(){
   const name=document.getElementById('f-name').value.trim();
-  if(!name){toast('Введите имя клиента','err');return;}
+  if(!name){toast('Введите внутреннее название','err');return;}
+  
+  // Собираем компании
+  const companies = [];
+  document.querySelectorAll('.company-card').forEach(card => {
+    const id = card.dataset.companyId;
+    const compName = card.querySelector('.comp-name')?.value.trim() || '';
+    const inn = card.querySelector('.comp-inn')?.value.trim() || '';
+    const kpp = card.querySelector('.comp-kpp')?.value.trim() || '';
+    const ogrn = card.querySelector('.comp-ogrn')?.value.trim() || '';
+    const address = card.querySelector('.comp-address')?.value.trim() || '';
+    const bank = card.querySelector('.comp-bank')?.value.trim() || '';
+    if(compName) companies.push({id, name:compName, inn, kpp, ogrn, address, bank});
+  });
+  
   const stage=getCurStage();
   if(curId){
     const c=clients.find(x=>x.id===curId);
     const oldStage=c.stage;
-    Object.assign(c,{name,company:document.getElementById('f-co').value.trim(),
+    Object.assign(c,{name,companies,
       phone:document.getElementById('f-ph').value.trim(),email:document.getElementById('f-em').value.trim(),
       source:document.getElementById('f-src').value,manager:document.getElementById('f-mgr').value.trim(),
       createdAt:document.getElementById('f-cr').value,lastTouchDate:document.getElementById('f-lt').value,
@@ -934,7 +964,7 @@ async function saveClient(){
     if(oldStage!==stage){c.history=c.history||[];c.history.unshift({id:uid(),date:new Date().toISOString(),type:'stage',text:`Этап изменён: ${stageLabel(oldStage)} → ${stageLabel(stage)}`});}
     await persist(c);toast('Сохранено');
   } else {
-    const nc={id:uid(),name,company:document.getElementById('f-co').value.trim(),
+    const nc={id:uid(),name,companies,
       phone:document.getElementById('f-ph').value.trim(),email:document.getElementById('f-em').value.trim(),
       source:document.getElementById('f-src').value,manager:document.getElementById('f-mgr').value.trim(),
       createdAt:document.getElementById('f-cr').value||todayStr(),lastTouchDate:document.getElementById('f-lt').value||todayStr(),
@@ -944,6 +974,54 @@ async function saveClient(){
   }
   closeModal();updateBadges();renderPage(curPage);
 }
+
+// ===== COMPANIES =====
+function addCompanyRow(companyData = null) {
+  const id = companyData?.id || uid();
+  const list = document.getElementById('companies-list');
+  const card = document.createElement('div');
+  card.className = 'company-card';
+  card.dataset.companyId = id;
+  card.innerHTML = `
+    <div class="company-card-header">
+      <div class="company-card-title">Компания ${list.children.length + 1}</div>
+      <button type="button" class="company-card-delete" onclick="removeCompany('${id}')">✕</button>
+    </div>
+    <div class="company-grid">
+      <div class="fg full"><label class="fl">Название *</label><input class="fi comp-name" type="text" placeholder="ООО «Название»" value="${companyData?.name || ''}"></div>
+      <div class="fg"><label class="fl">ИНН</label><input class="fi comp-inn" type="text" placeholder="1234567890" value="${companyData?.inn || ''}"></div>
+      <div class="fg"><label class="fl">КПП</label><input class="fi comp-kpp" type="text" placeholder="123456789" value="${companyData?.kpp || ''}"></div>
+      <div class="fg full"><label class="fl">ОГРН</label><input class="fi comp-ogrn" type="text" placeholder="1234567890123" value="${companyData?.ogrn || ''}"></div>
+      <div class="fg full"><label class="fl">Юридический адрес</label><input class="fi comp-address" type="text" placeholder="г. Москва, ул. Ленина, д. 1" value="${companyData?.address || ''}"></div>
+      <div class="fg full"><label class="fl">Банковские реквизиты</label><textarea class="fi comp-bank" placeholder="Банк, БИК, р/с, к/с">${companyData?.bank || ''}</textarea></div>
+    </div>
+  `;
+  list.appendChild(card);
+}
+
+function removeCompany(id) {
+  const card = document.querySelector(`[data-company-id="${id}"]`);
+  if (card) card.remove();
+  // Обновляем нумерацию
+  document.querySelectorAll('.company-card').forEach((c, i) => {
+    c.querySelector('.company-card-title').textContent = `Компания ${i + 1}`;
+  });
+}
+
+function renderCompanies(companies) {
+  const list = document.getElementById('companies-list');
+  list.innerHTML = '';
+  if (companies && companies.length > 0) {
+    companies.forEach(comp => addCompanyRow(comp));
+  }
+}
+
+// Получить основную компанию (первую в списке)
+function getMainCompany(client) {
+  return client.companies && client.companies.length > 0 ? client.companies[0].name : (client.company || '—');
+}
+
+
 
 async function deleteClient(){
   if(!confirm('Удалить клиента?'))return;
@@ -1077,7 +1155,7 @@ function renderMoTasks(c){
   if(!tasks.length){list.innerHTML='<p style="font-size:11px;color:#999;padding:4px 0">Задач нет</p>';return;}
   list.innerHTML=[...tasks.filter(t=>t.status==='pending'),...tasks.filter(t=>t.status==='done')].map(t=>{
     const isDone=t.status==='done';const di=t.deadline?dlInfo(t.deadline):null;
-    const gurl=gcalUrl(t,c.name,c.company);
+    const gurl=gcalUrl(t,c.name,getMainCompany(c));
     return`<div class="mt-item"><div class="t-check ${isDone?'done':''}" onclick="toggleTask('${c.id}','${t.id}')">
       ${isDone?'<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" width="10" height="10"><polyline points="20 6 9 17 4 12"/></svg>':''}
     </div><div style="flex:1"><div class="t-text ${isDone?'done-text':''}" style="font-size:12px">${t.text}</div>
@@ -1103,7 +1181,12 @@ function renderClients(){
   const mEl=document.getElementById('fl-mgr');
   if(mEl){const cur=mEl.value;mEl.innerHTML='<option value="">Все менеджеры</option>'+mgrs.map(m=>`<option ${m===cur?'selected':''} value="${m}">${m}</option>`).join('');}
   let f=clients.filter(c=>{
-    if(srch&&!c.name.toLowerCase().includes(srch)&&!(c.company||'').toLowerCase().includes(srch))return false;
+    if(srch){
+      const matchName = c.name.toLowerCase().includes(srch);
+      const matchCompany = (c.companies||[]).some(comp => comp.name.toLowerCase().includes(srch));
+      const matchOldCompany = (c.company||'').toLowerCase().includes(srch); // backward compatibility
+      if(!matchName && !matchCompany && !matchOldCompany) return false;
+    }
     if(flSt&&c.stage!==flSt)return false;if(flSrc&&c.source!==flSrc)return false;if(flMgr&&c.manager!==flMgr)return false;
     return true;
   });
@@ -1117,7 +1200,7 @@ function renderClients(){
     const dotTip=overdue.length?`${overdue.length} просрочено`:pending.length?`${pending.length} задач`:'нет задач';
     const ti=touchInfo(c.lastTouchDate);
     return`<tr onclick="openModal('${c.id}')">
-      <td><span class="tbl-name">${c.name}</span></td><td>${c.company||'—'}</td><td>${c.phone||'—'}</td>
+      <td><span class="tbl-name">${c.name}</span></td><td>${getMainCompany(c)}</td><td>${c.phone||'—'}</td>
       <td><span class="stage-pill" style="background:${stageColor(c.stage)}">${stageLabel(c.stage)}</span></td>
       <td><span class="src-tag">${c.source||'—'}</span></td><td>${c.manager||'—'}</td>
       <td><span class="${ti.cls}">${ti.label}</span></td>
@@ -1146,7 +1229,7 @@ function kanbanCard(c){
   return`<div class="k-card" style="border-left-color:${stageColor(c.stage)}" draggable="true"
     ondragstart="dragId='${c.id}';event.target.classList.add('dragging')"
     ondragend="event.target.classList.remove('dragging')" onclick="openModal('${c.id}')">
-    <div class="k-card-name">${c.name}</div><div class="k-card-co">${c.company||'Физлицо'}</div>
+    <div class="k-card-name">${c.name}</div><div class="k-card-co">${getMainCompany(c)}</div>
     <div class="k-card-meta"><span class="k-mgr">${c.manager||'—'}</span>
       <span class="${ti.cls.replace('lt-','t-dl ')}" style="font-size:9px">${ti.label}</span>
       ${ov?`<span style="color:#e74c3c;font-weight:700;font-size:10px">⚠${ov}</span>`:pt?`<span style="color:var(--bronze);font-size:10px">📌${pt}</span>`:''}
