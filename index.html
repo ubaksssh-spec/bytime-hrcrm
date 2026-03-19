@@ -708,19 +708,43 @@ tbody tr:last-child{border-bottom:none}
 
               <!-- Audio input block -->
               <div style="margin-bottom:18px;background:var(--gray1);border-radius:10px;padding:16px">
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin-bottom:12px">🎤 Аудио / Видео → AI-транскрипция</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-                  <button class="btn btn-bv btn-sm" id="mt-rec-btn" onclick="mtStartRec()">⏺ Запись</button>
-                  <button class="btn btn-ghost btn-sm" id="mt-stop-btn" onclick="mtStopRec()" style="display:none">⏹ Стоп</button>
-                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('mt-audio-input').click()">📁 Загрузить файл</button>
-                  <input id="mt-audio-input" type="file" accept="audio/*,video/*" style="display:none" onchange="mtHandleAudio(event)">
-                  <div id="mt-rec-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:#c0392b;font-weight:600">
-                    <span style="width:8px;height:8px;background:#c0392b;border-radius:50%;animation:pulse-rec 1s infinite;display:inline-block"></span>Идёт запись...
-                  </div>
+                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray4);margin-bottom:12px">🎤 Транскрипция встречи</div>
+
+                <!-- Mode tabs -->
+                <div style="display:flex;gap:4px;margin-bottom:14px;background:rgba(0,0,0,.06);border-radius:8px;padding:3px;width:fit-content">
+                  <button id="mt-mode-live" onclick="mtSetMode('live')" style="padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:var(--bv);color:#fff;font-family:inherit">⏺ Запись</button>
+                  <button id="mt-mode-file" onclick="mtSetMode('file')" style="padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--gray4);font-family:inherit">📁 Файл (Whisper)</button>
                 </div>
-                <audio id="mt-audio-player" controls style="width:100%;display:none;margin-bottom:10px"></audio>
-                <div id="mt-transcribe-status" style="display:none;font-size:12.5px;color:var(--gray4);margin-bottom:8px">⏳ Транскрибирую аудио...</div>
-                <button id="mt-transcribe-btn" onclick="mtTranscribeAudio()" style="display:none" class="btn btn-bv btn-sm">✨ Транскрибировать и создать резюме</button>
+
+                <!-- LIVE mode -->
+                <div id="mt-live-block">
+                  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">Браузер транскрибирует речь в реальном времени. Говорите — текст появится в «Заметках».</div>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <button class="btn btn-bv btn-sm" id="mt-rec-btn" onclick="mtStartRec()">⏺ Начать запись</button>
+                    <button class="btn btn-sm" id="mt-stop-btn" onclick="mtStopRec()" style="display:none;background:#c0392b;color:#fff;border:none">⏹ Остановить</button>
+                    <div id="mt-rec-indicator" style="display:none;align-items:center;gap:6px;font-size:12px;color:#c0392b;font-weight:600">
+                      <span style="width:8px;height:8px;background:#c0392b;border-radius:50%;animation:pulse-rec 1s infinite;display:inline-block"></span>Идёт запись...
+                    </div>
+                  </div>
+                  <div style="font-size:11px;color:var(--gray3);margin-top:8px">⚠️ Только Chrome/Edge. Длина записи не ограничена.</div>
+                </div>
+
+                <!-- FILE mode -->
+                <div id="mt-file-block" style="display:none">
+                  <div style="font-size:12px;color:var(--gray4);margin-bottom:10px">Загрузите аудио/видео файл. Транскрипция через OpenAI Whisper — точная, любая длина.</div>
+                  <div style="margin-bottom:10px">
+                    <label style="font-size:11px;font-weight:700;color:var(--gray4);display:block;margin-bottom:4px">OpenAI API Key</label>
+                    <input id="mt-oai-key" type="password" placeholder="sk-..." style="width:100%;padding:7px 10px;border:1.5px solid var(--gray2);border-radius:7px;font-size:12px;font-family:inherit;outline:none;box-sizing:border-box" oninput="localStorage.setItem('bt_oai_key',this.value)">
+                    <div style="font-size:10.5px;color:var(--gray3);margin-top:3px">Получить на <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--em)">platform.openai.com</a> · ~$0.006/мин · 1.5ч ≈ $0.54</div>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('mt-audio-input').click()">📁 Выбрать файл</button>
+                    <input id="mt-audio-input" type="file" accept="audio/*,video/*" style="display:none" onchange="mtHandleAudio(event)">
+                    <span id="mt-file-name" style="font-size:12px;color:var(--gray4)"></span>
+                  </div>
+                  <div id="mt-transcribe-status" style="display:none;font-size:12px;color:var(--gray4);margin-top:10px">⏳ Транскрибирую...</div>
+                  <button id="mt-transcribe-btn" onclick="mtTranscribeAudio()" style="display:none;margin-top:10px" class="btn btn-bv btn-sm">✨ Транскрибировать через Whisper</button>
+                </div>
               </div>
 
               <!-- Notes -->
@@ -7634,161 +7658,163 @@ async function mtExportDOCX(){
 }
 
 // Init on tab switch
-// ─── AUDIO RECORDING & TRANSCRIPTION ────────────────────
-let _mtRecorder = null, _mtChunks = [], _mtAudioBlob = null;
+// ─── AUDIO MODE TOGGLE ───────────────────────────────────
+let _mtMode = 'live';
+
+function mtSetMode(mode) {
+  _mtMode = mode;
+  document.getElementById('mt-live-block').style.display = mode==='live' ? '' : 'none';
+  document.getElementById('mt-file-block').style.display = mode==='file' ? '' : 'none';
+  document.getElementById('mt-mode-live').style.background = mode==='live' ? 'var(--bv)' : 'transparent';
+  document.getElementById('mt-mode-live').style.color = mode==='live' ? '#fff' : 'var(--gray4)';
+  document.getElementById('mt-mode-file').style.background = mode==='file' ? 'var(--bv)' : 'transparent';
+  document.getElementById('mt-mode-file').style.color = mode==='file' ? '#fff' : 'var(--gray4)';
+  // Restore saved API key
+  if(mode==='file') {
+    const k = localStorage.getItem('bt_oai_key')||'';
+    const el = document.getElementById('mt-oai-key');
+    if(el && !el.value) el.value = k;
+  }
+}
+
+// ─── LIVE RECORDING (Web Speech API) ─────────────────────
+let _mtRecognition = null;
+let _mtRecording = false;
 
 function mtStartRec() {
-  navigator.mediaDevices.getUserMedia({audio:true}).then(stream => {
-    _mtChunks = [];
-    _mtRecorder = new MediaRecorder(stream);
-    _mtRecorder.ondataavailable = e => { if(e.data.size>0) _mtChunks.push(e.data); };
-    _mtRecorder.onstop = () => {
-      _mtAudioBlob = new Blob(_mtChunks, {type:'audio/webm'});
-      const url = URL.createObjectURL(_mtAudioBlob);
-      const player = document.getElementById('mt-audio-player');
-      player.src = url; player.style.display = 'block';
-      document.getElementById('mt-transcribe-btn').style.display = 'inline-flex';
-      stream.getTracks().forEach(t=>t.stop());
-    };
-    _mtRecorder.start();
-    document.getElementById('mt-rec-btn').style.display = 'none';
-    document.getElementById('mt-stop-btn').style.display = 'inline-flex';
-    document.getElementById('mt-rec-indicator').style.display = 'flex';
-  }).catch(() => showToast('Нет доступа к микрофону'));
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) {
+    showToast('Запись доступна только в Chrome/Edge');
+    return;
+  }
+
+  _mtRecognition = new SpeechRecognition();
+  _mtRecognition.lang = 'ru-RU';
+  _mtRecognition.continuous = true;
+  _mtRecognition.interimResults = true;
+
+  let finalText = document.getElementById('mt-notes').value;
+  let interim = '';
+
+  _mtRecognition.onresult = (e) => {
+    interim = '';
+    for(let i = e.resultIndex; i < e.results.length; i++) {
+      if(e.results[i].isFinal) {
+        finalText += (finalText ? ' ' : '') + e.results[i][0].transcript;
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    document.getElementById('mt-notes').value = finalText + (interim ? ' [' + interim + ']' : '');
+  };
+
+  _mtRecognition.onerror = (e) => {
+    if(e.error !== 'no-speech') showToast('Ошибка записи: ' + e.error);
+  };
+
+  _mtRecognition.onend = () => {
+    // Auto-restart if still recording (handles 60s Chrome limit)
+    if(_mtRecording) _mtRecognition.start();
+  };
+
+  _mtRecognition.start();
+  _mtRecording = true;
+  document.getElementById('mt-rec-btn').style.display = 'none';
+  document.getElementById('mt-stop-btn').style.display = 'inline-flex';
+  document.getElementById('mt-rec-indicator').style.display = 'flex';
 }
 
 function mtStopRec() {
-  if(_mtRecorder && _mtRecorder.state !== 'inactive') _mtRecorder.stop();
+  _mtRecording = false;
+  if(_mtRecognition) { _mtRecognition.stop(); _mtRecognition = null; }
+  // Clean up interim brackets
+  const el = document.getElementById('mt-notes');
+  el.value = el.value.replace(/ \[.*?\]$/, '');
   document.getElementById('mt-rec-btn').style.display = 'inline-flex';
   document.getElementById('mt-stop-btn').style.display = 'none';
   document.getElementById('mt-rec-indicator').style.display = 'none';
+  showToast('Запись остановлена ✓');
 }
+
+// ─── FILE TRANSCRIPTION (OpenAI Whisper) ─────────────────
+let _mtAudioBlob = null;
 
 function mtHandleAudio(e) {
   const file = e.target.files[0]; if(!file) return;
   _mtAudioBlob = file;
-  const url = URL.createObjectURL(file);
-  const player = document.getElementById('mt-audio-player');
-  player.src = url; player.style.display = 'block';
+  document.getElementById('mt-file-name').textContent = file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' МБ)';
   document.getElementById('mt-transcribe-btn').style.display = 'inline-flex';
 }
 
 async function mtTranscribeAudio() {
-  if(!_mtAudioBlob) { showToast('Нет аудио файла'); return; }
+  if(!_mtAudioBlob) { showToast('Выберите файл'); return; }
+  const apiKey = document.getElementById('mt-oai-key').value.trim();
+  if(!apiKey) { showToast('Введите OpenAI API Key'); return; }
 
-  const MAX_MB = 20;
-  if(_mtAudioBlob.size > MAX_MB * 1024 * 1024) {
-    showToast(`Файл слишком большой (макс. ${MAX_MB} МБ)`); return;
-  }
-
-  document.getElementById('mt-transcribe-status').style.display = 'block';
-  document.getElementById('mt-transcribe-status').textContent = '⏳ Транскрибирую аудио...';
-  document.getElementById('mt-transcribe-btn').disabled = true;
-  document.getElementById('mt-ai-loading').style.display = 'block';
-  document.getElementById('mt-summary-wrap').style.display = 'none';
+  const statusEl = document.getElementById('mt-transcribe-status');
+  const btn = document.getElementById('mt-transcribe-btn');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ Загружаю файл в Whisper...';
+  btn.disabled = true;
 
   try {
-    // Convert blob to base64
-    const base64 = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = () => res(reader.result.split(',')[1]);
-      reader.onerror = rej;
-      reader.readAsDataURL(_mtAudioBlob);
-    });
+    // Whisper accepts files up to 25MB directly
+    // For larger files - split into chunks (25MB each)
+    const CHUNK_MB = 24;
+    const CHUNK_SIZE = CHUNK_MB * 1024 * 1024;
+    let fullTranscript = '';
 
-    const mediaType = _mtAudioBlob.type || 'audio/webm';
-    const title = document.getElementById('mt-title').value.trim();
-    const parts = document.getElementById('mt-participants').value.trim();
-    const client = document.getElementById('mt-client').value.trim();
+    if(_mtAudioBlob.size <= CHUNK_SIZE) {
+      fullTranscript = await mtWhisperChunk(_mtAudioBlob, apiKey, statusEl);
+    } else {
+      // Split into chunks
+      const totalChunks = Math.ceil(_mtAudioBlob.size / CHUNK_SIZE);
+      for(let i = 0; i < totalChunks; i++) {
+        statusEl.textContent = `⏳ Часть ${i+1} из ${totalChunks}...`;
+        const chunk = _mtAudioBlob.slice(i * CHUNK_SIZE, (i+1) * CHUNK_SIZE, _mtAudioBlob.type);
+        const chunkBlob = new Blob([chunk], {type: _mtAudioBlob.type});
+        const part = await mtWhisperChunk(chunkBlob, apiKey, statusEl, i);
+        fullTranscript += (fullTranscript ? ' ' : '') + part;
+      }
+    }
 
-    document.getElementById('mt-transcribe-status').textContent = '✨ Создаю резюме...';
+    if(!fullTranscript) throw new Error('Пустой ответ от Whisper');
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: { type: 'base64', media_type: mediaType, data: base64 }
-            },
-            {
-              type: 'text',
-              text: `Это запись деловой встречи агентства BYTIME.
-${title ? 'Тема: ' + title : ''}
-${parts ? 'Участники: ' + parts : ''}
-${client ? 'Клиент: ' + client : ''}
-
-Задачи:
-1. Транскрибируй содержание встречи
-2. Составь структурированное резюме в формате:
-
-ТРАНСКРИПЦИЯ (краткий пересказ, не дословно):
-...
-
-КЛЮЧЕВЫЕ РЕШЕНИЯ:
-— ...
-
-СЛЕДУЮЩИЕ ШАГИ / ЗАДАЧИ:
-— ...
-
-Пиши по-русски, деловым стилем, без воды.`
-            }
-          ]
-        }]
-      })
-    });
-
-    const data = await resp.json();
-    const text = data.content?.[0]?.text || '';
-
-    if(!text) throw new Error('Пустой ответ');
-
-    // Put transcription into notes if empty, summary into summary block
+    // Put transcript into notes
     const notesEl = document.getElementById('mt-notes');
-    if(!notesEl.value.trim()) {
-      // Extract transcription part
-      const transcMatch = text.match(/ТРАНСКРИПЦИЯ[:\s]*([\s\S]*?)(?=КЛЮЧЕВЫЕ|СЛЕДУЮЩИЕ|$)/i);
-      if(transcMatch) notesEl.value = transcMatch[1].trim();
-    }
+    notesEl.value = fullTranscript;
 
-    // Put decisions
-    const decMatch = text.match(/КЛЮЧЕВЫЕ РЕШЕНИЯ[:\s]*([\s\S]*?)(?=СЛЕДУЮЩИЕ|ЗАДАЧИ|$)/i);
-    if(decMatch && !document.getElementById('mt-decisions').value.trim()) {
-      document.getElementById('mt-decisions').value = decMatch[1].trim();
-    }
-
-    // Put tasks
-    const taskMatch = text.match(/(?:СЛЕДУЮЩИЕ ШАГИ|ЗАДАЧИ)[^:]*[:\s]*([\s\S]*?)$/i);
-    if(taskMatch && !document.getElementById('mt-tasks').value.trim()) {
-      document.getElementById('mt-tasks').value = taskMatch[1].trim();
-    }
-
-    // Show full AI output as summary
-    document.getElementById('mt-summary-text').textContent = text;
-    document.getElementById('mt-summary-wrap').style.display = 'block';
-
-    // Auto-save
-    if(mtCurrentId) {
-      mtLoad();
-      const m = mtMeetings.find(x=>x.id===mtCurrentId);
-      if(m) { m.summary = text; mtSaveAll(); }
-    }
-
+    statusEl.textContent = '✅ Готово! Теперь нажмите «AI-резюме из текста»';
     showToast('Транскрипция готова ✓');
   } catch(e) {
-    console.error(e);
-    showToast('Ошибка транскрипции: ' + (e.message||'неизвестная'));
+    statusEl.textContent = '❌ Ошибка: ' + (e.message||'неизвестная');
+    showToast('Ошибка: ' + (e.message||'проверьте API ключ'));
   } finally {
-    document.getElementById('mt-transcribe-status').style.display = 'none';
-    document.getElementById('mt-transcribe-btn').disabled = false;
-    document.getElementById('mt-ai-loading').style.display = 'none';
+    btn.disabled = false;
   }
 }
+
+async function mtWhisperChunk(blob, apiKey, statusEl, chunkIdx) {
+  const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('webm') ? 'webm' :
+              blob.type.includes('wav') ? 'wav' : blob.type.includes('ogg') ? 'ogg' : 'mp3';
+  const form = new FormData();
+  form.append('file', blob, `audio_${chunkIdx||0}.${ext}`);
+  form.append('model', 'whisper-1');
+  form.append('language', 'ru');
+
+  const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + apiKey },
+    body: form
+  });
+  if(!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error(err?.error?.message || 'HTTP ' + resp.status);
+  }
+  const data = await resp.json();
+  return data.text || '';
+}
+
 </script>
 </body>
 </html>
