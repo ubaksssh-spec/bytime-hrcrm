@@ -786,6 +786,7 @@ tbody tr:last-child{border-bottom:none}
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn btn-bv" onclick="mtGenerateSummary()" id="mt-ai-btn">✨ AI-резюме из текста</button>
                 <button class="btn btn-ghost" onclick="mtSave()">💾 Сохранить</button>
+                <button class="btn btn-ghost" onclick="mtCreateRoadmap()" id="mt-roadmap-btn" style="background:rgba(2,70,56,.08);color:var(--em);border-color:var(--em)">🗺 Дорожная карта → Операционка</button>
                 <button id="mt-share-btn" class="btn btn-ghost btn-sm" style="display:none;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;border:1.5px solid currentColor">🔗 Поделиться</button>
                 <div style="flex:1"></div>
                 <button class="btn btn-ghost" onclick="mtExportPDF()" title="Экспорт PDF">↓ PDF</button>
@@ -7815,6 +7816,133 @@ async function mtWhisperChunk(blob, apiKey, statusEl, chunkIdx) {
   }
   const data = await resp.json();
   return data.text || '';
+}
+
+// ─── ROADMAP GENERATOR → ОПЕРАЦИОНКА ─────────────────────
+async function mtCreateRoadmap() {
+  const title        = document.getElementById('mt-title').value.trim();
+  const notes        = document.getElementById('mt-notes').value.trim();
+  const decisions    = document.getElementById('mt-decisions').value.trim();
+  const tasks        = document.getElementById('mt-tasks').value.trim();
+  const client       = document.getElementById('mt-client').value.trim();
+  const participants = document.getElementById('mt-participants').value.trim();
+  const summary      = document.getElementById('mt-summary-text').textContent.trim();
+
+  if (!notes && !decisions && !tasks && !summary) {
+    showToast('Заполните хотя бы одно поле встречи'); return;
+  }
+
+  const btn = document.getElementById('mt-roadmap-btn');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ Генерирую дорожную карту...';
+  btn.disabled = true;
+
+  try {
+    const prompt = `Ты — операционный директор агентства BYTIME. На основе материалов встречи составь дорожную карту проекта.
+
+Встреча: ${title || '—'}
+Клиент: ${client || '—'}
+Участники: ${participants || '—'}
+
+${summary ? 'Резюме:\n' + summary : ''}
+${notes ? 'Заметки:\n' + notes : ''}
+${decisions ? 'Решения:\n' + decisions : ''}
+${tasks ? 'Задачи:\n' + tasks : ''}
+
+Сформируй дорожную карту в виде JSON массива задач. Каждая задача — объект:
+{
+  "etap": "Название этапа",
+  "task": "Конкретная задача",
+  "resp": "Ответственный (если упоминался)",
+  "status": "Не в работе",
+  "result": "Ожидаемый результат",
+  "start": "YYYY-MM-DD",
+  "deadline": "YYYY-MM-DD"
+}
+
+Правила:
+- Группируй задачи по логическим этапам (3-7 этапов)
+- В каждом этапе 2-5 задач
+- Даты: старт от сегодня (${new Date().toISOString().split('T')[0]}), реалистичные дедлайны (1-2 недели на этап)
+- Ответственный: имя из участников или оставь пустым
+- Задачи конкретные и измеримые
+
+Верни ТОЛЬКО JSON массив, без объяснений и markdown.`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+
+    const data = await resp.json();
+    let text = data.content?.[0]?.text || '';
+
+    // Strip markdown fences if present
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+    let roadmapTasks;
+    try {
+      roadmapTasks = JSON.parse(text);
+    } catch(e) {
+      throw new Error('Не удалось разобрать JSON от AI. Попробуйте ещё раз.');
+    }
+
+    if (!Array.isArray(roadmapTasks) || !roadmapTasks.length) {
+      throw new Error('Пустая дорожная карта');
+    }
+
+    // Create new project in Операционка clients array
+    const colors = ['var(--bv)','var(--em)','var(--bronze)','#7b4fa6','#2980b9'];
+    const newProject = {
+      id: 'proj_' + Date.now(),
+      name: (client || title || 'Проект из встречи') + (client && title ? ' — ' + title : ''),
+      manager: currentUser?.name || '',
+      status: 'В работе',
+      start: new Date().toISOString().split('T')[0],
+      color: colors[clients.length % colors.length],
+      crmClientId: null,
+      crmClientName: null,
+      comment: `Создан из встречи: ${title || '—'} (${new Date().toLocaleDateString('ru-RU')})`,
+      tasks: roadmapTasks.map(t => ({
+        etap:     t.etap     || 'Этап',
+        task:     t.task     || '—',
+        resp:     t.resp     || '',
+        status:   t.status   || 'Не в работе',
+        result:   t.result   || '',
+        start:    t.start    || new Date().toISOString().split('T')[0],
+        deadline: t.deadline || '',
+      }))
+    };
+
+    clients.push(newProject);
+
+    // Auto-save if saveClients exists
+    if (typeof saveClients === 'function') saveClients();
+
+    // Navigate to Операционка and open project
+    showToast(`Проект «${newProject.name}» создан в Операционке ✓`);
+
+    // Save meeting first
+    mtSave();
+
+    // Navigate to Операционка after short delay
+    setTimeout(() => {
+      nav('projects');
+      setTimeout(() => openClientView(newProject.id), 300);
+    }, 800);
+
+  } catch(e) {
+    console.error(e);
+    showToast('Ошибка: ' + (e.message || 'неизвестная'));
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
 }
 
 </script>
